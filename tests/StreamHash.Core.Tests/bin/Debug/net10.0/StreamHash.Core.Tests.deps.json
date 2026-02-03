@@ -10,9 +10,9 @@
         "dependencies": {
           "FluentAssertions": "8.8.0",
           "Microsoft.NET.Test.Sdk": "17.14.1",
-          "StreamHash": "1.0.0",
+          "StreamHash": "1.1.0",
           "xunit": "2.9.3",
-          "StreamHash.Core": "1.0.0.0"
+          "StreamHash.Core": "1.1.0.0"
         },
         "runtime": {
           "StreamHash.Core.Tests.dll": {}
@@ -341,19 +341,19 @@
           }
         }
       },
-      "StreamHash/1.0.0": {
+      "StreamHash/1.1.0": {
         "runtime": {
           "StreamHash.Core.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.0.0"
           }
         }
       },
-      "StreamHash.Core/1.0.0.0": {
+      "StreamHash.Core/1.1.0.0": {
         "runtime": {
           "StreamHash.Core.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.0.0"
           }
         }
       }
@@ -449,12 +449,12 @@
       "path": "xunit.extensibility.execution/2.9.3",
       "hashPath": "xunit.extensibility.execution.2.9.3.nupkg.sha512"
     },
-    "StreamHash/1.0.0": {
+    "StreamHash/1.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
-    "StreamHash.Core/1.0.0.0": {
+    "StreamHash.Core/1.1.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

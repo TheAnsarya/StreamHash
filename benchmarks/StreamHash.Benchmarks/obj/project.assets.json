@@ -491,7 +491,7 @@
           "lib/netcoreapp2.0/_._": {}
         }
       },
-      "StreamHash/1.0.0": {
+      "StreamHash/1.1.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "compile": {
@@ -1843,7 +1843,7 @@
         "version.txt"
       ]
     },
-    "StreamHash/1.0.0": {
+    "StreamHash/1.1.0": {
       "type": "project",
       "path": "../../src/StreamHash.Core/StreamHash.Core.csproj",
       "msbuildProject": "../../src/StreamHash.Core/StreamHash.Core.csproj"
@@ -1852,7 +1852,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "BenchmarkDotNet >= 0.*",
-      "StreamHash >= 1.0.0"
+      "StreamHash >= 1.1.0"
     ]
   },
   "packageFolders": {

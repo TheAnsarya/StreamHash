@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {
-      "StreamHash.Core/1.0.0": {
+      "StreamHash.Core/1.1.0": {
         "runtime": {
           "StreamHash.Core.dll": {}
         }
@@ -14,7 +14,7 @@
     }
   },
   "libraries": {
-    "StreamHash.Core/1.0.0": {
+    "StreamHash.Core/1.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

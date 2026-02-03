@@ -643,6 +643,269 @@
             </remarks>
             <exception cref="T:System.ObjectDisposedException">The hasher has been disposed.</exception>
         </member>
+        <member name="T:StreamHash.Core.KangarooTwelve">
+             <summary>
+             Streaming implementation of KangarooTwelve (K12), a fast extendable-output function.
+             </summary>
+             <remarks>
+             <para>
+             KangarooTwelve is a fast hash function based on Keccak-p[1600, 12] with reduced rounds.
+             It uses only 12 rounds (vs 24 in SHA-3) while maintaining excellent security margins.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> Variable length (XOF - extendable-output function)</item>
+             <item><b>Block Size:</b> 8192 bytes (chaining value block)</item>
+             <item><b>State Size:</b> 1600 bits (200 bytes)</item>
+             <item><b>Security:</b> 128-bit security level</item>
+             <item><b>Speed:</b> ~10+ GB/s on modern CPUs with SIMD</item>
+             </list>
+             </para>
+             <para>
+             <b>Structure:</b>
+             <list type="bullet">
+             <item>Uses Keccak-p[1600, 12] as the underlying permutation</item>
+             <item>Supports tree hashing for parallel processing (not used in streaming mode)</item>
+             <item>Customization string support for domain separation</item>
+             <item>XOF mode allows arbitrary output length</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>High-speed hashing for large files</item>
+             <item>Key derivation functions</item>
+             <item>Generating random-looking output of any length</item>
+             <item>Post-quantum secure applications</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://keccak.team/kangarootwelve.html">KangarooTwelve Official Page</see></item>
+             <item><see href="https://eprint.iacr.org/2016/770.pdf">KangarooTwelve Paper</see></item>
+             <item><see href="https://github.com/XKCP/XKCP">XKCP Reference Implementation</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Simple hash with default 32-byte output
+             using var hasher = new KangarooTwelve();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             byte[] hash = hasher.Finalize();
+            
+             // With customization string
+             using var hasher2 = new KangarooTwelve(customization: Encoding.UTF8.GetBytes("MyApp"));
+             hasher2.Update(data);
+             byte[] hash2 = hasher2.Finalize();
+            
+             // Custom output length (64 bytes)
+             using var hasher3 = new KangarooTwelve(outputLength: 64);
+             hasher3.Update(data);
+             byte[] hash3 = hasher3.Finalize();
+             </code>
+             </example>
+             <remarks>
+             <para>
+             This class does not implement <see cref="T:StreamHash.Core.IStreamingHash`1"/> because KangarooTwelve
+             is an XOF (extendable-output function) with variable-length output, which cannot be
+             represented as a fixed-size struct type.
+             </para>
+             </remarks>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.Rate">
+            <summary>
+            Rate for Keccak-p[1600, 12] in K12 (1600 - 256 = 1344 bits = 168 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.KeccakBlockSize">
+            <summary>
+            Block size for the inner Keccak absorb.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.ChunkSize">
+            <summary>
+            Chunk size for tree hashing (8192 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.Rounds">
+            <summary>
+            Number of Keccak-p rounds (12 for K12).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.RoundConstants">
+            <summary>
+            Keccak round constants for iota step.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.RhoOffsets">
+            <summary>
+            Rotation offsets for the rho step.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._state">
+            <summary>
+            The Keccak state (25 64-bit words = 1600 bits).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._buffer">
+            <summary>
+            Buffer for absorbing data.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._bufferPosition">
+            <summary>
+            Current position in the buffer.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._totalBytes">
+            <summary>
+            Total bytes processed so far.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._finalized">
+            <summary>
+            Whether Finalize has been called.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._disposed">
+            <summary>
+            Whether the instance has been disposed.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._customization">
+            <summary>
+            The customization string (optional).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._outputLength">
+            <summary>
+            The desired output length in bytes.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkCount">
+            <summary>
+            Number of complete chunks processed.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkBuffer">
+            <summary>
+            Buffer for current chunk data.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkPosition">
+            <summary>
+            Position within current chunk.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._inFirstChunk">
+            <summary>
+            Whether we're still in the first chunk.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chainingValues">
+            <summary>
+            Chaining values for tree hashing.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.#ctor(System.Int32,System.Byte[])">
+            <summary>
+            Creates a new KangarooTwelve hasher with default settings.
+            </summary>
+            <param name="outputLength">Desired output length in bytes. Default is 32.</param>
+            <param name="customization">Optional customization string for domain separation.</param>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.ProcessChunk">
+            <summary>
+            Processes a complete chunk.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.ComputeChainingValue(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes a 32-byte chaining value for a chunk.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbIntoState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Absorbs data into the main state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.XorIntoState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            XORs a rate-sized block into the state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbBlock(System.UInt64[],System.ReadOnlySpan{System.Byte},System.Byte)">
+            <summary>
+            Absorbs a block into a given state with domain separation.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.PadAndPermute(System.UInt64[],System.Byte)">
+            <summary>
+            Pads and performs final permutation.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbCustomization">
+            <summary>
+            Absorbs the customization string.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbLengthEncoding(System.Int32)">
+            <summary>
+            Absorbs the right-encoded length.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Squeeze(System.Int32)">
+            <summary>
+            Squeezes output bytes from the state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.KeccakPermutation">
+            <summary>
+            Performs the Keccak-p[1600, 12] permutation on the instance state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.KeccakPermutation(System.UInt64[])">
+            <summary>
+            Performs the Keccak-p[1600, 12] permutation.
+            </summary>
+            <param name="state">The 25-word state to permute.</param>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Hash(System.ReadOnlySpan{System.Byte},System.Int32,System.Byte[])">
+            <summary>
+            Computes KangarooTwelve of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="outputLength">Desired output length in bytes.</param>
+            <param name="customization">Optional customization string.</param>
+            <returns>The hash value.</returns>
+        </member>
         <member name="T:StreamHash.Core.MurmurHash3_128">
             <summary>
             Streaming implementation of MurmurHash3 128-bit x64 hash algorithm.

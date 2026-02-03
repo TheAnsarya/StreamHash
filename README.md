@@ -30,6 +30,7 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 | SipHash-2-4 | 64-bit | ✅ | ❌ | ✅ Complete |
 | FarmHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
 | HighwayHash64 | 64-bit | ✅ | 🚧 | ✅ Complete |
+| KangarooTwelve | Variable (XOF) | ✅ | ❌ | ✅ Complete |
 
 ## 🚀 Quick Start
 
