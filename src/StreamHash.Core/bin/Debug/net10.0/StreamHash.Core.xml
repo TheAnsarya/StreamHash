@@ -1,0 +1,707 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>StreamHash.Core</name>
+    </assembly>
+    <members>
+        <member name="T:StreamHash.Core.IStreamingHash`1">
+            <summary>
+            Interface for streaming hash algorithms that can process data incrementally.
+            </summary>
+            <typeparam name="TResult">The type of the hash result (uint, ulong, byte[], UInt128, etc.)</typeparam>
+            <remarks>
+            <para>
+            Streaming hash algorithms allow data to be processed in chunks rather than all at once,
+            enabling constant memory usage regardless of input size.
+            </para>
+            <para>
+            <b>Usage Pattern:</b>
+            <code>
+            using var hasher = new MurmurHash3_32();
+            hasher.Update(chunk1);
+            hasher.Update(chunk2);
+            hasher.Update(chunk3);
+            uint hash = hasher.Finalize();
+            </code>
+            </para>
+            <para>
+            <b>Thread Safety:</b> Implementations are NOT thread-safe. Each thread should use its own instance.
+            </para>
+            </remarks>
+            <seealso cref="T:StreamHash.Core.StreamingHashBase`1"/>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHash`1.BlockSize">
+            <summary>
+            Gets the block size in bytes that the algorithm processes internally.
+            </summary>
+            <remarks>
+            <para>
+            Data is buffered until a complete block is available for processing.
+            For optimal performance, provide data in multiples of this block size.
+            </para>
+            <para>
+            Common block sizes:
+            <list type="bullet">
+            <item>MurmurHash3-32: 4 bytes</item>
+            <item>MurmurHash3-128: 16 bytes</item>
+            <item>CityHash64: 32 bytes</item>
+            <item>CityHash128: 16 bytes</item>
+            <item>SpookyHash: 96 bytes</item>
+            <item>SipHash: 8 bytes</item>
+            <item>FarmHash: 64 bytes</item>
+            <item>HighwayHash: 32 bytes</item>
+            </list>
+            </para>
+            </remarks>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHash`1.DigestSize">
+            <summary>
+            Gets the size of the hash output in bytes.
+            </summary>
+            <remarks>
+            <para>
+            Common digest sizes:
+            <list type="bullet">
+            <item>32-bit hashes: 4 bytes</item>
+            <item>64-bit hashes: 8 bytes</item>
+            <item>128-bit hashes: 16 bytes</item>
+            </list>
+            </para>
+            </remarks>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHash`1.TotalBytesProcessed">
+            <summary>
+            Gets the total number of bytes that have been processed so far.
+            </summary>
+            <remarks>
+            This includes both fully processed blocks and any pending data in the internal buffer.
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHash`1.Update(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Appends data to the hash computation.
+            </summary>
+            <param name="data">The data to add to the hash computation.</param>
+            <remarks>
+            <para>
+            Data is accumulated in an internal buffer until a complete block is available.
+            When enough data is accumulated, full blocks are processed immediately.
+            </para>
+            <para>
+            <b>Performance Tips:</b>
+            <list type="bullet">
+            <item>Provide data in multiples of <see cref="P:StreamHash.Core.IStreamingHash`1.BlockSize"/> for best performance</item>
+            <item>Use <see cref="T:System.ReadOnlySpan`1"/> to avoid copying data</item>
+            <item>For file hashing, use a buffer size that is a multiple of the block size</item>
+            </list>
+            </para>
+            </remarks>
+            <exception cref="T:System.ObjectDisposedException">The hasher has been disposed.</exception>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHash`1.Finalize">
+            <summary>
+            Completes the hash computation and returns the result.
+            </summary>
+            <returns>The computed hash value.</returns>
+            <remarks>
+            <para>
+            After calling <see cref="M:StreamHash.Core.IStreamingHash`1.Finalize"/>, the hasher is in an invalid state.
+            Call <see cref="M:StreamHash.Core.IStreamingHash`1.Reset"/> before processing more data, or dispose and create a new instance.
+            </para>
+            <para>
+            This method processes any remaining buffered data with appropriate padding.
+            </para>
+            </remarks>
+            <exception cref="T:System.ObjectDisposedException">The hasher has been disposed.</exception>
+            <exception cref="T:System.InvalidOperationException">Finalize has already been called without a subsequent Reset.</exception>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHash`1.Reset">
+            <summary>
+            Resets the hasher to its initial state, ready to compute a new hash.
+            </summary>
+            <remarks>
+            <para>
+            After calling <see cref="M:StreamHash.Core.IStreamingHash`1.Reset"/>, the hasher is in the same state as a newly created instance
+            with the same seed/key parameters.
+            </para>
+            <para>
+            This method clears all internal state including:
+            <list type="bullet">
+            <item>Accumulated hash state</item>
+            <item>Internal buffer contents</item>
+            <item>Total bytes processed counter</item>
+            </list>
+            </para>
+            </remarks>
+            <exception cref="T:System.ObjectDisposedException">The hasher has been disposed.</exception>
+        </member>
+        <member name="T:StreamHash.Core.MurmurHash3_128">
+            <summary>
+            Streaming implementation of MurmurHash3 128-bit x64 hash algorithm.
+            </summary>
+            <remarks>
+            <para>
+            MurmurHash3 128-bit x64 is optimized for 64-bit processors and produces
+            a 128-bit hash value, providing better collision resistance than the 32-bit variant.
+            </para>
+            <para>
+            <b>Algorithm Characteristics:</b>
+            <list type="bullet">
+            <item><b>Output:</b> 128-bit hash value (as <see cref="T:System.UInt128"/>)</item>
+            <item><b>Block Size:</b> 16 bytes</item>
+            <item><b>Speed:</b> ~5-7 GB/s on modern 64-bit CPUs</item>
+            <item><b>Collision Resistance:</b> Excellent for hash tables, NOT cryptographically secure</item>
+            </list>
+            </para>
+            <para>
+            <b>Performance Notes:</b>
+            <list type="bullet">
+            <item>Optimized for 64-bit processors; use 32-bit variant on 32-bit systems</item>
+            <item>Processes 16 bytes per iteration for maximum throughput</item>
+            <item>Uses rotation and multiplication for mixing</item>
+            </list>
+            </para>
+            <para>
+            <b>References:</b>
+            <list type="bullet">
+            <item><see href="https://github.com/aappleby/smhasher">SMHasher - Original MurmurHash repository</see></item>
+            <item><see href="https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp">Original C++ Implementation</see></item>
+            </list>
+            </para>
+            </remarks>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_128.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_128.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_128.Seed">
+            <summary>
+            Gets the seed value used for this hash instance.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.#ctor">
+            <summary>
+            Creates a new MurmurHash3 128-bit hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.#ctor(System.UInt32)">
+            <summary>
+            Creates a new MurmurHash3 128-bit hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value for hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.FMix64(System.UInt64)">
+            <summary>
+            MurmurHash3 64-bit finalization mix.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_128.Hash(System.ReadOnlySpan{System.Byte},System.UInt32)">
+            <summary>
+            Computes the MurmurHash3 128-bit hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value (default: 0).</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.MurmurHash3_32">
+            <summary>
+            Streaming implementation of MurmurHash3 32-bit hash algorithm.
+            </summary>
+            <remarks>
+            <para>
+            MurmurHash3 is a non-cryptographic hash function created by Austin Appleby in 2008.
+            It is designed for fast hashing with excellent distribution properties.
+            </para>
+            <para>
+            <b>Algorithm Characteristics:</b>
+            <list type="bullet">
+            <item><b>Output:</b> 32-bit hash value</item>
+            <item><b>Block Size:</b> 4 bytes</item>
+            <item><b>Speed:</b> ~3-5 GB/s on modern CPUs</item>
+            <item><b>Collision Resistance:</b> Good for hash tables, NOT cryptographically secure</item>
+            </list>
+            </para>
+            <para>
+            <b>Use Cases:</b>
+            <list type="bullet">
+            <item>Hash tables and hash maps</item>
+            <item>Bloom filters</item>
+            <item>Data partitioning/sharding</item>
+            <item>Checksums (non-security critical)</item>
+            </list>
+            </para>
+            <para>
+            <b>References:</b>
+            <list type="bullet">
+            <item><see href="https://github.com/aappleby/smhasher">SMHasher - Original MurmurHash repository</see></item>
+            <item><see href="https://en.wikipedia.org/wiki/MurmurHash">Wikipedia - MurmurHash</see></item>
+            </list>
+            </para>
+            </remarks>
+            <example>
+            <code>
+            // Basic usage
+            using var hasher = new MurmurHash3_32();
+            hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+            uint hash = hasher.Finalize();
+            
+            // With custom seed
+            using var seededHasher = new MurmurHash3_32(seed: 0xdeadbeef);
+            seededHasher.Update(data);
+            uint seededHash = seededHasher.Finalize();
+            
+            // Stream processing
+            using var streamHasher = new MurmurHash3_32();
+            using var file = File.OpenRead("largefile.bin");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = file.Read(buffer)) > 0) {
+                streamHasher.Update(buffer.AsSpan(0, read));
+            }
+            uint fileHash = streamHasher.Finalize();
+            </code>
+            </example>
+        </member>
+        <member name="F:StreamHash.Core.MurmurHash3_32.C1">
+            <summary>
+            MurmurHash3 constant c1 for 32-bit variant.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.MurmurHash3_32.C2">
+            <summary>
+            MurmurHash3 constant c2 for 32-bit variant.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_32.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_32.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MurmurHash3_32.Seed">
+            <summary>
+            Gets the seed value used for this hash instance.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.#ctor">
+            <summary>
+            Creates a new MurmurHash3 32-bit hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.#ctor(System.UInt32)">
+            <summary>
+            Creates a new MurmurHash3 32-bit hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value for hash computation.</param>
+            <remarks>
+            Using different seeds produces different hash values for the same input.
+            This is useful for creating multiple independent hash functions for techniques
+            like Bloom filters or double hashing.
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.FMix32(System.UInt32)">
+            <summary>
+            MurmurHash3 finalization mix - force all bits to avalanche.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MurmurHash3_32.Hash(System.ReadOnlySpan{System.Byte},System.UInt32)">
+            <summary>
+            Computes the MurmurHash3 32-bit hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value (default: 0).</param>
+            <returns>The 32-bit hash value.</returns>
+            <remarks>
+            This is a convenience method for hashing data that fits in memory.
+            For streaming scenarios, create an instance and use Update/Finalize.
+            </remarks>
+        </member>
+        <member name="T:StreamHash.Core.SipHash24">
+            <summary>
+            Streaming implementation of SipHash-2-4, a cryptographically secure PRF.
+            </summary>
+            <remarks>
+            <para>
+            SipHash is a family of pseudorandom functions (PRFs) optimized for short inputs.
+            SipHash-2-4 uses 2 compression rounds and 4 finalization rounds.
+            </para>
+            <para>
+            <b>Algorithm Characteristics:</b>
+            <list type="bullet">
+            <item><b>Output:</b> 64-bit hash value</item>
+            <item><b>Block Size:</b> 8 bytes</item>
+            <item><b>Key Size:</b> 128 bits (16 bytes)</item>
+            <item><b>Security:</b> Cryptographically secure PRF (keyed hash)</item>
+            <item><b>Speed:</b> ~2-4 GB/s on modern CPUs</item>
+            </list>
+            </para>
+            <para>
+            <b>Security Properties:</b>
+            <list type="bullet">
+            <item>PRF security: Output is indistinguishable from random given unknown key</item>
+            <item>Resistant to hash-flooding attacks on hash tables</item>
+            <item>NOT suitable for password hashing (use Argon2, bcrypt, etc.)</item>
+            <item>NOT collision-resistant without knowing the key</item>
+            </list>
+            </para>
+            <para>
+            <b>Use Cases:</b>
+            <list type="bullet">
+            <item>Hash table protection against algorithmic complexity attacks</item>
+            <item>Message authentication codes (MAC)</item>
+            <item>Network packet authentication</item>
+            </list>
+            </para>
+            <para>
+            <b>References:</b>
+            <list type="bullet">
+            <item><see href="https://131002.net/siphash/">SipHash Official Website</see></item>
+            <item><see href="https://www.aumasson.jp/siphash/siphash.pdf">SipHash Paper (Aumasson &amp; Bernstein)</see></item>
+            <item><see href="https://github.com/veorq/SipHash">Reference Implementation</see></item>
+            </list>
+            </para>
+            </remarks>
+            <example>
+            <code>
+            // Create a 128-bit key
+            ReadOnlySpan&lt;byte&gt; key = stackalloc byte[16] { 
+                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f 
+            };
+            
+            using var hasher = new SipHash24(key);
+            hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+            ulong hash = hasher.Finalize();
+            </code>
+            </example>
+        </member>
+        <member name="P:StreamHash.Core.SipHash24.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.SipHash24.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.#ctor">
+            <summary>
+            Creates a new SipHash-2-4 hasher with a zero key.
+            </summary>
+            <remarks>
+            Using a zero key provides no security benefits. Always use a random key
+            in security-sensitive applications.
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.#ctor(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Creates a new SipHash-2-4 hasher with the specified 128-bit key.
+            </summary>
+            <param name="key">A 16-byte key. Must be exactly 16 bytes.</param>
+            <exception cref="T:System.ArgumentException">Key is not exactly 16 bytes.</exception>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.#ctor(System.UInt64,System.UInt64)">
+            <summary>
+            Creates a new SipHash-2-4 hasher with the specified key halves.
+            </summary>
+            <param name="k0">First 64 bits of the key.</param>
+            <param name="k1">Second 64 bits of the key.</param>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.SipRound">
+            <summary>
+            One round of SipHash mixing.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.Hash(System.ReadOnlySpan{System.Byte},System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes SipHash-2-4 of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="key">A 16-byte key.</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.SipHash24.Hash(System.ReadOnlySpan{System.Byte},System.UInt64,System.UInt64)">
+            <summary>
+            Computes SipHash-2-4 of the given data with key components.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="k0">First 64 bits of the key.</param>
+            <param name="k1">Second 64 bits of the key.</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.SpookyHash128">
+            <summary>
+            Streaming implementation of SpookyHash V2 128-bit hash algorithm.
+            </summary>
+            <remarks>
+            <para>
+            SpookyHash is a non-cryptographic hash function created by Bob Jenkins.
+            Version 2 fixes a weakness in Version 1 and is the recommended version.
+            </para>
+            <para>
+            <b>Algorithm Characteristics:</b>
+            <list type="bullet">
+            <item><b>Output:</b> 128-bit hash value (or 64-bit truncated)</item>
+            <item><b>Block Size:</b> 96 bytes (optimal), processes 8 bytes at a time</item>
+            <item><b>Speed:</b> ~8-10 GB/s on modern 64-bit CPUs</item>
+            <item><b>Collision Resistance:</b> Excellent for hash tables, NOT cryptographically secure</item>
+            </list>
+            </para>
+            <para>
+            <b>Design Goals:</b>
+            <list type="bullet">
+            <item>Fast for long keys (messages)</item>
+            <item>Produce well-distributed hash values</item>
+            <item>Every bit of the input affects every bit of the output</item>
+            </list>
+            </para>
+            <para>
+            <b>Short vs Long Input:</b>
+            SpookyHash uses different code paths for short (&lt;192 bytes) and long inputs
+            to optimize performance. This streaming implementation handles both cases.
+            </para>
+            <para>
+            <b>References:</b>
+            <list type="bullet">
+            <item><see href="http://burtleburtle.net/bob/hash/spooky.html">SpookyHash Official Page</see></item>
+            <item><see href="https://github.com/centaurean/spookyhash">SpookyHash GitHub</see></item>
+            </list>
+            </para>
+            </remarks>
+        </member>
+        <member name="F:StreamHash.Core.SpookyHash128.SC">
+            <summary>
+            Magic constant: the golden ratio, an arbitrary constant.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.SpookyHash128.NumVars">
+            <summary>
+            Number of 64-bit words in the internal state.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.SpookyHash128.BlockSizeBytes">
+            <summary>
+            Block size in bytes (96 = NumVars * 8).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.SpookyHash128.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.SpookyHash128.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.#ctor">
+            <summary>
+            Creates a new SpookyHash V2 hasher with zero seeds.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.#ctor(System.UInt64,System.UInt64)">
+            <summary>
+            Creates a new SpookyHash V2 hasher with the specified seeds.
+            </summary>
+            <param name="seed1">First 64-bit seed.</param>
+            <param name="seed2">Second 64-bit seed.</param>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ShortHash(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Short hash for messages less than 192 bytes.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.Mix(System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64,System.UInt64)">
+            <summary>
+            The main mixing function for long messages.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.EndPartial(System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@)">
+            <summary>
+            End mixing partial.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ShortMix(System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@)">
+            <summary>
+            Short message mixing.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.ShortEnd(System.UInt64@,System.UInt64@,System.UInt64@,System.UInt64@)">
+            <summary>
+            Short message finalization.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.SpookyHash128.Hash(System.ReadOnlySpan{System.Byte},System.UInt64,System.UInt64)">
+            <summary>
+            Computes SpookyHash V2 128-bit hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed1">First 64-bit seed (default: 0).</param>
+            <param name="seed2">Second 64-bit seed (default: 0).</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.StreamingHashBase`1">
+            <summary>
+            Base class for streaming hash implementations providing common functionality.
+            </summary>
+            <typeparam name="TResult">The type of the hash result.</typeparam>
+            <remarks>
+            <para>
+            This abstract base class handles common streaming hash operations:
+            <list type="bullet">
+            <item>Internal buffer management with <see cref="T:System.Buffers.ArrayPool`1"/> for efficiency</item>
+            <item>State tracking (total bytes, finalized flag)</item>
+            <item>Disposal pattern implementation</item>
+            <item>Block-based processing orchestration</item>
+            </list>
+            </para>
+            <para>
+            <b>Implementing a New Hash Algorithm:</b>
+            <code>
+            public class MyHash : StreamingHashBase&lt;uint&gt;
+            {
+                public override int BlockSize => 4;
+                public override int DigestSize => 4;
+                
+                private uint _state;
+                
+                protected override void ProcessBlock(ReadOnlySpan&lt;byte&gt; block) {
+                    // Process one complete block
+                    _state ^= BinaryPrimitives.ReadUInt32LittleEndian(block);
+                }
+                
+                protected override uint ComputeFinal(ReadOnlySpan&lt;byte&gt; remaining) {
+                    // Handle remaining bytes and return final hash
+                    return _state ^ (uint)TotalBytesProcessed;
+                }
+                
+                protected override void ResetCore() {
+                    _state = 0;
+                }
+            }
+            </code>
+            </para>
+            </remarks>
+        </member>
+        <member name="P:StreamHash.Core.StreamingHashBase`1.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.StreamingHashBase`1.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.StreamingHashBase`1.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.StreamingHashBase`1.IsFinalized">
+            <summary>
+            Gets whether the hasher has been finalized and needs to be reset before further use.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.StreamingHashBase`1.Buffer">
+            <summary>
+            Gets the internal buffer as a span.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.#ctor">
+            <summary>
+            Initializes a new instance of the streaming hash.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a complete block of data.
+            </summary>
+            <param name="block">A span containing exactly <see cref="P:StreamHash.Core.StreamingHashBase`1.BlockSize"/> bytes.</param>
+            <remarks>
+            <para>
+            This method is called for each complete block of input data.
+            Implementations should update their internal hash state based on the block contents.
+            </para>
+            <para>
+            The span is guaranteed to be exactly <see cref="P:StreamHash.Core.StreamingHashBase`1.BlockSize"/> bytes long.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes the final hash value from any remaining data.
+            </summary>
+            <param name="remaining">Any data that didn't form a complete block (0 to BlockSize-1 bytes).</param>
+            <returns>The final hash value.</returns>
+            <remarks>
+            <para>
+            This method is called by <see cref="M:StreamHash.Core.StreamingHashBase`1.Finalize"/> to complete the hash computation.
+            It receives any buffered data that didn't form a complete block.
+            </para>
+            <para>
+            Implementations should:
+            <list type="bullet">
+            <item>Process the remaining bytes with appropriate padding</item>
+            <item>Apply any final mixing/finalization steps</item>
+            <item>Return the final hash value</item>
+            </list>
+            </para>
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.ResetCore">
+            <summary>
+            Resets the algorithm-specific internal state.
+            </summary>
+            <remarks>
+            <para>
+            Called by <see cref="M:StreamHash.Core.StreamingHashBase`1.Reset"/> after the base class state is cleared.
+            Implementations should reset all algorithm-specific state variables to their initial values.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.Dispose(System.Boolean)">
+            <summary>
+            Releases resources used by the hasher.
+            </summary>
+            <param name="disposing">True if called from Dispose(), false if from finalizer.</param>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.Dispose">
+            <inheritdoc/>
+        </member>
+    </members>
+</doc>
