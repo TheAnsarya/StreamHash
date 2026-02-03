@@ -1,0 +1,40 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+*.csproj.user
+
+# Rider
+.idea/
+
+# Test results
+TestResults/
+*.trx
+
+# Benchmark results
+BenchmarkDotNet.Artifacts/
+
+# Code coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# Misc
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
