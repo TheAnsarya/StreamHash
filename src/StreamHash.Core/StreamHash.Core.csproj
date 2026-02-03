@@ -10,17 +10,18 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.1.0</Version>
+		<Version>1.2.0</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, and HighwayHash. All algorithms support incremental/streaming updates with excellent performance.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;performance;incremental</PackageTags>
+		<Description>High-performance streaming hash library for .NET 10. Includes MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, and xxHash (32/64/3/128). All 16 algorithms support incremental/streaming updates with excellent performance.</Description>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;performance;incremental</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
+		<PackageReleaseNotes>v1.2.0: Added wyhash64, xxHash (32/64/3/128) wrappers. 16 algorithms total, 532 tests.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
