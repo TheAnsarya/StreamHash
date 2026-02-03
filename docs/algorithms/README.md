@@ -1,4 +1,4 @@
-# StreamHash Algorithm Reference
+﻿# StreamHash Algorithm Reference
 
 This directory contains detailed documentation for each streaming hash algorithm implemented in StreamHash.
 

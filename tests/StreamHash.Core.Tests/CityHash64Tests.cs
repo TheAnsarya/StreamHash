@@ -1,4 +1,4 @@
-namespace StreamHash.Core.Tests;
+﻿namespace StreamHash.Core.Tests;
 
 /// <summary>
 /// Unit tests for <see cref="CityHash64"/> streaming hash implementation.

@@ -1,4 +1,4 @@
-# HighwayHash
+﻿# HighwayHash
 
 ## Overview
 

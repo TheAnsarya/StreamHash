@@ -1,4 +1,4 @@
-# FarmHash
+﻿# FarmHash
 
 ## Overview
 
