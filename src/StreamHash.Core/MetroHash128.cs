@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of MetroHash128, an extremely fast non-cryptographic hash.

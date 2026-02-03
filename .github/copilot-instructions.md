@@ -161,3 +161,23 @@ Avoid obvious copyright issues if you can, only for legal reasons. The project o
 
 Note: Some algorithm implementations reference other implementations. Document attributions in THIRD_PARTY_NOTICES.md for good faith, not legal requirement.
 
+## ⚠️ CRITICAL: Never Abandon Planned Work
+
+**When something is complicated, DO NOT ignore it or refuse to implement it.**
+
+Instead:
+1. **Create detailed issues** breaking down the complexity into manageable parts
+2. **Create detailed todos** tracking each step
+3. **Create plans/docs** explaining the approach and challenges
+4. **Implement it** in the next session or continue working through the complexity
+
+**Never throw away scheduled work.** If an algorithm is difficult to implement:
+- Research the algorithm more thoroughly
+- Study reference implementations
+- Break it into smaller pieces
+- Document what's hard and why
+- Create a plan to solve it
+- Then implement it
+
+The goal is to implement EVERYTHING we plan to implement. Complexity is not an excuse to skip work.
+

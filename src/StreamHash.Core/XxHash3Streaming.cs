@@ -1,4 +1,4 @@
-using System.IO.Hashing;
+﻿using System.IO.Hashing;
 
 namespace StreamHash.Core;
 

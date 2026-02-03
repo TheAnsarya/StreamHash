@@ -1,4 +1,4 @@
-namespace StreamHash.Core.Tests;
+﻿namespace StreamHash.Core.Tests;
 
 /// <summary>
 /// Tests for MetroHash64 streaming implementation.
