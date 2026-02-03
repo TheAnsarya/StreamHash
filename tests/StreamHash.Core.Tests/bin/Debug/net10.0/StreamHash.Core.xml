@@ -906,6 +906,195 @@
             <param name="customization">Optional customization string.</param>
             <returns>The hash value.</returns>
         </member>
+        <member name="T:StreamHash.Core.MetroHash128">
+             <summary>
+             Streaming implementation of MetroHash128, an extremely fast non-cryptographic hash.
+             </summary>
+             <remarks>
+             <para>
+             MetroHash128 is the 128-bit variant of the MetroHash family.
+             It provides higher collision resistance while maintaining excellent speed.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 128-bit hash value</item>
+             <item><b>Block Size:</b> 32 bytes</item>
+             <item><b>Speed:</b> ~12+ GB/s on modern CPUs</item>
+             <item><b>Quality:</b> Excellent avalanche and distribution properties</item>
+             </list>
+             </para>
+             <para>
+             <b>Security Warning:</b>
+             MetroHash is NOT cryptographically secure. Do not use it for:
+             <list type="bullet">
+             <item>Password hashing</item>
+             <item>Digital signatures</item>
+             <item>Message authentication codes (MACs)</item>
+             <item>Any security-sensitive application</item>
+             </list>
+             </para>
+             <para>
+             <b>Recommended Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables requiring low collision probability</item>
+             <item>Bloom filters with many hash functions</item>
+             <item>Content-addressable storage</item>
+             <item>Large-scale deduplication</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="http://www.jandrewrogers.com/2015/05/27/metrohash/">MetroHash Blog Post</see></item>
+             <item><see href="https://github.com/jandrewrogers/MetroHash">MetroHash GitHub</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             using var hasher = new MetroHash128();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             UInt128 hash = hasher.Finalize();
+            
+             // Or use the static method
+             UInt128 hash = MetroHash128.Hash(data);
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash128.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash128.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.#ctor">
+            <summary>
+            Creates a new MetroHash128 hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.#ctor(System.UInt64)">
+            <summary>
+            Creates a new MetroHash128 hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value.</param>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.Hash(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash128 of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.HashToBytes(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash128 and returns the result as a byte array.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 128-bit hash as a 16-byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.MetroHash64">
+             <summary>
+             Streaming implementation of MetroHash64, an extremely fast non-cryptographic hash.
+             </summary>
+             <remarks>
+             <para>
+             MetroHash is a high-speed hash function created by J. Andrew Rogers.
+             It's designed for maximum throughput on modern CPUs while maintaining
+             excellent statistical properties.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 32 bytes</item>
+             <item><b>Speed:</b> ~15+ GB/s on modern CPUs (one of the fastest)</item>
+             <item><b>Quality:</b> Excellent avalanche and distribution properties</item>
+             </list>
+             </para>
+             <para>
+             <b>Security Warning:</b>
+             MetroHash is NOT cryptographically secure. Do not use it for:
+             <list type="bullet">
+             <item>Password hashing</item>
+             <item>Digital signatures</item>
+             <item>Message authentication codes (MACs)</item>
+             <item>Any security-sensitive application</item>
+             </list>
+             </para>
+             <para>
+             <b>Recommended Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables and bloom filters</item>
+             <item>File integrity checking (non-security)</item>
+             <item>Data deduplication</item>
+             <item>Checksum calculations</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="http://www.jandrewrogers.com/2015/05/27/metrohash/">MetroHash Blog Post</see></item>
+             <item><see href="https://github.com/jandrewrogers/MetroHash">MetroHash GitHub</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             using var hasher = new MetroHash64();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+            
+             // Or use the static method
+             ulong hash = MetroHash64.Hash(data);
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.#ctor">
+            <summary>
+            Creates a new MetroHash64 hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.#ctor(System.UInt64)">
+            <summary>
+            Creates a new MetroHash64 hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value.</param>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.Hash(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash64 of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
         <member name="T:StreamHash.Core.MurmurHash3_128">
             <summary>
             Streaming implementation of MurmurHash3 128-bit x64 hash algorithm.

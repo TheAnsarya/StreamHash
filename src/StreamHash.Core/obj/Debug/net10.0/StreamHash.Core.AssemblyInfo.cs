@@ -17,7 +17,7 @@ using System.Reflection;
     "pHash, FarmHash, and HighwayHash. All algorithms support incremental/streaming u" +
     "pdates with excellent performance."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.1.0+fb89a995bc0ffa8ff301d000212a79c6fe1f4866")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.1.0+0d049173df034e6f074b66d6d788f9bee1df944c")]
 [assembly: System.Reflection.AssemblyProductAttribute("StreamHash.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StreamHash.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.1.0.0")]

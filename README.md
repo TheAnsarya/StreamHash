@@ -31,6 +31,8 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 | FarmHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
 | HighwayHash64 | 64-bit | ✅ | 🚧 | ✅ Complete |
 | KangarooTwelve | Variable (XOF) | ✅ | ❌ | ✅ Complete |
+| MetroHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
+| MetroHash128 | 128-bit | ✅ | ❌ | ✅ Complete |
 
 ## 🚀 Quick Start
 
