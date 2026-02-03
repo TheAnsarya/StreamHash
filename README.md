@@ -33,6 +33,12 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 | KangarooTwelve | Variable (XOF) | ✅ | ❌ | ✅ Complete |
 | MetroHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
 | MetroHash128 | 128-bit | ✅ | ❌ | ✅ Complete |
+| xxHash32* | 32-bit | ✅ | ✅ | ✅ Complete |
+| xxHash64* | 64-bit | ✅ | ✅ | ✅ Complete |
+| xxHash3* | 64-bit | ✅ | ✅ | ✅ Complete |
+| xxHash128* | 128-bit | ✅ | ✅ | ✅ Complete |
+
+\* xxHash wrappers use System.IO.Hashing for IStreamingHash compatibility
 
 ## 🚀 Quick Start
 
