@@ -38,6 +38,10 @@
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="System.IO.Hashing" Version="9.0.3" />
+	</ItemGroup>
+
 	<!-- SIMD intrinsics support -->
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<Optimize>true</Optimize>
