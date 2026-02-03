@@ -1,6 +1,6 @@
-# StreamHash
+﻿# StreamHash
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 
 **StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular non-cryptographic hash algorithms that traditionally require loading entire files into memory.
@@ -22,14 +22,14 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 
 | Algorithm | Digest Size | Streaming | SIMD | Status |
 |-----------|-------------|-----------|------|--------|
-| MurmurHash3-32 | 32-bit | ✅ | ✅ | 🚧 Planned |
-| MurmurHash3-128 | 128-bit | ✅ | ✅ | 🚧 Planned |
-| CityHash64 | 64-bit | ✅ | ✅ | 🚧 Planned |
-| CityHash128 | 128-bit | ✅ | ✅ | 🚧 Planned |
-| SpookyHash V2 | 128-bit | ✅ | ✅ | 🚧 Planned |
-| SipHash-2-4 | 64-bit | ✅ | ✅ | 🚧 Planned |
-| FarmHash64 | 64-bit | ✅ | ✅ | 🚧 Planned |
-| HighwayHash64 | 64-bit | ✅ | ✅ | 🚧 Planned |
+| MurmurHash3-32 | 32-bit | ✅ | ❌ | ✅ Complete |
+| MurmurHash3-128 | 128-bit | ✅ | ❌ | ✅ Complete |
+| CityHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
+| CityHash128 | 128-bit | ✅ | ❌ | ✅ Complete |
+| SpookyHash V2 | 128-bit | ✅ | ❌ | ✅ Complete |
+| SipHash-2-4 | 64-bit | ✅ | ❌ | ✅ Complete |
+| FarmHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
+| HighwayHash64 | 64-bit | ✅ | 🚧 | ✅ Complete |
 
 ## 🚀 Quick Start
 
@@ -45,8 +45,8 @@ dotnet add package StreamHash.Core
 using StreamHash.Core;
 
 // Hash a file incrementally
-await using var hasher = new MurmurHash3_128();
-await using var stream = File.OpenRead("large-file.bin");
+using var hasher = new MurmurHash3_128();
+using var stream = File.OpenRead("large-file.bin");
 
 byte[] buffer = new byte[1024 * 1024]; // 1MB buffer
 int bytesRead;
@@ -109,7 +109,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is released into the public domain under [The Unlicense](LICENSE). Do whatever you want with it.
 
 ## 🙏 Acknowledgments
 

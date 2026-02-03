@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of MurmurHash3 32-bit hash algorithm.
@@ -40,12 +40,12 @@ namespace StreamHash.Core;
 /// using var hasher = new MurmurHash3_32();
 /// hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
 /// uint hash = hasher.Finalize();
-/// 
+///
 /// // With custom seed
 /// using var seededHasher = new MurmurHash3_32(seed: 0xdeadbeef);
 /// seededHasher.Update(data);
 /// uint seededHash = seededHasher.Finalize();
-/// 
+///
 /// // Stream processing
 /// using var streamHasher = new MurmurHash3_32();
 /// using var file = File.OpenRead("largefile.bin");

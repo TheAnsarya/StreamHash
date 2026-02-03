@@ -1,4 +1,4 @@
-# StreamHash - AI Copilot Directives
+﻿# StreamHash - AI Copilot Directives
 
 ## Project Overview
 
@@ -155,8 +155,9 @@ Use conventional commits:
 
 ## Licensing
 
-**MIT License** - Permissive, can be used in commercial projects.
+**Always use `The Unlicense` for this project - we don't believe in copyright, code is code.**
 
-Note: Some algorithm implementations may have their own licenses from reference
-implementations. Document all license attributions in THIRD_PARTY_NOTICES.md.
+Avoid obvious copyright issues if you can, only for legal reasons. The project owner doesn't give a shit about copyright.
+
+Note: Some algorithm implementations reference other implementations. Document attributions in THIRD_PARTY_NOTICES.md for good faith, not legal requirement.
 

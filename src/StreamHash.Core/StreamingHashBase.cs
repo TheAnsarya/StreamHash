@@ -21,19 +21,19 @@ namespace StreamHash.Core;
 /// {
 ///     public override int BlockSize => 4;
 ///     public override int DigestSize => 4;
-///     
+///
 ///     private uint _state;
-///     
+///
 ///     protected override void ProcessBlock(ReadOnlySpan&lt;byte&gt; block) {
 ///         // Process one complete block
 ///         _state ^= BinaryPrimitives.ReadUInt32LittleEndian(block);
 ///     }
-///     
+///
 ///     protected override uint ComputeFinal(ReadOnlySpan&lt;byte&gt; remaining) {
 ///         // Handle remaining bytes and return final hash
 ///         return _state ^ (uint)TotalBytesProcessed;
 ///     }
-///     
+///
 ///     protected override void ResetCore() {
 ///         _state = 0;
 ///     }

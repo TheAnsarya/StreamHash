@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("High-performance streaming hash library with SIMD optimization for MurmurHash3, C" +
     "ityHash, SpookyHash, SipHash, FarmHash, and HighwayHash"))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2ddaf1b8f9b1947d0c76ee7eb93c4f9cbebce68b")]
 [assembly: System.Reflection.AssemblyProductAttribute("StreamHash.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("StreamHash.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

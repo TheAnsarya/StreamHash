@@ -4,6 +4,514 @@
         <name>StreamHash.Core</name>
     </assembly>
     <members>
+        <member name="T:StreamHash.Core.CityHash128">
+             <summary>
+             Streaming implementation of CityHash128 hash algorithm.
+             </summary>
+             <remarks>
+             <para>
+             CityHash128 is the 128-bit variant of Google's CityHash family. It provides a larger
+             output space while maintaining excellent speed characteristics.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 128-bit hash value (as <see cref="T:System.UInt128"/>)</item>
+             <item><b>Block Size:</b> 128 bytes</item>
+             <item><b>Speed:</b> ~8+ GB/s on modern x86-64 CPUs</item>
+             <item><b>Collision Resistance:</b> Excellent for general purposes, NOT cryptographically secure</item>
+             </list>
+             </para>
+             <para>
+             <b>Streaming Implementation Notes:</b>
+             <list type="bullet">
+             <item>Uses a 128-byte block size for efficient streaming</item>
+             <item>Maintains 128-bit state pair (u, v) across updates</item>
+             <item>Processes blocks using CityMurmur-style mixing</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Distributed systems requiring low collision probability</item>
+             <item>Content-addressable storage</item>
+             <item>Database indexing</item>
+             <item>Deduplication systems</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://github.com/google/cityhash">CityHash - Google's official implementation</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Basic usage
+             using var hasher = new CityHash128();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             UInt128 hash = hasher.Finalize();
+            
+             // Stream processing large files
+             using var streamHasher = new CityHash128();
+             using var file = File.OpenRead("largefile.bin");
+             byte[] buffer = new byte[131072]; // 128KB buffer
+             int read;
+             while ((read = file.Read(buffer)) > 0) {
+                 streamHasher.Update(buffer.AsSpan(0, read));
+             }
+             UInt128 fileHash = streamHasher.Finalize();
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.CityHash128.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.CityHash128.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.#ctor">
+            <summary>
+            Creates a new CityHash128 streaming hasher.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.InitializeFromBlock(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Initializes state from the first 128-byte block.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.ProcessHalfBlock(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a half-block (64 bytes) of data.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.ProcessFullBlock(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a full 128-byte block.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.HashShort(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Hash function for short messages (&lt; 128 bytes).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash128.Hash(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes the CityHash128 hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.CityHash64">
+             <summary>
+             Streaming implementation of CityHash64 hash algorithm.
+             </summary>
+             <remarks>
+             <para>
+             CityHash is a family of hash functions developed by Google for fast string hashing.
+             The 64-bit variant is optimized for short strings but works well for longer inputs too.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 64 bytes (for streaming)</item>
+             <item><b>Speed:</b> ~10+ GB/s on modern x86-64 CPUs</item>
+             <item><b>Collision Resistance:</b> Excellent for hash tables, NOT cryptographically secure</item>
+             </list>
+             </para>
+             <para>
+             <b>Streaming Implementation Notes:</b>
+             The original CityHash processes entire input at once. This streaming version:
+             <list type="bullet">
+             <item>Uses a 64-byte block size for streaming</item>
+             <item>Maintains internal state (v, w, x, y, z) across updates</item>
+             <item>May produce slightly different hashes than non-streaming version for short inputs</item>
+             <item>Matches reference for inputs >= 64 bytes when processed in 64-byte chunks</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables and hash maps</item>
+             <item>Data deduplication</item>
+             <item>Load balancing/sharding</item>
+             <item>Caching keys</item>
+             <item>File content identification</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://github.com/google/cityhash">CityHash - Google's official implementation</see></item>
+             <item><see href="https://opensource.googleblog.com/2011/04/introducing-cityhash.html">Introducing CityHash - Google Blog</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Basic usage
+             using var hasher = new CityHash64();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+            
+             // Stream processing
+             using var streamHasher = new CityHash64();
+             using var file = File.OpenRead("largefile.bin");
+             byte[] buffer = new byte[65536]; // 64KB buffer
+             int read;
+             while ((read = file.Read(buffer)) > 0) {
+                 streamHasher.Update(buffer.AsSpan(0, read));
+             }
+             ulong fileHash = streamHasher.Finalize();
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.CityHash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.CityHash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.#ctor">
+            <summary>
+            Creates a new CityHash64 streaming hasher.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.InitializeState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Initializes the hash state from the first block.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.ProcessBlockInternal(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a block of data after initialization.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.HashShort(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Hash function for short messages (&lt; 64 bytes).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.Fetch64(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Reads a 64-bit little-endian integer from the given span.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.Fetch32(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Reads a 32-bit little-endian integer from the given span.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.Rotate64(System.UInt64,System.Int32)">
+            <summary>
+            Rotates a 64-bit value right by the specified number of bits.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.ShiftMix(System.UInt64)">
+            <summary>
+            A shift-mix operation for finalization.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.HashLen16(System.UInt64,System.UInt64,System.UInt64)">
+            <summary>
+            Hash 128 input bits down to 64 bits of output.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.HashLen16(System.UInt64,System.UInt64)">
+            <summary>
+            Hash 128 input bits down to 64 bits with default multiplier.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.WeakHashLen32WithSeeds(System.ReadOnlySpan{System.Byte},System.UInt64,System.UInt64)">
+            <summary>
+            Computes a weak hash suitable for intermediate calculations.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.CityHash64.Hash(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes the CityHash64 hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <returns>The 64-bit hash value.</returns>
+            <remarks>
+            This is a convenience method for hashing data that fits in memory.
+            For streaming scenarios, create an instance and use Update/Finalize.
+            </remarks>
+        </member>
+        <member name="T:StreamHash.Core.FarmHash64">
+             <summary>
+             Streaming implementation of FarmHash64 algorithm.
+             </summary>
+             <remarks>
+             <para>
+             FarmHash is a successor to CityHash, also developed by Google. It provides improved
+             performance and quality while maintaining compatibility with CityHash for certain use cases.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 64 bytes</item>
+             <item><b>Speed:</b> ~10-15 GB/s on modern x86-64 CPUs</item>
+             <item><b>Collision Resistance:</b> Excellent for hash tables, NOT cryptographically secure</item>
+             </list>
+             </para>
+             <para>
+             <b>Key Differences from CityHash:</b>
+             <list type="bullet">
+             <item>Better performance on certain CPUs</item>
+             <item>Improved hash quality for specific patterns</item>
+             <item>Platform-specific optimizations available</item>
+             </list>
+             </para>
+             <para>
+             <b>Streaming Implementation Notes:</b>
+             <list type="bullet">
+             <item>Uses 64-byte block processing</item>
+             <item>Maintains internal state similar to CityHash</item>
+             <item>Optimized for large input streams</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables with better distribution</item>
+             <item>Data partitioning/sharding</item>
+             <item>Content fingerprinting</item>
+             <item>Caching and deduplication</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://github.com/google/farmhash">FarmHash - Google's official repository</see></item>
+             <item><see href="https://opensource.googleblog.com/2014/03/introducing-farmhash.html">Introducing FarmHash - Google Blog</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Basic usage
+             using var hasher = new FarmHash64();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+            
+             // Stream processing
+             using var streamHasher = new FarmHash64();
+             using var file = File.OpenRead("largefile.bin");
+             byte[] buffer = new byte[65536];
+             int read;
+             while ((read = file.Read(buffer)) > 0) {
+                 streamHasher.Update(buffer.AsSpan(0, read));
+             }
+             ulong fileHash = streamHasher.Finalize();
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.FarmHash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.FarmHash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.#ctor">
+            <summary>
+            Creates a new FarmHash64 streaming hasher.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.InitializeState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Initializes the hash state from the first block.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.ProcessBlockInternal(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a block of data after initialization.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.HashShort(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Hash function for short messages (&lt; 64 bytes).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.FarmHash64.Hash(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes the FarmHash64 hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.HighwayHash64">
+             <summary>
+             Streaming implementation of HighwayHash64 algorithm.
+             </summary>
+             <remarks>
+             <para>
+             HighwayHash is a fast keyed hash function designed for 64-bit CPUs with SIMD support.
+             It was developed by Google and provides strong avalanche behavior and DoS resistance.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 32 bytes</item>
+             <item><b>Key Size:</b> 256 bits (4 × 64-bit values)</item>
+             <item><b>Speed:</b> ~10+ GB/s with SIMD, ~3+ GB/s scalar</item>
+             <item><b>Security:</b> Keyed, DoS-resistant, NOT cryptographic</item>
+             </list>
+             </para>
+             <para>
+             <b>Design Principles:</b>
+             <list type="bullet">
+             <item>SIMD-first design using AVX2/SSE4.1 intrinsics</item>
+             <item>Scalar fallback for portability</item>
+             <item>Strong avalanche properties</item>
+             <item>Keyed construction for DoS resistance</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Network packet hashing (DoS protection)</item>
+             <item>High-throughput data processing</item>
+             <item>SipHash replacement for better performance</item>
+             <item>Content fingerprinting</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://github.com/google/highwayhash">HighwayHash - Google's official repository</see></item>
+             <item><see href="https://arxiv.org/abs/1612.06257">HighwayHash: Fast, Strong, Keyed Hash Function (arxiv)</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Create with default key
+             using var hasher = new HighwayHash64();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+            
+             // Create with custom 256-bit key (4 ulongs)
+             ulong[] key = { 0x0706050403020100UL, 0x0f0e0d0c0b0a0908UL,
+                             0x1716151413121110UL, 0x1f1e1d1c1b1a1918UL };
+             using var keyedHasher = new HighwayHash64(key);
+             keyedHasher.Update(data);
+             ulong keyedHash = keyedHasher.Finalize();
+             </code>
+             </example>
+        </member>
+        <member name="F:StreamHash.Core.HighwayHash64.DefaultKey">
+            <summary>
+            Default key for convenience (should be replaced with a secret key for security).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.HighwayHash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.HighwayHash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.#ctor">
+            <summary>
+            Creates a new HighwayHash64 hasher with the default key.
+            </summary>
+            <remarks>
+            <b>Warning:</b> Using the default key provides no DoS protection.
+            For security-sensitive applications, use a secret 256-bit key.
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.#ctor(System.UInt64[])">
+            <summary>
+            Creates a new HighwayHash64 hasher with a custom 256-bit key.
+            </summary>
+            <param name="key">A 4-element array of ulong values (256 bits total).</param>
+            <exception cref="T:System.ArgumentException">Thrown if key is not exactly 4 elements.</exception>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.#ctor(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Creates a new HighwayHash64 hasher with a 256-bit key from a span.
+            </summary>
+            <param name="key">A span of exactly 32 bytes (256 bits).</param>
+            <exception cref="T:System.ArgumentException">Thrown if key is not exactly 32 bytes.</exception>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.InitializeState">
+            <summary>
+            Initializes the internal state from the key.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.Update(System.UInt64[])">
+            <summary>
+            Processes a packet of 4 lanes.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ZipperMerge0(System.UInt64,System.UInt64)">
+            <summary>
+            ZipperMerge function - first output.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ZipperMerge1(System.UInt64,System.UInt64)">
+            <summary>
+            ZipperMerge function - second output.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ProcessRemainder(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes remaining bytes (less than 32).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.PermuteAndFinalize">
+            <summary>
+            Final permutation rounds.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.HighwayHash64.Hash(System.ReadOnlySpan{System.Byte},System.UInt64[])">
+            <summary>
+            Computes the HighwayHash64 hash of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="key">Optional 4-element key array. If null, uses default key.</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
         <member name="T:StreamHash.Core.IStreamingHash`1">
             <summary>
             Interface for streaming hash algorithms that can process data incrementally.
@@ -215,63 +723,63 @@
             <returns>The 128-bit hash value.</returns>
         </member>
         <member name="T:StreamHash.Core.MurmurHash3_32">
-            <summary>
-            Streaming implementation of MurmurHash3 32-bit hash algorithm.
-            </summary>
-            <remarks>
-            <para>
-            MurmurHash3 is a non-cryptographic hash function created by Austin Appleby in 2008.
-            It is designed for fast hashing with excellent distribution properties.
-            </para>
-            <para>
-            <b>Algorithm Characteristics:</b>
-            <list type="bullet">
-            <item><b>Output:</b> 32-bit hash value</item>
-            <item><b>Block Size:</b> 4 bytes</item>
-            <item><b>Speed:</b> ~3-5 GB/s on modern CPUs</item>
-            <item><b>Collision Resistance:</b> Good for hash tables, NOT cryptographically secure</item>
-            </list>
-            </para>
-            <para>
-            <b>Use Cases:</b>
-            <list type="bullet">
-            <item>Hash tables and hash maps</item>
-            <item>Bloom filters</item>
-            <item>Data partitioning/sharding</item>
-            <item>Checksums (non-security critical)</item>
-            </list>
-            </para>
-            <para>
-            <b>References:</b>
-            <list type="bullet">
-            <item><see href="https://github.com/aappleby/smhasher">SMHasher - Original MurmurHash repository</see></item>
-            <item><see href="https://en.wikipedia.org/wiki/MurmurHash">Wikipedia - MurmurHash</see></item>
-            </list>
-            </para>
-            </remarks>
-            <example>
-            <code>
-            // Basic usage
-            using var hasher = new MurmurHash3_32();
-            hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
-            uint hash = hasher.Finalize();
+             <summary>
+             Streaming implementation of MurmurHash3 32-bit hash algorithm.
+             </summary>
+             <remarks>
+             <para>
+             MurmurHash3 is a non-cryptographic hash function created by Austin Appleby in 2008.
+             It is designed for fast hashing with excellent distribution properties.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 32-bit hash value</item>
+             <item><b>Block Size:</b> 4 bytes</item>
+             <item><b>Speed:</b> ~3-5 GB/s on modern CPUs</item>
+             <item><b>Collision Resistance:</b> Good for hash tables, NOT cryptographically secure</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables and hash maps</item>
+             <item>Bloom filters</item>
+             <item>Data partitioning/sharding</item>
+             <item>Checksums (non-security critical)</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://github.com/aappleby/smhasher">SMHasher - Original MurmurHash repository</see></item>
+             <item><see href="https://en.wikipedia.org/wiki/MurmurHash">Wikipedia - MurmurHash</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Basic usage
+             using var hasher = new MurmurHash3_32();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             uint hash = hasher.Finalize();
             
-            // With custom seed
-            using var seededHasher = new MurmurHash3_32(seed: 0xdeadbeef);
-            seededHasher.Update(data);
-            uint seededHash = seededHasher.Finalize();
+             // With custom seed
+             using var seededHasher = new MurmurHash3_32(seed: 0xdeadbeef);
+             seededHasher.Update(data);
+             uint seededHash = seededHasher.Finalize();
             
-            // Stream processing
-            using var streamHasher = new MurmurHash3_32();
-            using var file = File.OpenRead("largefile.bin");
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = file.Read(buffer)) > 0) {
-                streamHasher.Update(buffer.AsSpan(0, read));
-            }
-            uint fileHash = streamHasher.Finalize();
-            </code>
-            </example>
+             // Stream processing
+             using var streamHasher = new MurmurHash3_32();
+             using var file = File.OpenRead("largefile.bin");
+             byte[] buffer = new byte[8192];
+             int read;
+             while ((read = file.Read(buffer)) > 0) {
+                 streamHasher.Update(buffer.AsSpan(0, read));
+             }
+             uint fileHash = streamHasher.Finalize();
+             </code>
+             </example>
         </member>
         <member name="F:StreamHash.Core.MurmurHash3_32.C1">
             <summary>
@@ -337,63 +845,63 @@
             </remarks>
         </member>
         <member name="T:StreamHash.Core.SipHash24">
-            <summary>
-            Streaming implementation of SipHash-2-4, a cryptographically secure PRF.
-            </summary>
-            <remarks>
-            <para>
-            SipHash is a family of pseudorandom functions (PRFs) optimized for short inputs.
-            SipHash-2-4 uses 2 compression rounds and 4 finalization rounds.
-            </para>
-            <para>
-            <b>Algorithm Characteristics:</b>
-            <list type="bullet">
-            <item><b>Output:</b> 64-bit hash value</item>
-            <item><b>Block Size:</b> 8 bytes</item>
-            <item><b>Key Size:</b> 128 bits (16 bytes)</item>
-            <item><b>Security:</b> Cryptographically secure PRF (keyed hash)</item>
-            <item><b>Speed:</b> ~2-4 GB/s on modern CPUs</item>
-            </list>
-            </para>
-            <para>
-            <b>Security Properties:</b>
-            <list type="bullet">
-            <item>PRF security: Output is indistinguishable from random given unknown key</item>
-            <item>Resistant to hash-flooding attacks on hash tables</item>
-            <item>NOT suitable for password hashing (use Argon2, bcrypt, etc.)</item>
-            <item>NOT collision-resistant without knowing the key</item>
-            </list>
-            </para>
-            <para>
-            <b>Use Cases:</b>
-            <list type="bullet">
-            <item>Hash table protection against algorithmic complexity attacks</item>
-            <item>Message authentication codes (MAC)</item>
-            <item>Network packet authentication</item>
-            </list>
-            </para>
-            <para>
-            <b>References:</b>
-            <list type="bullet">
-            <item><see href="https://131002.net/siphash/">SipHash Official Website</see></item>
-            <item><see href="https://www.aumasson.jp/siphash/siphash.pdf">SipHash Paper (Aumasson &amp; Bernstein)</see></item>
-            <item><see href="https://github.com/veorq/SipHash">Reference Implementation</see></item>
-            </list>
-            </para>
-            </remarks>
-            <example>
-            <code>
-            // Create a 128-bit key
-            ReadOnlySpan&lt;byte&gt; key = stackalloc byte[16] { 
-                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f 
-            };
+             <summary>
+             Streaming implementation of SipHash-2-4, a cryptographically secure PRF.
+             </summary>
+             <remarks>
+             <para>
+             SipHash is a family of pseudorandom functions (PRFs) optimized for short inputs.
+             SipHash-2-4 uses 2 compression rounds and 4 finalization rounds.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 8 bytes</item>
+             <item><b>Key Size:</b> 128 bits (16 bytes)</item>
+             <item><b>Security:</b> Cryptographically secure PRF (keyed hash)</item>
+             <item><b>Speed:</b> ~2-4 GB/s on modern CPUs</item>
+             </list>
+             </para>
+             <para>
+             <b>Security Properties:</b>
+             <list type="bullet">
+             <item>PRF security: Output is indistinguishable from random given unknown key</item>
+             <item>Resistant to hash-flooding attacks on hash tables</item>
+             <item>NOT suitable for password hashing (use Argon2, bcrypt, etc.)</item>
+             <item>NOT collision-resistant without knowing the key</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>Hash table protection against algorithmic complexity attacks</item>
+             <item>Message authentication codes (MAC)</item>
+             <item>Network packet authentication</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://131002.net/siphash/">SipHash Official Website</see></item>
+             <item><see href="https://www.aumasson.jp/siphash/siphash.pdf">SipHash Paper (Aumasson &amp; Bernstein)</see></item>
+             <item><see href="https://github.com/veorq/SipHash">Reference Implementation</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Create a 128-bit key
+             ReadOnlySpan&lt;byte&gt; key = stackalloc byte[16] {
+                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+             };
             
-            using var hasher = new SipHash24(key);
-            hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
-            ulong hash = hasher.Finalize();
-            </code>
-            </example>
+             using var hasher = new SipHash24(key);
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+             </code>
+             </example>
         </member>
         <member name="P:StreamHash.Core.SipHash24.BlockSize">
             <inheritdoc/>
@@ -572,47 +1080,47 @@
             <returns>The 128-bit hash value.</returns>
         </member>
         <member name="T:StreamHash.Core.StreamingHashBase`1">
-            <summary>
-            Base class for streaming hash implementations providing common functionality.
-            </summary>
-            <typeparam name="TResult">The type of the hash result.</typeparam>
-            <remarks>
-            <para>
-            This abstract base class handles common streaming hash operations:
-            <list type="bullet">
-            <item>Internal buffer management with <see cref="T:System.Buffers.ArrayPool`1"/> for efficiency</item>
-            <item>State tracking (total bytes, finalized flag)</item>
-            <item>Disposal pattern implementation</item>
-            <item>Block-based processing orchestration</item>
-            </list>
-            </para>
-            <para>
-            <b>Implementing a New Hash Algorithm:</b>
-            <code>
-            public class MyHash : StreamingHashBase&lt;uint&gt;
-            {
-                public override int BlockSize => 4;
-                public override int DigestSize => 4;
-                
-                private uint _state;
-                
-                protected override void ProcessBlock(ReadOnlySpan&lt;byte&gt; block) {
-                    // Process one complete block
-                    _state ^= BinaryPrimitives.ReadUInt32LittleEndian(block);
-                }
-                
-                protected override uint ComputeFinal(ReadOnlySpan&lt;byte&gt; remaining) {
-                    // Handle remaining bytes and return final hash
-                    return _state ^ (uint)TotalBytesProcessed;
-                }
-                
-                protected override void ResetCore() {
-                    _state = 0;
-                }
-            }
-            </code>
-            </para>
-            </remarks>
+             <summary>
+             Base class for streaming hash implementations providing common functionality.
+             </summary>
+             <typeparam name="TResult">The type of the hash result.</typeparam>
+             <remarks>
+             <para>
+             This abstract base class handles common streaming hash operations:
+             <list type="bullet">
+             <item>Internal buffer management with <see cref="T:System.Buffers.ArrayPool`1"/> for efficiency</item>
+             <item>State tracking (total bytes, finalized flag)</item>
+             <item>Disposal pattern implementation</item>
+             <item>Block-based processing orchestration</item>
+             </list>
+             </para>
+             <para>
+             <b>Implementing a New Hash Algorithm:</b>
+             <code>
+             public class MyHash : StreamingHashBase&lt;uint&gt;
+             {
+                 public override int BlockSize => 4;
+                 public override int DigestSize => 4;
+            
+                 private uint _state;
+            
+                 protected override void ProcessBlock(ReadOnlySpan&lt;byte&gt; block) {
+                     // Process one complete block
+                     _state ^= BinaryPrimitives.ReadUInt32LittleEndian(block);
+                 }
+            
+                 protected override uint ComputeFinal(ReadOnlySpan&lt;byte&gt; remaining) {
+                     // Handle remaining bytes and return final hash
+                     return _state ^ (uint)TotalBytesProcessed;
+                 }
+            
+                 protected override void ResetCore() {
+                     _state = 0;
+                 }
+             }
+             </code>
+             </para>
+             </remarks>
         </member>
         <member name="P:StreamHash.Core.StreamingHashBase`1.BlockSize">
             <inheritdoc/>
