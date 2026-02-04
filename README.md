@@ -138,18 +138,43 @@ dotnet test
 dotnet run -c Release --project benchmarks/StreamHash.Benchmarks
 ```
 
-## 📊 Benchmarks
+## 📊 Benchmarks (v1.6.1)
 
-Benchmarks comparing StreamHash to reference implementations:
+Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 
-```
-| Method              | File Size | Memory    | Throughput |
-|---------------------|-----------|-----------|------------|
-| MurmurHash3 (ref)   | 1 GB      | 1,024 MB  | 3.2 GB/s   |
-| MurmurHash3 (stream)| 1 GB      | 1 MB      | 3.1 GB/s   |
-| CityHash (ref)      | 1 GB      | 1,024 MB  | 4.5 GB/s   |
-| CityHash (stream)   | 1 GB      | 1 MB      | 4.3 GB/s   |
-```
+### Fast Non-Crypto Hashes (1MB data)
+| Algorithm | Time | Throughput |
+|-----------|-----:|------------|
+| CRC32 | 36 µs | 27.8 GB/s |
+| XxHash3 | 43 µs | 23.3 GB/s |
+| XxHash128 | 51 µs | 19.6 GB/s |
+| XxHash64 | 83 µs | 12.0 GB/s |
+| Wyhash64 | 130 µs | 7.7 GB/s |
+| CityHash128 | 133 µs | 7.5 GB/s |
+| FarmHash64 | 160 µs | 6.3 GB/s |
+| CityHash64 | 199 µs | 5.0 GB/s |
+| MurmurHash3_128 | 257 µs | 3.9 GB/s |
+| SpookyHash128 | 341 µs | 2.9 GB/s |
+| MurmurHash3_32 | 545 µs | 1.8 GB/s |
+
+### Cryptographic Hashes (1MB data)
+| Algorithm | Time | Notes |
+|-----------|-----:|-------|
+| Tiger-192 | 2.19 ms | Fast crypto |
+| SHA-1 | 1.48 ms | Legacy |
+| MD5 | 1.63 ms | Legacy |
+| SHA-512 | 2.15 ms | 64-bit optimized |
+| SHA3-256 | 3.18 ms | Keccak-based |
+| SHA-256 | 3.67 ms | Standard |
+| SM3 | 5.43 ms | Chinese standard |
+| SHA3-512 | 6.22 ms | Keccak-based |
+| Blake2b | 6.52 ms | Modern |
+| Blake3 | 8.49 ms | Parallelizable |
+| Whirlpool | 52.4 ms | AES-based |
+| **Grøstl-256** | **153 ms** | T-table optimized |
+| **JH-256** | **191 ms** | Bit-sliced S-box |
+
+*Grøstl and JH optimized with T-tables and pre-computed S-boxes in v1.6.1 (~2.15x speedup)*
 
 ## 🤝 Contributing
 
