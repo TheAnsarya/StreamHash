@@ -94,15 +94,13 @@ internal static class BouncyCastleFactory {
 	// SHA-0 uses custom implementation (not in BouncyCastle)
 	public static IStreamingHashBytes CreateSha0() => new Sha0StreamingHash();
 
-	// Groestl - not available in BouncyCastle, use SHA3 as fallback with same bit size
-	// Note: These are NOT true Groestl hashes, just placeholders with matching output size
-	public static IStreamingHashBytes CreateGroestl256() => new BouncyCastleAdapter(new Sha3Digest(256));
-	public static IStreamingHashBytes CreateGroestl512() => new BouncyCastleAdapter(new Sha3Digest(512));
+	// Groestl - custom implementations (not available in BouncyCastle)
+	public static IStreamingHashBytes CreateGroestl256() => new Groestl256();
+	public static IStreamingHashBytes CreateGroestl512() => new Groestl512();
 
-	// JH - not available in BouncyCastle, use SHA3 as fallback with same bit size
-	// Note: These are NOT true JH hashes, just placeholders with matching output size
-	public static IStreamingHashBytes CreateJh256() => new BouncyCastleAdapter(new Sha3Digest(256));
-	public static IStreamingHashBytes CreateJh512() => new BouncyCastleAdapter(new Sha3Digest(512));
+	// JH - custom implementations (not available in BouncyCastle)
+	public static IStreamingHashBytes CreateJh256() => new JH256();
+	public static IStreamingHashBytes CreateJh512() => new JH512();
 
 	/// <summary>
 	/// Computes hash using a BouncyCastle digest in one shot.
