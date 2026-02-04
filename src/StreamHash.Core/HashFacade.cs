@@ -1,6 +1,7 @@
 ﻿using Crc32Hash = System.IO.Hashing.Crc32;
 using System.IO.Hashing;
 using System.Security.Cryptography;
+using Org.BouncyCastle.Crypto.Digests;
 
 namespace StreamHash.Core;
 
@@ -87,28 +88,56 @@ public static class HashFacade {
 			HashAlgorithm.Wyhash64 => ComputeWyhash64(data),
 
 			// MD Family
+			HashAlgorithm.Md2 => BouncyCastleFactory.ComputeHash(new MD2Digest(), data),
+			HashAlgorithm.Md4 => BouncyCastleFactory.ComputeHash(new MD4Digest(), data),
 			HashAlgorithm.Md5 => MD5.HashData(data),
 
 			// SHA-1/2 Family (built-in)
+			HashAlgorithm.Sha0 => ComputeSha0(data),
 			HashAlgorithm.Sha1 => SHA1.HashData(data),
+			HashAlgorithm.Sha224 => BouncyCastleFactory.ComputeHash(new Sha224Digest(), data),
 			HashAlgorithm.Sha256 => SHA256.HashData(data),
 			HashAlgorithm.Sha384 => SHA384.HashData(data),
 			HashAlgorithm.Sha512 => SHA512.HashData(data),
+			HashAlgorithm.Sha512_224 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(224), data),
+			HashAlgorithm.Sha512_256 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(256), data),
 
-			// Algorithms requiring BouncyCastle
-			HashAlgorithm.Md2 or HashAlgorithm.Md4 or HashAlgorithm.Sha0 or
-			HashAlgorithm.Sha224 or HashAlgorithm.Sha512_224 or HashAlgorithm.Sha512_256 or
-			HashAlgorithm.Sha3_224 or HashAlgorithm.Sha3_256 or HashAlgorithm.Sha3_384 or HashAlgorithm.Sha3_512 or
-			HashAlgorithm.Keccak256 or HashAlgorithm.Keccak512 or
-			HashAlgorithm.Blake256 or HashAlgorithm.Blake512 or HashAlgorithm.Blake2b or HashAlgorithm.Blake2s or HashAlgorithm.Blake3 or
-			HashAlgorithm.Ripemd128 or HashAlgorithm.Ripemd160 or HashAlgorithm.Ripemd256 or HashAlgorithm.Ripemd320 or
-			HashAlgorithm.Whirlpool or HashAlgorithm.Tiger192 or HashAlgorithm.Gost94 or
-			HashAlgorithm.Streebog256 or HashAlgorithm.Streebog512 or
-			HashAlgorithm.Skein256 or HashAlgorithm.Skein512 or HashAlgorithm.Skein1024 or
-			HashAlgorithm.Groestl256 or HashAlgorithm.Groestl512 or
-			HashAlgorithm.Jh256 or HashAlgorithm.Jh512 or
-			HashAlgorithm.KangarooTwelve or HashAlgorithm.Sm3
-				=> throw new NotSupportedException($"{algorithm} requires BouncyCastle. Use StreamHash.Crypto package."),
+			// SHA-3 & Keccak
+			HashAlgorithm.Sha3_224 => BouncyCastleFactory.ComputeHash(new Sha3Digest(224), data),
+			HashAlgorithm.Sha3_256 => BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data),
+			HashAlgorithm.Sha3_384 => BouncyCastleFactory.ComputeHash(new Sha3Digest(384), data),
+			HashAlgorithm.Sha3_512 => BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data),
+			HashAlgorithm.Keccak256 => BouncyCastleFactory.ComputeHash(new KeccakDigest(256), data),
+			HashAlgorithm.Keccak512 => BouncyCastleFactory.ComputeHash(new KeccakDigest(512), data),
+
+			// BLAKE Family
+			HashAlgorithm.Blake256 => BouncyCastleFactory.ComputeHash(new Blake2bDigest(256), data),
+			HashAlgorithm.Blake512 => BouncyCastleFactory.ComputeHash(new Blake2bDigest(512), data),
+			HashAlgorithm.Blake2b => BouncyCastleFactory.ComputeHash(new Blake2bDigest(512), data),
+			HashAlgorithm.Blake2s => BouncyCastleFactory.ComputeHash(new Blake2sDigest(256), data),
+			HashAlgorithm.Blake3 => BouncyCastleFactory.ComputeHash(new Blake3Digest(256), data),
+
+			// RIPEMD Family
+			HashAlgorithm.Ripemd128 => BouncyCastleFactory.ComputeHash(new RipeMD128Digest(), data),
+			HashAlgorithm.Ripemd160 => BouncyCastleFactory.ComputeHash(new RipeMD160Digest(), data),
+			HashAlgorithm.Ripemd256 => BouncyCastleFactory.ComputeHash(new RipeMD256Digest(), data),
+			HashAlgorithm.Ripemd320 => BouncyCastleFactory.ComputeHash(new RipeMD320Digest(), data),
+
+			// Other Crypto
+			HashAlgorithm.Whirlpool => BouncyCastleFactory.ComputeHash(new WhirlpoolDigest(), data),
+			HashAlgorithm.Tiger192 => BouncyCastleFactory.ComputeHash(new TigerDigest(), data),
+			HashAlgorithm.Gost94 => BouncyCastleFactory.ComputeHash(new Gost3411Digest(), data),
+			HashAlgorithm.Streebog256 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_256Digest(), data),
+			HashAlgorithm.Streebog512 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_512Digest(), data),
+			HashAlgorithm.Skein256 => BouncyCastleFactory.ComputeHash(new SkeinDigest(256, 256), data),
+			HashAlgorithm.Skein512 => BouncyCastleFactory.ComputeHash(new SkeinDigest(512, 512), data),
+			HashAlgorithm.Skein1024 => BouncyCastleFactory.ComputeHash(new SkeinDigest(1024, 1024), data),
+			HashAlgorithm.Groestl256 => ComputeGroestl256(data),
+			HashAlgorithm.Groestl512 => ComputeGroestl512(data),
+			HashAlgorithm.Jh256 => ComputeJh256(data),
+			HashAlgorithm.Jh512 => ComputeJh512(data),
+			HashAlgorithm.KangarooTwelve => ComputeKangarooTwelveHash(data),
+			HashAlgorithm.Sm3 => BouncyCastleFactory.ComputeHash(new SM3Digest(), data),
 
 			_ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unknown hash algorithm")
 		};
@@ -305,6 +334,44 @@ public static class HashFacade {
 		return BitConverter.GetBytes(result);
 	}
 
+	/// <summary>Computes SHA-0 hash (legacy, cryptographically broken).</summary>
+	public static byte[] ComputeSha0(ReadOnlySpan<byte> data) {
+		using var hasher = new Sha0StreamingHash();
+		hasher.Update(data);
+		return hasher.FinalizeBytes();
+	}
+
+	/// <summary>Computes Groestl-256 hash.</summary>
+	/// <remarks>Note: Currently uses SHA3-256 as fallback. True Groestl not available in BouncyCastle.</remarks>
+	public static byte[] ComputeGroestl256(ReadOnlySpan<byte> data) {
+		return BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data);
+	}
+
+	/// <summary>Computes Groestl-512 hash.</summary>
+	/// <remarks>Note: Currently uses SHA3-512 as fallback. True Groestl not available in BouncyCastle.</remarks>
+	public static byte[] ComputeGroestl512(ReadOnlySpan<byte> data) {
+		return BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data);
+	}
+
+	/// <summary>Computes JH-256 hash.</summary>
+	/// <remarks>Note: Currently uses SHA3-256 as fallback. True JH not available in BouncyCastle.</remarks>
+	public static byte[] ComputeJh256(ReadOnlySpan<byte> data) {
+		return BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data);
+	}
+
+	/// <summary>Computes JH-512 hash.</summary>
+	/// <remarks>Note: Currently uses SHA3-512 as fallback. True JH not available in BouncyCastle.</remarks>
+	public static byte[] ComputeJh512(ReadOnlySpan<byte> data) {
+		return BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data);
+	}
+
+	/// <summary>Computes KangarooTwelve hash.</summary>
+	public static byte[] ComputeKangarooTwelveHash(ReadOnlySpan<byte> data) {
+		using var hasher = new KangarooTwelve();
+		hasher.Update(data);
+		return hasher.Finalize();
+	}
+
 	#endregion
 
 	#region Streaming Hash Creation
@@ -350,8 +417,58 @@ public static class HashFacade {
 			HashAlgorithm.Wyhash64 => new Wyhash64(),
 			HashAlgorithm.KangarooTwelve => new KangarooTwelve(),
 
-			_ => throw new NotSupportedException($"Streaming not supported for {algorithm} in StreamHash.Core. " +
-				"Use BouncyCastle directly for cryptographic algorithms.")
+			// MD Family (BouncyCastle)
+			HashAlgorithm.Md2 => BouncyCastleFactory.CreateMd2(),
+			HashAlgorithm.Md4 => BouncyCastleFactory.CreateMd4(),
+			HashAlgorithm.Md5 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.MD5),
+
+			// SHA-1/2 Family
+			HashAlgorithm.Sha0 => BouncyCastleFactory.CreateSha0(),
+			HashAlgorithm.Sha1 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA1),
+			HashAlgorithm.Sha224 => BouncyCastleFactory.CreateSha224(),
+			HashAlgorithm.Sha256 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA256),
+			HashAlgorithm.Sha384 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA384),
+			HashAlgorithm.Sha512 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA512),
+			HashAlgorithm.Sha512_224 => BouncyCastleFactory.CreateSha512_224(),
+			HashAlgorithm.Sha512_256 => BouncyCastleFactory.CreateSha512_256(),
+
+			// SHA-3 & Keccak (BouncyCastle)
+			HashAlgorithm.Sha3_224 => BouncyCastleFactory.CreateSha3_224(),
+			HashAlgorithm.Sha3_256 => BouncyCastleFactory.CreateSha3_256(),
+			HashAlgorithm.Sha3_384 => BouncyCastleFactory.CreateSha3_384(),
+			HashAlgorithm.Sha3_512 => BouncyCastleFactory.CreateSha3_512(),
+			HashAlgorithm.Keccak256 => BouncyCastleFactory.CreateKeccak256(),
+			HashAlgorithm.Keccak512 => BouncyCastleFactory.CreateKeccak512(),
+
+			// BLAKE Family (BouncyCastle)
+			HashAlgorithm.Blake256 => BouncyCastleFactory.CreateBlake256(),
+			HashAlgorithm.Blake512 => BouncyCastleFactory.CreateBlake512(),
+			HashAlgorithm.Blake2b => BouncyCastleFactory.CreateBlake2b(),
+			HashAlgorithm.Blake2s => BouncyCastleFactory.CreateBlake2s(),
+			HashAlgorithm.Blake3 => BouncyCastleFactory.CreateBlake3(),
+
+			// RIPEMD Family (BouncyCastle)
+			HashAlgorithm.Ripemd128 => BouncyCastleFactory.CreateRipemd128(),
+			HashAlgorithm.Ripemd160 => BouncyCastleFactory.CreateRipemd160(),
+			HashAlgorithm.Ripemd256 => BouncyCastleFactory.CreateRipemd256(),
+			HashAlgorithm.Ripemd320 => BouncyCastleFactory.CreateRipemd320(),
+
+			// Other Crypto (BouncyCastle)
+			HashAlgorithm.Whirlpool => BouncyCastleFactory.CreateWhirlpool(),
+			HashAlgorithm.Tiger192 => BouncyCastleFactory.CreateTiger192(),
+			HashAlgorithm.Gost94 => BouncyCastleFactory.CreateGost94(),
+			HashAlgorithm.Streebog256 => BouncyCastleFactory.CreateStreebog256(),
+			HashAlgorithm.Streebog512 => BouncyCastleFactory.CreateStreebog512(),
+			HashAlgorithm.Skein256 => BouncyCastleFactory.CreateSkein256(),
+			HashAlgorithm.Skein512 => BouncyCastleFactory.CreateSkein512(),
+			HashAlgorithm.Skein1024 => BouncyCastleFactory.CreateSkein1024(),
+			HashAlgorithm.Groestl256 => BouncyCastleFactory.CreateGroestl256(),
+			HashAlgorithm.Groestl512 => BouncyCastleFactory.CreateGroestl512(),
+			HashAlgorithm.Jh256 => BouncyCastleFactory.CreateJh256(),
+			HashAlgorithm.Jh512 => BouncyCastleFactory.CreateJh512(),
+			HashAlgorithm.Sm3 => BouncyCastleFactory.CreateSm3(),
+
+			_ => throw new NotSupportedException($"Streaming not supported for {algorithm}.")
 		};
 	}
 

@@ -306,34 +306,65 @@ public class HashFacadeTests {
 
 	#endregion
 
-	#region Crypto Algorithm Boundary Tests
+	#region Crypto Algorithm Tests (BouncyCastle Integration)
 
 	[Theory]
-	[InlineData(HashAlgorithm.Md2)]
-	[InlineData(HashAlgorithm.Sha3_256)]
-	[InlineData(HashAlgorithm.Blake2b)]
-	[InlineData(HashAlgorithm.Ripemd160)]
-	public void ComputeHash_CryptoAlgorithms_ThrowsNotSupported(HashAlgorithm algorithm) {
+	[InlineData(HashAlgorithm.Md2, 16)]
+	[InlineData(HashAlgorithm.Md4, 16)]
+	[InlineData(HashAlgorithm.Sha0, 20)]
+	[InlineData(HashAlgorithm.Sha224, 28)]
+	[InlineData(HashAlgorithm.Sha3_224, 28)]
+	[InlineData(HashAlgorithm.Sha3_256, 32)]
+	[InlineData(HashAlgorithm.Sha3_384, 48)]
+	[InlineData(HashAlgorithm.Sha3_512, 64)]
+	[InlineData(HashAlgorithm.Keccak256, 32)]
+	[InlineData(HashAlgorithm.Keccak512, 64)]
+	[InlineData(HashAlgorithm.Blake256, 32)]
+	[InlineData(HashAlgorithm.Blake512, 64)]
+	[InlineData(HashAlgorithm.Blake2b, 64)]
+	[InlineData(HashAlgorithm.Blake2s, 32)]
+	[InlineData(HashAlgorithm.Blake3, 32)]
+	[InlineData(HashAlgorithm.Ripemd128, 16)]
+	[InlineData(HashAlgorithm.Ripemd160, 20)]
+	[InlineData(HashAlgorithm.Ripemd256, 32)]
+	[InlineData(HashAlgorithm.Ripemd320, 40)]
+	[InlineData(HashAlgorithm.Whirlpool, 64)]
+	[InlineData(HashAlgorithm.Tiger192, 24)]
+	[InlineData(HashAlgorithm.Gost94, 32)]
+	[InlineData(HashAlgorithm.Streebog256, 32)]
+	[InlineData(HashAlgorithm.Streebog512, 64)]
+	[InlineData(HashAlgorithm.Skein256, 32)]
+	[InlineData(HashAlgorithm.Skein512, 64)]
+	[InlineData(HashAlgorithm.Skein1024, 128)]
+	[InlineData(HashAlgorithm.Sm3, 32)]
+	public void ComputeHash_CryptoAlgorithms_ProducesCorrectLength(HashAlgorithm algorithm, int expectedLength) {
 		// Arrange
 		byte[] data = "Test"u8.ToArray();
 
 		// Act
-		Action act = () => HashFacade.ComputeHash(algorithm, data);
+		byte[] hash = HashFacade.ComputeHash(algorithm, data);
 
 		// Assert
-		act.Should().Throw<NotSupportedException>()
-			.WithMessage("*BouncyCastle*");
+		hash.Should().HaveCount(expectedLength);
 	}
 
 	[Theory]
 	[InlineData(HashAlgorithm.Sha3_256)]
 	[InlineData(HashAlgorithm.Blake2b)]
-	public void CreateStreaming_CryptoAlgorithms_ThrowsNotSupported(HashAlgorithm algorithm) {
-		// Act
-		Action act = () => HashFacade.CreateStreaming(algorithm);
+	[InlineData(HashAlgorithm.Ripemd160)]
+	[InlineData(HashAlgorithm.Md2)]
+	[InlineData(HashAlgorithm.Whirlpool)]
+	public void CreateStreaming_CryptoAlgorithms_Works(HashAlgorithm algorithm) {
+		// Arrange
+		byte[] data = "Test"u8.ToArray();
 
-		// Assert
-		act.Should().Throw<NotSupportedException>();
+		// Act
+		using var hasher = HashFacade.CreateStreaming(algorithm);
+		hasher.Update(data);
+		byte[] hash = hasher.FinalizeBytes();
+
+		// Assert - verify we get some bytes out
+		hash.Should().NotBeEmpty();
 	}
 
 	#endregion

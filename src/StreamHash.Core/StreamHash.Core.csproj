@@ -10,18 +10,18 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.3.0</Version>
+		<Version>1.4.0</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for .NET 10. Includes MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, and xxHash. Features unified HashFacade API with 62 algorithm support including checksums (CRC32, Adler-32, Fletcher) and cryptographic hashes (SHA, MD5).</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;performance;incremental</PackageTags>
+		<Description>High-performance streaming hash library for .NET 10. All 62 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite via BouncyCastle (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3). Features unified HashFacade API.</Description>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;performance;incremental;bouncycastle</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.3.0: Added unified HashFacade API with 62 algorithm support (checksums, fast hashes, crypto). IStreamingHashBytes interface for consistent byte[] output. 619 tests.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.4.0: All 62 algorithms now fully accessible! Added BouncyCastle integration for complete cryptographic support (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, MD2, MD4). Custom SHA-0 implementation. 646 tests.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -40,6 +40,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
 		<PackageReference Include="System.IO.Hashing" Version="9.0.3" />
 	</ItemGroup>
 

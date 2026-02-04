@@ -174,3 +174,60 @@ internal sealed class NonCryptoHashAdapter128 : IStreamingHashBytes {
 		_disposed = true;
 	}
 }
+
+/// <summary>
+/// Adapter for System.Security.Cryptography incremental hashing.
+/// Wraps <see cref="System.Security.Cryptography.IncrementalHash"/> for streaming.
+/// </summary>
+internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
+	private readonly System.Security.Cryptography.IncrementalHash _inner;
+	private readonly int _digestSize;
+	private bool _disposed;
+	private long _totalBytes;
+
+	/// <summary>
+	/// Creates an adapter for the specified hash algorithm.
+	/// </summary>
+	/// <param name="algorithmName">The hash algorithm name (MD5, SHA1, SHA256, SHA384, SHA512).</param>
+	public IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName algorithmName) {
+		_inner = System.Security.Cryptography.IncrementalHash.CreateHash(algorithmName);
+		_digestSize = algorithmName.Name switch {
+			"MD5" => 16,
+			"SHA1" => 20,
+			"SHA256" => 32,
+			"SHA384" => 48,
+			"SHA512" => 64,
+			_ => throw new ArgumentException($"Unknown algorithm: {algorithmName}")
+		};
+	}
+
+	public int BlockSize => 64; // Most crypto hashes use 64-byte blocks (512 bits)
+	public int DigestSize => _digestSize;
+	public long TotalBytesProcessed => _totalBytes;
+
+	public void Update(ReadOnlySpan<byte> data) {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_inner.AppendData(data);
+		_totalBytes += data.Length;
+	}
+
+	public byte[] FinalizeBytes() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		return _inner.GetCurrentHash();
+	}
+
+	public void Reset() {
+		// IncrementalHash doesn't support reset, so we just get the current hash and discard it
+		// This is a limitation of the .NET API
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_ = _inner.GetCurrentHash();
+		_totalBytes = 0;
+	}
+
+	public void Dispose() {
+		if (!_disposed) {
+			_inner.Dispose();
+			_disposed = true;
+		}
+	}
+}
