@@ -406,10 +406,13 @@ public sealed class JHDigest : IStreamingHashBytes {
 			_bufferPos = 0;
 			Array.Clear(_buffer, 0, BlockSizeBytes);
 		} else {
-			Array.Clear(_buffer, _bufferPos, BlockSizeBytes - _bufferPos - 16);
+			// Clear from current position to end of block (leaving room for length)
+			Array.Clear(_buffer, _bufferPos, BlockSizeBytes - _bufferPos);
 		}
 
 		// Append 128-bit message length (high 64 bits are zero for practical purposes)
+		// First 8 bytes are zero (for messages < 2^64 bits)
+		// Write length in last 8 bytes
 		for (int i = 0; i < 8; i++) {
 			_buffer[BlockSizeBytes - 8 + i] = (byte)(bitLength >> (56 - i * 8));
 		}

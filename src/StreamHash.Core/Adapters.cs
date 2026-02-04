@@ -30,6 +30,7 @@ internal sealed class StreamingHashBytesAdapter<TResult> : IStreamingHashBytes w
 
 		// Convert based on type
 		return result switch {
+			ushort u16 => BitConverter.GetBytes(u16),
 			uint u32 => BitConverter.GetBytes(u32),
 			ulong u64 => BitConverter.GetBytes(u64),
 			UInt128 u128 => ConvertUInt128(u128),
@@ -229,5 +230,166 @@ internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
 			_inner.Dispose();
 			_disposed = true;
 		}
+	}
+}
+
+/// <summary>
+/// Streaming adapter for CRC-32C (Castagnoli polynomial).
+/// </summary>
+internal sealed class Crc32CStreamingAdapter : IStreamingHashBytes {
+	private uint _crc = 0xFFFFFFFF;
+	private long _totalBytes;
+	private bool _disposed;
+
+	public int BlockSize => 4;
+	public int DigestSize => 4;
+	public long TotalBytesProcessed => _totalBytes;
+
+	public void Update(ReadOnlySpan<byte> data) {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		foreach (byte b in data) {
+			_crc ^= b;
+			for (int i = 0; i < 8; i++) {
+				_crc = (_crc >> 1) ^ ((_crc & 1) * 0x82F63B78u);
+			}
+		}
+		_totalBytes += data.Length;
+	}
+
+	public byte[] FinalizeBytes() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		uint result = _crc ^ 0xFFFFFFFF;
+		return BitConverter.GetBytes(result);
+	}
+
+	public void Reset() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_crc = 0xFFFFFFFF;
+		_totalBytes = 0;
+	}
+
+	public void Dispose() {
+		_disposed = true;
+	}
+}
+
+/// <summary>
+/// Streaming adapter for Adler-32 checksum.
+/// </summary>
+internal sealed class Adler32StreamingAdapter : IStreamingHashBytes {
+	private uint _a = 1;
+	private uint _b = 0;
+	private long _totalBytes;
+	private bool _disposed;
+	private const uint MOD = 65521;
+
+	public int BlockSize => 4;
+	public int DigestSize => 4;
+	public long TotalBytesProcessed => _totalBytes;
+
+	public void Update(ReadOnlySpan<byte> data) {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		foreach (byte bt in data) {
+			_a = (_a + bt) % MOD;
+			_b = (_b + _a) % MOD;
+		}
+		_totalBytes += data.Length;
+	}
+
+	public byte[] FinalizeBytes() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		uint result = (_b << 16) | _a;
+		return BitConverter.GetBytes(result);
+	}
+
+	public void Reset() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_a = 1;
+		_b = 0;
+		_totalBytes = 0;
+	}
+
+	public void Dispose() {
+		_disposed = true;
+	}
+}
+
+/// <summary>
+/// Streaming adapter for Fletcher-16 checksum.
+/// </summary>
+internal sealed class Fletcher16StreamingAdapter : IStreamingHashBytes {
+	private ushort _sum1;
+	private ushort _sum2;
+	private long _totalBytes;
+	private bool _disposed;
+
+	public int BlockSize => 2;
+	public int DigestSize => 2;
+	public long TotalBytesProcessed => _totalBytes;
+
+	public void Update(ReadOnlySpan<byte> data) {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		foreach (byte b in data) {
+			_sum1 = (ushort)((_sum1 + b) % 255);
+			_sum2 = (ushort)((_sum2 + _sum1) % 255);
+		}
+		_totalBytes += data.Length;
+	}
+
+	public byte[] FinalizeBytes() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		ushort result = (ushort)((_sum2 << 8) | _sum1);
+		return BitConverter.GetBytes(result);
+	}
+
+	public void Reset() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_sum1 = 0;
+		_sum2 = 0;
+		_totalBytes = 0;
+	}
+
+	public void Dispose() {
+		_disposed = true;
+	}
+}
+
+/// <summary>
+/// Streaming adapter for Fletcher-32 checksum.
+/// </summary>
+internal sealed class Fletcher32StreamingAdapter : IStreamingHashBytes {
+	private uint _sum1;
+	private uint _sum2;
+	private long _totalBytes;
+	private bool _disposed;
+
+	public int BlockSize => 4;
+	public int DigestSize => 4;
+	public long TotalBytesProcessed => _totalBytes;
+
+	public void Update(ReadOnlySpan<byte> data) {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		foreach (byte b in data) {
+			_sum1 = (_sum1 + b) % 65535;
+			_sum2 = (_sum2 + _sum1) % 65535;
+		}
+		_totalBytes += data.Length;
+	}
+
+	public byte[] FinalizeBytes() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		uint result = (_sum2 << 16) | _sum1;
+		return BitConverter.GetBytes(result);
+	}
+
+	public void Reset() {
+		ObjectDisposedException.ThrowIf(_disposed, this);
+		_sum1 = 0;
+		_sum2 = 0;
+		_totalBytes = 0;
+	}
+
+	public void Dispose() {
+		_disposed = true;
 	}
 }

@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of DJB2 hash algorithm by Dan Bernstein.

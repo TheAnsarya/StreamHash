@@ -66,6 +66,9 @@ public static class HashFacade {
 			HashAlgorithm.Crc32 => ComputeCrc32(data),
 			HashAlgorithm.Crc32C => ComputeCrc32C(data),
 			HashAlgorithm.Crc64 => ComputeCrc64(data),
+			HashAlgorithm.Crc16Ccitt => ComputeCrc16Ccitt(data),
+			HashAlgorithm.Crc16Modbus => ComputeCrc16Modbus(data),
+			HashAlgorithm.Crc16Usb => ComputeCrc16Usb(data),
 			HashAlgorithm.Adler32 => ComputeAdler32(data),
 			HashAlgorithm.Fletcher16 => ComputeFletcher16(data),
 			HashAlgorithm.Fletcher32 => ComputeFletcher32(data),
@@ -86,6 +89,12 @@ public static class HashFacade {
 			HashAlgorithm.MetroHash64 => ComputeMetroHash64(data),
 			HashAlgorithm.MetroHash128 => ComputeMetroHash128(data),
 			HashAlgorithm.Wyhash64 => ComputeWyhash64(data),
+			HashAlgorithm.Fnv1a32 => ComputeFnv1a32(data),
+			HashAlgorithm.Fnv1a64 => ComputeFnv1a64(data),
+			HashAlgorithm.Djb2 => ComputeDjb2(data),
+			HashAlgorithm.Djb2a => ComputeDjb2a(data),
+			HashAlgorithm.Sdbm => ComputeSdbm(data),
+			HashAlgorithm.LoseLose => ComputeLoseLose(data),
 
 			// MD Family
 			HashAlgorithm.Md2 => BouncyCastleFactory.ComputeHash(new MD2Digest(), data),
@@ -414,27 +423,31 @@ public static class HashFacade {
 	}
 
 	/// <summary>Computes Groestl-256 hash.</summary>
-	/// <remarks>Note: Currently uses SHA3-256 as fallback. True Groestl not available in BouncyCastle.</remarks>
 	public static byte[] ComputeGroestl256(ReadOnlySpan<byte> data) {
-		return BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data);
+		using var hasher = new GroestlDigest(256);
+		hasher.Update(data);
+		return hasher.FinalizeBytes();
 	}
 
 	/// <summary>Computes Groestl-512 hash.</summary>
-	/// <remarks>Note: Currently uses SHA3-512 as fallback. True Groestl not available in BouncyCastle.</remarks>
 	public static byte[] ComputeGroestl512(ReadOnlySpan<byte> data) {
-		return BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data);
+		using var hasher = new GroestlDigest(512);
+		hasher.Update(data);
+		return hasher.FinalizeBytes();
 	}
 
 	/// <summary>Computes JH-256 hash.</summary>
-	/// <remarks>Note: Currently uses SHA3-256 as fallback. True JH not available in BouncyCastle.</remarks>
 	public static byte[] ComputeJh256(ReadOnlySpan<byte> data) {
-		return BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data);
+		using var hasher = new JHDigest(256);
+		hasher.Update(data);
+		return hasher.FinalizeBytes();
 	}
 
 	/// <summary>Computes JH-512 hash.</summary>
-	/// <remarks>Note: Currently uses SHA3-512 as fallback. True JH not available in BouncyCastle.</remarks>
 	public static byte[] ComputeJh512(ReadOnlySpan<byte> data) {
-		return BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data);
+		using var hasher = new JHDigest(512);
+		hasher.Update(data);
+		return hasher.FinalizeBytes();
 	}
 
 	/// <summary>Computes KangarooTwelve hash.</summary>
@@ -467,10 +480,14 @@ public static class HashFacade {
 		return algorithm switch {
 			// Checksums - use adapters
 			HashAlgorithm.Crc32 => new NonCryptoHashAdapter32(new Crc32Hash()),
+			HashAlgorithm.Crc32C => new Crc32CStreamingAdapter(),
 			HashAlgorithm.Crc64 => new NonCryptoHashAdapter64(new Crc64()),
 			HashAlgorithm.Crc16Ccitt => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Ccitt)),
 			HashAlgorithm.Crc16Modbus => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Modbus)),
 			HashAlgorithm.Crc16Usb => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Usb)),
+			HashAlgorithm.Adler32 => new Adler32StreamingAdapter(),
+			HashAlgorithm.Fletcher16 => new Fletcher16StreamingAdapter(),
+			HashAlgorithm.Fletcher32 => new Fletcher32StreamingAdapter(),
 
 			// xxHash family - use adapters
 			HashAlgorithm.XxHash32 => new NonCryptoHashAdapter32(new XxHash32()),
