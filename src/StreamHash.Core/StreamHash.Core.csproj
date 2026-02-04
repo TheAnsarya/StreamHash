@@ -13,15 +13,15 @@
 		<Version>1.6.2</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for .NET 10. All 71 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with comprehensive test coverage (752+ tests). SIMD-optimized implementations for Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd;aes-ni</PackageTags>
+		<Description>High-performance streaming hash library for .NET 10. All 71 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with comprehensive test coverage (752+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd;aes-ni;avx2</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.6.2: Major SIMD optimizations for cryptographic algorithms. Whirlpool: Custom T-table implementation replaces BouncyCastle (3.2x faster, 52.4ms to 16.5ms). Grøstl: AES-NI SubBytes + T-table MixBytes (~2.5x faster). JH: Bit-sliced S-box + SSSE3 linear transform (~1.4x faster). All optimizations have scalar fallbacks for CPUs without SIMD support. 752 tests passing. All 71 algorithms validated.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.6.2: SIMD optimizations across the board. HighwayHash64: AVX2/SSE4.1 optimization (1.4x faster). Whirlpool: Custom T-table implementation (3.2x faster). Grøstl: AES-NI SubBytes + T-table MixBytes (~2.5x faster). JH: Bit-sliced S-box + SSSE3 (~1.4x faster). GitHub Actions CI/CD added. Memory allocations greatly reduced. All optimizations have scalar fallbacks. 752 tests passing. All 71 algorithms validated.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

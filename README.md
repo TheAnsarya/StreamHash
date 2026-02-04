@@ -156,6 +156,7 @@ Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 | MurmurHash3_128 | 257 µs | 3.9 GB/s |
 | SpookyHash128 | 341 µs | 2.9 GB/s |
 | MurmurHash3_32 | 545 µs | 1.8 GB/s |
+| **HighwayHash64** | **756 µs** | **1.4 GB/s** (AVX2 SIMD in v1.6.2) |
 
 ### Cryptographic Hashes (1MB data)
 | Algorithm | Time | Notes |

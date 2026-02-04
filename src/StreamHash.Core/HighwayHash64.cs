@@ -1,5 +1,7 @@
 ﻿namespace StreamHash.Core;
 
+using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -210,6 +212,203 @@ public sealed class HighwayHash64 : StreamingHashBase<ulong> {
 
 	/// <inheritdoc/>
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
+		if (IsAvx2Supported) {
+			ProcessBlockAvx2(block);
+		} else if (IsSse41Supported) {
+			ProcessBlockSse41(block);
+		} else {
+			ProcessBlockScalar(block);
+		}
+	}
+
+	/// <summary>
+	/// Process a block using AVX2 SIMD (256-bit vectors).
+	/// All 4 lanes are processed in parallel with a single vector.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private unsafe void ProcessBlockAvx2(ReadOnlySpan<byte> block) {
+		// Load packet (4 × 64-bit lanes) from input
+		fixed (byte* ptr = block) {
+			Vector256<ulong> packet = Avx.LoadVector256((ulong*)ptr);
+
+			// Load state vectors
+			fixed (ulong* v0Ptr = _v0, v1Ptr = _v1, mul0Ptr = _mul0, mul1Ptr = _mul1) {
+				Vector256<ulong> v0 = Avx.LoadVector256(v0Ptr);
+				Vector256<ulong> v1 = Avx.LoadVector256(v1Ptr);
+				Vector256<ulong> mul0 = Avx.LoadVector256(mul0Ptr);
+				Vector256<ulong> mul1 = Avx.LoadVector256(mul1Ptr);
+
+				// Step 1: v1 += packet
+				v1 = Avx2.Add(v1, packet);
+
+				// Step 2: v1 += mul0
+				v1 = Avx2.Add(v1, mul0);
+
+				// Step 3: mul0 ^= (v1 & 0xffffffff) * (v0 >> 32)
+				Vector256<ulong> v1Low = Avx2.And(v1, Vector256.Create(0xffffffffUL));
+				Vector256<ulong> v0High = Avx2.ShiftRightLogical(v0, 32);
+				Vector256<ulong> product0 = Avx2.Multiply(v1Low.AsUInt32(), v0High.AsUInt32()).AsUInt64();
+				mul0 = Avx2.Xor(mul0, product0);
+
+				// Step 4: v0 += mul1
+				v0 = Avx2.Add(v0, mul1);
+
+				// Step 5: mul1 ^= (v0 & 0xffffffff) * (v1 >> 32)
+				Vector256<ulong> v0Low = Avx2.And(v0, Vector256.Create(0xffffffffUL));
+				Vector256<ulong> v1High = Avx2.ShiftRightLogical(v1, 32);
+				Vector256<ulong> product1 = Avx2.Multiply(v0Low.AsUInt32(), v1High.AsUInt32()).AsUInt64();
+				mul1 = Avx2.Xor(mul1, product1);
+
+				// Step 6: ZipperMerge - requires extracting individual elements
+				// Extract elements for ZipperMerge
+				ulong v0_0 = v0.GetElement(0);
+				ulong v0_1 = v0.GetElement(1);
+				ulong v0_2 = v0.GetElement(2);
+				ulong v0_3 = v0.GetElement(3);
+				ulong v1_0 = v1.GetElement(0);
+				ulong v1_1 = v1.GetElement(1);
+				ulong v1_2 = v1.GetElement(2);
+				ulong v1_3 = v1.GetElement(3);
+
+				// ZipperMerge for v0
+				v0 = Vector256.Create(
+					v0_0 + ZipperMerge0(v1_1, v1_0),
+					v0_1 + ZipperMerge1(v1_1, v1_0),
+					v0_2 + ZipperMerge0(v1_3, v1_2),
+					v0_3 + ZipperMerge1(v1_3, v1_2)
+				);
+
+				// Extract updated v0 elements
+				v0_0 = v0.GetElement(0);
+				v0_1 = v0.GetElement(1);
+				v0_2 = v0.GetElement(2);
+				v0_3 = v0.GetElement(3);
+
+				// ZipperMerge for v1
+				v1 = Vector256.Create(
+					v1_0 + ZipperMerge0(v0_1, v0_0),
+					v1_1 + ZipperMerge1(v0_1, v0_0),
+					v1_2 + ZipperMerge0(v0_3, v0_2),
+					v1_3 + ZipperMerge1(v0_3, v0_2)
+				);
+
+				// Store updated state
+				Avx.Store(v0Ptr, v0);
+				Avx.Store(v1Ptr, v1);
+				Avx.Store(mul0Ptr, mul0);
+				Avx.Store(mul1Ptr, mul1);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Process a block using SSE4.1 SIMD (128-bit vectors).
+	/// Processes 2 lanes at a time.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private unsafe void ProcessBlockSse41(ReadOnlySpan<byte> block) {
+		fixed (byte* ptr = block) {
+			// Load packet as two 128-bit halves
+			Vector128<ulong> packetLo = Sse2.LoadVector128((ulong*)ptr);
+			Vector128<ulong> packetHi = Sse2.LoadVector128((ulong*)(ptr + 16));
+
+			fixed (ulong* v0Ptr = _v0, v1Ptr = _v1, mul0Ptr = _mul0, mul1Ptr = _mul1) {
+				Vector128<ulong> v0Lo = Sse2.LoadVector128(v0Ptr);
+				Vector128<ulong> v0Hi = Sse2.LoadVector128(v0Ptr + 2);
+				Vector128<ulong> v1Lo = Sse2.LoadVector128(v1Ptr);
+				Vector128<ulong> v1Hi = Sse2.LoadVector128(v1Ptr + 2);
+				Vector128<ulong> mul0Lo = Sse2.LoadVector128(mul0Ptr);
+				Vector128<ulong> mul0Hi = Sse2.LoadVector128(mul0Ptr + 2);
+				Vector128<ulong> mul1Lo = Sse2.LoadVector128(mul1Ptr);
+				Vector128<ulong> mul1Hi = Sse2.LoadVector128(mul1Ptr + 2);
+
+				// Step 1: v1 += packet
+				v1Lo = Sse2.Add(v1Lo, packetLo);
+				v1Hi = Sse2.Add(v1Hi, packetHi);
+
+				// Step 2: v1 += mul0
+				v1Lo = Sse2.Add(v1Lo, mul0Lo);
+				v1Hi = Sse2.Add(v1Hi, mul0Hi);
+
+				// Step 3: mul0 ^= (v1 & 0xffffffff) * (v0 >> 32)
+				Vector128<ulong> mask32 = Vector128.Create(0xffffffffUL);
+				Vector128<ulong> v1LowLo = Sse2.And(v1Lo, mask32);
+				Vector128<ulong> v1LowHi = Sse2.And(v1Hi, mask32);
+				Vector128<ulong> v0HighLo = Sse2.ShiftRightLogical(v0Lo, 32);
+				Vector128<ulong> v0HighHi = Sse2.ShiftRightLogical(v0Hi, 32);
+				Vector128<ulong> product0Lo = Sse41.Multiply(v1LowLo.AsUInt32(), v0HighLo.AsUInt32()).AsUInt64();
+				Vector128<ulong> product0Hi = Sse41.Multiply(v1LowHi.AsUInt32(), v0HighHi.AsUInt32()).AsUInt64();
+				mul0Lo = Sse2.Xor(mul0Lo, product0Lo);
+				mul0Hi = Sse2.Xor(mul0Hi, product0Hi);
+
+				// Step 4: v0 += mul1
+				v0Lo = Sse2.Add(v0Lo, mul1Lo);
+				v0Hi = Sse2.Add(v0Hi, mul1Hi);
+
+				// Step 5: mul1 ^= (v0 & 0xffffffff) * (v1 >> 32)
+				Vector128<ulong> v0LowLo = Sse2.And(v0Lo, mask32);
+				Vector128<ulong> v0LowHi = Sse2.And(v0Hi, mask32);
+				Vector128<ulong> v1HighLo = Sse2.ShiftRightLogical(v1Lo, 32);
+				Vector128<ulong> v1HighHi = Sse2.ShiftRightLogical(v1Hi, 32);
+				Vector128<ulong> product1Lo = Sse41.Multiply(v0LowLo.AsUInt32(), v1HighLo.AsUInt32()).AsUInt64();
+				Vector128<ulong> product1Hi = Sse41.Multiply(v0LowHi.AsUInt32(), v1HighHi.AsUInt32()).AsUInt64();
+				mul1Lo = Sse2.Xor(mul1Lo, product1Lo);
+				mul1Hi = Sse2.Xor(mul1Hi, product1Hi);
+
+				// Step 6: ZipperMerge - extract individual elements
+				ulong v0_0 = v0Lo.GetElement(0);
+				ulong v0_1 = v0Lo.GetElement(1);
+				ulong v0_2 = v0Hi.GetElement(0);
+				ulong v0_3 = v0Hi.GetElement(1);
+				ulong v1_0 = v1Lo.GetElement(0);
+				ulong v1_1 = v1Lo.GetElement(1);
+				ulong v1_2 = v1Hi.GetElement(0);
+				ulong v1_3 = v1Hi.GetElement(1);
+
+				// ZipperMerge for v0
+				v0Lo = Vector128.Create(
+					v0_0 + ZipperMerge0(v1_1, v1_0),
+					v0_1 + ZipperMerge1(v1_1, v1_0)
+				);
+				v0Hi = Vector128.Create(
+					v0_2 + ZipperMerge0(v1_3, v1_2),
+					v0_3 + ZipperMerge1(v1_3, v1_2)
+				);
+
+				// Update extracted v0 elements
+				v0_0 = v0Lo.GetElement(0);
+				v0_1 = v0Lo.GetElement(1);
+				v0_2 = v0Hi.GetElement(0);
+				v0_3 = v0Hi.GetElement(1);
+
+				// ZipperMerge for v1
+				v1Lo = Vector128.Create(
+					v1_0 + ZipperMerge0(v0_1, v0_0),
+					v1_1 + ZipperMerge1(v0_1, v0_0)
+				);
+				v1Hi = Vector128.Create(
+					v1_2 + ZipperMerge0(v0_3, v0_2),
+					v1_3 + ZipperMerge1(v0_3, v0_2)
+				);
+
+				// Store updated state
+				Sse2.Store(v0Ptr, v0Lo);
+				Sse2.Store(v0Ptr + 2, v0Hi);
+				Sse2.Store(v1Ptr, v1Lo);
+				Sse2.Store(v1Ptr + 2, v1Hi);
+				Sse2.Store(mul0Ptr, mul0Lo);
+				Sse2.Store(mul0Ptr + 2, mul0Hi);
+				Sse2.Store(mul1Ptr, mul1Lo);
+				Sse2.Store(mul1Ptr + 2, mul1Hi);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Process a block using scalar operations (fallback).
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private void ProcessBlockScalar(ReadOnlySpan<byte> block) {
 		// Read the 32-byte packet as 4 lanes
 		ulong[] packet = [
 			BinaryPrimitives.ReadUInt64LittleEndian(block[0..8]),

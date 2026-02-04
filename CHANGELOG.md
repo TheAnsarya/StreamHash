@@ -1,27 +1,32 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to StreamHash will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.2] - 2025-01-25
+## [1.6.2] - 2025-02-04
 
 ### Added
 - Custom high-performance Whirlpool implementation with T-table optimization (#15)
 - AES-NI SIMD optimization for Grøstl SubBytes operation (#13)
 - SSSE3 SIMD optimization for JH linear transform (#14)
+- AVX2/SSE4.1 SIMD optimization for HighwayHash64 (#7)
+- GitHub Actions CI/CD workflows for automated testing and releases (#10)
 - Bit-sliced S-box implementation for JH
 
 ### Changed
 - Whirlpool now uses custom T-table implementation instead of BouncyCastle wrapper
 - Grøstl MixBytes optimized with T-table lookup
+- HighwayHash64 ProcessBlock rewritten with SIMD intrinsics
 - All SIMD optimizations include scalar fallbacks for compatibility
+- Memory allocations reduced in HighwayHash64 (1.8MB → 360B per hash)
 
 ### Performance
 - **Whirlpool**: 3.2x faster (52.4ms → 16.5ms for 1MB)
 - **Grøstl**: ~2.5x faster (153ms → 61ms for 1MB) with AES-NI
 - **JH**: ~1.4x faster (191ms → 137ms for 1MB) with SSSE3
+- **HighwayHash64**: ~1.4x faster (1060ms → 756ms for 1MB) with AVX2
 
 ## [1.6.1] - 2025-01-24
 
