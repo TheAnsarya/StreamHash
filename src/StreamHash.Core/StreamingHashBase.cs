@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// Base class for streaming hash implementations providing common functionality.
@@ -41,7 +41,7 @@ namespace StreamHash.Core;
 /// </code>
 /// </para>
 /// </remarks>
-public abstract class StreamingHashBase<TResult> : IStreamingHash<TResult> where TResult : struct {
+public abstract class StreamingHashBase<TResult> : IStreamingHash<TResult>, IStreamingHashBytes where TResult : struct {
 	private byte[]? _buffer;
 	private int _bufferPosition;
 	private long _totalBytes;
@@ -133,6 +133,43 @@ public abstract class StreamingHashBase<TResult> : IStreamingHash<TResult> where
 
 		_finalized = true;
 		return ComputeFinal(_buffer.AsSpan(0, _bufferPosition));
+	}
+
+	/// <summary>
+	/// Completes the hash computation and returns the result as a byte array.
+	/// </summary>
+	/// <returns>The computed hash value as a byte array.</returns>
+	/// <remarks>
+	/// <para>
+	/// This method provides a consistent byte[] output regardless of the underlying result type.
+	/// After calling this method, the hasher is finalized and must be reset before further use.
+	/// </para>
+	/// </remarks>
+	public virtual byte[] FinalizeBytes() {
+		TResult result = Finalize();
+
+		return result switch {
+			uint u32 => BitConverter.GetBytes(u32),
+			ulong u64 => BitConverter.GetBytes(u64),
+			UInt128 u128 => ConvertUInt128ToBytes(u128),
+			byte[] bytes => bytes,
+			_ => throw new InvalidOperationException($"Unsupported result type: {typeof(TResult)}")
+		};
+	}
+
+	/// <summary>
+	/// Completes the hash computation and returns the result as a lowercase hex string.
+	/// </summary>
+	/// <returns>The computed hash value as a lowercase hexadecimal string.</returns>
+	public string FinalizeHex() => Convert.ToHexStringLower(FinalizeBytes());
+
+	private static byte[] ConvertUInt128ToBytes(UInt128 value) {
+		byte[] result = new byte[16];
+		ulong lo = (ulong)value;
+		ulong hi = (ulong)(value >> 64);
+		BitConverter.TryWriteBytes(result.AsSpan(0, 8), lo);
+		BitConverter.TryWriteBytes(result.AsSpan(8, 8), hi);
+		return result;
 	}
 
 	/// <inheritdoc/>
