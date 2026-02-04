@@ -71,7 +71,7 @@ Whirlpool, Tiger-192, GOST R 34.11-94, Streebog-256, Streebog-512, Skein-256, Sk
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.6.1
+dotnet add package StreamHash --version 1.6.2
 ```
 
 ### HashFacade API (Recommended)
@@ -138,7 +138,7 @@ dotnet test
 dotnet run -c Release --project benchmarks/StreamHash.Benchmarks
 ```
 
-## 📊 Benchmarks (v1.6.1)
+## 📊 Benchmarks (v1.6.2)
 
 Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 
@@ -170,11 +170,11 @@ Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 | SHA3-512 | 6.22 ms | Keccak-based |
 | Blake2b | 6.52 ms | Modern |
 | Blake3 | 8.49 ms | Parallelizable |
-| Whirlpool | 52.4 ms | AES-based |
-| **Grøstl-256** | **153 ms** | T-table optimized |
-| **JH-256** | **191 ms** | Bit-sliced S-box |
+| **Whirlpool** | **16.5 ms** | Custom T-tables (3.2x faster in v1.6.2) |
+| **Grøstl-256** | **61 ms** | AES-NI + T-tables (~2.5x faster in v1.6.2) |
+| **JH-256** | **137 ms** | Bit-sliced + SSSE3 (~1.4x faster in v1.6.2) |
 
-*Grøstl and JH optimized with T-tables and pre-computed S-boxes in v1.6.1 (~2.15x speedup)*
+*Whirlpool, Grøstl, and JH significantly optimized with custom implementations, SIMD, and T-tables in v1.6.2*
 
 ## 🤝 Contributing
 
