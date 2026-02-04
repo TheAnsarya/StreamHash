@@ -49,7 +49,7 @@ public static class HashFacade {
 	/// <summary>
 	/// Total number of hash algorithms supported.
 	/// </summary>
-	public const int AlgorithmCount = 62;
+	public const int AlgorithmCount = 70;
 
 	#region One-Shot Hashing
 
