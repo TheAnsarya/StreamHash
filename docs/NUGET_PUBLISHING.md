@@ -1,4 +1,4 @@
-# 📦 NuGet Package Publishing Guide
+﻿# 📦 NuGet Package Publishing Guide
 
 This guide provides step-by-step instructions for publishing the StreamHash package to NuGet.org.
 
