@@ -81,7 +81,7 @@ internal static class BouncyCastleFactory {
 	public static IStreamingHashBytes CreateRipemd320() => new BouncyCastleAdapter(new RipeMD320Digest());
 
 	// Other Crypto
-	public static IStreamingHashBytes CreateWhirlpool() => new BouncyCastleAdapter(new WhirlpoolDigest());
+	public static IStreamingHashBytes CreateWhirlpool() => new BouncyCastleAdapter(new Org.BouncyCastle.Crypto.Digests.WhirlpoolDigest());
 	public static IStreamingHashBytes CreateTiger192() => new BouncyCastleAdapter(new TigerDigest());
 	public static IStreamingHashBytes CreateGost94() => new BouncyCastleAdapter(new Gost3411Digest());
 	public static IStreamingHashBytes CreateStreebog256() => new BouncyCastleAdapter(new Gost3411_2012_256Digest());

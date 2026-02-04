@@ -22,6 +22,12 @@ This directory contains detailed documentation for each streaming hash algorithm
 | [SipHash-2-4](siphash.md) | 64-bit | ~2-3 GB/s | 128-bit | DoS-resistant PRF |
 | [HighwayHash64](highwayhash.md) | 64-bit | ~10+ GB/s | 256-bit | SIMD, DoS-resistant |
 
+### Cryptographic Hashes
+
+| Algorithm | Output | Speed | Documentation |
+|-----------|--------|-------|---------------|
+| [Whirlpool](Whirlpool.md) | 512-bit | ~55 MB/s | ISO/IEC 10118-3 |
+
 ## Choosing an Algorithm
 
 ### For Hash Tables (No Security Concerns)

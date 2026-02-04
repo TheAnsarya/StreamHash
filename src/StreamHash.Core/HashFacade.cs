@@ -133,7 +133,7 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd320 => BouncyCastleFactory.ComputeHash(new RipeMD320Digest(), data),
 
 			// Other Crypto
-			HashAlgorithm.Whirlpool => BouncyCastleFactory.ComputeHash(new WhirlpoolDigest(), data),
+			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
 			HashAlgorithm.Tiger192 => BouncyCastleFactory.ComputeHash(new TigerDigest(), data),
 			HashAlgorithm.Gost94 => BouncyCastleFactory.ComputeHash(new Gost3411Digest(), data),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_256Digest(), data),
@@ -450,6 +450,13 @@ public static class HashFacade {
 		return hasher.FinalizeBytes();
 	}
 
+	/// <summary>Computes Whirlpool hash.</summary>
+	public static byte[] ComputeWhirlpool(ReadOnlySpan<byte> data) {
+		using var hasher = new WhirlpoolDigest();
+		hasher.Update(data);
+		return hasher.Finalize();
+	}
+
 	/// <summary>Computes KangarooTwelve hash.</summary>
 	public static byte[] ComputeKangarooTwelveHash(ReadOnlySpan<byte> data) {
 		using var hasher = new KangarooTwelve();
@@ -551,8 +558,8 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => BouncyCastleFactory.CreateRipemd256(),
 			HashAlgorithm.Ripemd320 => BouncyCastleFactory.CreateRipemd320(),
 
-			// Other Crypto (BouncyCastle)
-			HashAlgorithm.Whirlpool => BouncyCastleFactory.CreateWhirlpool(),
+			// Other Crypto
+			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
 			HashAlgorithm.Tiger192 => BouncyCastleFactory.CreateTiger192(),
 			HashAlgorithm.Gost94 => BouncyCastleFactory.CreateGost94(),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.CreateStreebog256(),
