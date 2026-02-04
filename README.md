@@ -4,7 +4,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 [![NuGet](https://img.shields.io/nuget/v/StreamHash)](https://www.nuget.org/packages/StreamHash)
 
-**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular hash algorithms and a unified `HashFacade` API supporting **62 algorithms** - all fully implemented and accessible.
+**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular hash algorithms and a unified `HashFacade` API supporting **71 algorithms** - all fully implemented and accessible.
 
 ## 🎯 Why StreamHash?
 
@@ -16,12 +16,12 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 - **⚡ High Performance**: SIMD-optimized implementations where available
 - **🔄 Streaming API**: Process data incrementally with `Update()` and `Finalize()`
 - **📦 Zero Allocations**: Hot paths are allocation-free using `Span<T>`
-- **🎯 Unified API**: `HashFacade` provides access to all 62 algorithms through a single interface
+- **🎯 Unified API**: `HashFacade` provides access to all 71 algorithms through a single interface
 - **🔐 Full Crypto Support**: All cryptographic algorithms via BouncyCastle integration
-- **🧪 Thoroughly Tested**: 646+ tests validating against official test vectors
+- **🧪 Thoroughly Tested**: 697+ tests validating against official test vectors
 - **📖 Fully Documented**: XML docs, examples, and algorithm references
 
-## 📊 Algorithm Support (All 62 Fully Implemented!)
+## 📊 Algorithm Support (All 71 Fully Implemented!)
 
 ### Native Streaming Implementations (16)
 
@@ -38,15 +38,15 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 | wyhash64 | 64-bit | ✅ Complete |
 | xxHash32/64/3/128* | 32-128 bit | ✅ Complete |
 
-### HashFacade Unified API (62 algorithms)
+### HashFacade Unified API (71 algorithms)
 
-The `HashFacade` class provides one-shot and streaming access to **all 62 algorithms**:
+The `HashFacade` class provides one-shot and streaming access to **all 71 algorithms**:
 
-#### Checksums (6)
-CRC32, CRC32C, CRC64, Adler-32, Fletcher-16, Fletcher-32
+#### Checksums (9)
+CRC32, CRC32C, CRC64, CRC-16-CCITT, CRC-16-MODBUS, CRC-16-USB, Adler-32, Fletcher-16, Fletcher-32
 
-#### Fast Non-Crypto (16)
-xxHash32/64/3/128, MurmurHash3-32/128, CityHash64/128, FarmHash64, SpookyHash128, SipHash-2-4, HighwayHash64, MetroHash64/128, wyhash64
+#### Fast Non-Crypto (22)
+xxHash32/64/3/128, MurmurHash3-32/128, CityHash64/128, FarmHash64, SpookyHash128, SipHash-2-4, HighwayHash64, MetroHash64/128, wyhash64, FNV-1a (32/64), DJB2, DJB2a, SDBM, Lose Lose
 
 #### MD Family (3)
 MD2, MD4, MD5
@@ -71,7 +71,7 @@ Whirlpool, Tiger-192, GOST R 34.11-94, Streebog-256, Streebog-512, Skein-256, Sk
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.4.0
+dotnet add package StreamHash --version 1.6.0
 ```
 
 ### HashFacade API (Recommended)

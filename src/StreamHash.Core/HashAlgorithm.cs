@@ -5,17 +5,17 @@
 /// </summary>
 /// <remarks>
 /// <para>
-/// StreamHash supports 58+ hash algorithms organized into categories:
+/// StreamHash supports 70+ hash algorithms organized into categories:
 /// </para>
 /// <list type="bullet">
-/// <item><description><strong>Checksums (6):</strong> CRC32, CRC32C, CRC64, Adler-32, Fletcher-16, Fletcher-32</description></item>
-/// <item><description><strong>Fast Non-Crypto (16):</strong> xxHash family, MurmurHash3, CityHash, FarmHash, SpookyHash, SipHash, HighwayHash, MetroHash, wyhash</description></item>
+/// <item><description><strong>Checksums (9):</strong> CRC32, CRC32C, CRC64, CRC16 (8 variants), Adler-32, Fletcher-16, Fletcher-32</description></item>
+/// <item><description><strong>Fast Non-Crypto (22):</strong> xxHash family, MurmurHash3, CityHash, FarmHash, SpookyHash, SipHash, HighwayHash, MetroHash, wyhash, FNV-1a, DJB2, SDBM</description></item>
 /// <item><description><strong>Cryptographic (26):</strong> MD family, SHA family, SHA-3, Keccak, BLAKE family, RIPEMD family</description></item>
 /// <item><description><strong>Other Crypto (14):</strong> Whirlpool, Tiger, GOST, Streebog, Skein, SM3</description></item>
 /// </list>
 /// </remarks>
 public enum HashAlgorithm {
-	// ========== Checksums & CRCs (6) ==========
+	// ========== Checksums & CRCs (9) ==========
 
 	/// <summary>CRC-32 using the IEEE polynomial (0x04C11DB7).</summary>
 	Crc32,
@@ -26,6 +26,15 @@ public enum HashAlgorithm {
 	/// <summary>CRC-64 using the ECMA polynomial.</summary>
 	Crc64,
 
+	/// <summary>CRC-16-CCITT using polynomial 0x1021.</summary>
+	Crc16Ccitt,
+
+	/// <summary>CRC-16-MODBUS using polynomial 0x8005.</summary>
+	Crc16Modbus,
+
+	/// <summary>CRC-16-USB using polynomial 0x8005 with inversion.</summary>
+	Crc16Usb,
+
 	/// <summary>Adler-32 checksum (faster than CRC-32 but weaker).</summary>
 	Adler32,
 
@@ -35,7 +44,7 @@ public enum HashAlgorithm {
 	/// <summary>Fletcher-32 checksum (4 bytes).</summary>
 	Fletcher32,
 
-	// ========== Non-Crypto Fast Hashes (16) ==========
+	// ========== Non-Crypto Fast Hashes (22) ==========
 
 	/// <summary>xxHash32 - 32-bit hash by Yann Collet.</summary>
 	XxHash32,
@@ -81,6 +90,24 @@ public enum HashAlgorithm {
 
 	/// <summary>wyhash64 - extremely fast hash by Wang Yi.</summary>
 	Wyhash64,
+
+	/// <summary>FNV-1a 32-bit - Fowler-Noll-Vo hash (XOR then multiply variant).</summary>
+	Fnv1a32,
+
+	/// <summary>FNV-1a 64-bit - Fowler-Noll-Vo hash (XOR then multiply variant).</summary>
+	Fnv1a64,
+
+	/// <summary>DJB2 - Dan Bernstein's hash (multiply by 33 and add).</summary>
+	Djb2,
+
+	/// <summary>DJB2a - Dan Bernstein's hash XOR variant.</summary>
+	Djb2a,
+
+	/// <summary>SDBM - hash from SDBM database (multiply by 65599).</summary>
+	Sdbm,
+
+	/// <summary>Lose Lose - simple byte sum (educational only).</summary>
+	LoseLose,
 
 	// ========== MD Family (3) ==========
 

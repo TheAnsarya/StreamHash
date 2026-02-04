@@ -334,6 +334,78 @@ public static class HashFacade {
 		return BitConverter.GetBytes(result);
 	}
 
+	/// <summary>Computes CRC-16-CCITT.</summary>
+	public static byte[] ComputeCrc16Ccitt(ReadOnlySpan<byte> data) {
+		using var hasher = new Crc16Streaming(Crc16Variant.Ccitt);
+		hasher.Update(data);
+		ushort result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes CRC-16-MODBUS.</summary>
+	public static byte[] ComputeCrc16Modbus(ReadOnlySpan<byte> data) {
+		using var hasher = new Crc16Streaming(Crc16Variant.Modbus);
+		hasher.Update(data);
+		ushort result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes CRC-16-USB.</summary>
+	public static byte[] ComputeCrc16Usb(ReadOnlySpan<byte> data) {
+		using var hasher = new Crc16Streaming(Crc16Variant.Usb);
+		hasher.Update(data);
+		ushort result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes FNV-1a 32-bit hash.</summary>
+	public static byte[] ComputeFnv1a32(ReadOnlySpan<byte> data) {
+		using var hasher = new Fnv1a32Streaming();
+		hasher.Update(data);
+		uint result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes FNV-1a 64-bit hash.</summary>
+	public static byte[] ComputeFnv1a64(ReadOnlySpan<byte> data) {
+		using var hasher = new Fnv1a64Streaming();
+		hasher.Update(data);
+		ulong result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes DJB2 hash.</summary>
+	public static byte[] ComputeDjb2(ReadOnlySpan<byte> data) {
+		using var hasher = new Djb2Streaming();
+		hasher.Update(data);
+		uint result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes DJB2a (XOR variant) hash.</summary>
+	public static byte[] ComputeDjb2a(ReadOnlySpan<byte> data) {
+		using var hasher = new Djb2Streaming(useXor: true);
+		hasher.Update(data);
+		uint result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes SDBM hash.</summary>
+	public static byte[] ComputeSdbm(ReadOnlySpan<byte> data) {
+		using var hasher = new SdbmStreaming();
+		hasher.Update(data);
+		uint result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
+	/// <summary>Computes Lose Lose hash (K&amp;R).</summary>
+	public static byte[] ComputeLoseLose(ReadOnlySpan<byte> data) {
+		using var hasher = new LoseLoseStreaming();
+		hasher.Update(data);
+		uint result = hasher.Finalize();
+		return BitConverter.GetBytes(result);
+	}
+
 	/// <summary>Computes SHA-0 hash (legacy, cryptographically broken).</summary>
 	public static byte[] ComputeSha0(ReadOnlySpan<byte> data) {
 		using var hasher = new Sha0StreamingHash();
@@ -396,6 +468,9 @@ public static class HashFacade {
 			// Checksums - use adapters
 			HashAlgorithm.Crc32 => new NonCryptoHashAdapter32(new Crc32Hash()),
 			HashAlgorithm.Crc64 => new NonCryptoHashAdapter64(new Crc64()),
+			HashAlgorithm.Crc16Ccitt => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Ccitt)),
+			HashAlgorithm.Crc16Modbus => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Modbus)),
+			HashAlgorithm.Crc16Usb => new StreamingHashBytesAdapter<ushort>(new Crc16Streaming(Crc16Variant.Usb)),
 
 			// xxHash family - use adapters
 			HashAlgorithm.XxHash32 => new NonCryptoHashAdapter32(new XxHash32()),
@@ -416,6 +491,12 @@ public static class HashFacade {
 			HashAlgorithm.MetroHash128 => new MetroHash128(),
 			HashAlgorithm.Wyhash64 => new Wyhash64(),
 			HashAlgorithm.KangarooTwelve => new KangarooTwelve(),
+			HashAlgorithm.Fnv1a32 => new StreamingHashBytesAdapter<uint>(new Fnv1a32Streaming()),
+			HashAlgorithm.Fnv1a64 => new StreamingHashBytesAdapter<ulong>(new Fnv1a64Streaming()),
+			HashAlgorithm.Djb2 => new StreamingHashBytesAdapter<uint>(new Djb2Streaming()),
+			HashAlgorithm.Djb2a => new StreamingHashBytesAdapter<uint>(new Djb2Streaming(useXor: true)),
+			HashAlgorithm.Sdbm => new StreamingHashBytesAdapter<uint>(new SdbmStreaming()),
+			HashAlgorithm.LoseLose => new StreamingHashBytesAdapter<uint>(new LoseLoseStreaming()),
 
 			// MD Family (BouncyCastle)
 			HashAlgorithm.Md2 => BouncyCastleFactory.CreateMd2(),
@@ -487,6 +568,9 @@ public static class HashFacade {
 			HashAlgorithm.Crc32 => new(4, false, "CRC-32 (IEEE)"),
 			HashAlgorithm.Crc32C => new(4, false, "CRC-32C (Castagnoli)"),
 			HashAlgorithm.Crc64 => new(8, false, "CRC-64 (ECMA)"),
+			HashAlgorithm.Crc16Ccitt => new(2, false, "CRC-16-CCITT"),
+			HashAlgorithm.Crc16Modbus => new(2, false, "CRC-16-MODBUS"),
+			HashAlgorithm.Crc16Usb => new(2, false, "CRC-16-USB"),
 			HashAlgorithm.Adler32 => new(4, false, "Adler-32"),
 			HashAlgorithm.Fletcher16 => new(2, false, "Fletcher-16"),
 			HashAlgorithm.Fletcher32 => new(4, false, "Fletcher-32"),
@@ -507,6 +591,12 @@ public static class HashFacade {
 			HashAlgorithm.MetroHash64 => new(8, false, "MetroHash64"),
 			HashAlgorithm.MetroHash128 => new(16, false, "MetroHash128"),
 			HashAlgorithm.Wyhash64 => new(8, false, "wyhash64"),
+			HashAlgorithm.Fnv1a32 => new(4, false, "FNV-1a (32-bit)"),
+			HashAlgorithm.Fnv1a64 => new(8, false, "FNV-1a (64-bit)"),
+			HashAlgorithm.Djb2 => new(4, false, "DJB2"),
+			HashAlgorithm.Djb2a => new(4, false, "DJB2a (XOR variant)"),
+			HashAlgorithm.Sdbm => new(4, false, "SDBM"),
+			HashAlgorithm.LoseLose => new(4, false, "Lose Lose"),
 
 			// MD Family
 			HashAlgorithm.Md2 => new(16, true, "MD2"),

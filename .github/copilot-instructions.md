@@ -134,6 +134,26 @@ Use conventional commits:
 - `feature/*` - Feature branches
 - `fix/*` - Bug fix branches
 
+## ⚠️ CRITICAL: Versioning Policy
+
+**DO NOT release a new NuGet package version without explicit user approval.**
+
+### Version Number Rules
+- **Patch (X.Y.Z)**: Increment for bug fixes, documentation updates, minor improvements
+- **Minor (X.Y.0)**: Only increment when user explicitly requests
+- **Major (X.0.0)**: NEVER increment unless user explicitly tells you to
+
+### Release Process
+1. Make changes and commit them
+2. **WAIT** for user to say "release" or "publish"
+3. Only then update version and push to NuGet
+
+### Example
+- Current: 1.6.0
+- Bug fix: 1.6.1 (auto-increment patch OK if releasing)
+- New feature: Still 1.6.1 unless user says "bump minor"
+- Breaking change: Still 1.6.1 unless user says "bump major"
+
 ## Testing Requirements
 
 - Minimum 95% code coverage
