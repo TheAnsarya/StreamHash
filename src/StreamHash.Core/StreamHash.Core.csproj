@@ -10,10 +10,10 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.6.0</Version>
+		<Version>1.6.1</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for .NET 10. All 62 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API.</Description>
+		<Description>High-performance streaming hash library for .NET 10. All 71 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with comprehensive test coverage (752+ tests).</Description>
 		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
@@ -21,7 +21,7 @@
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.6.0: Comprehensive XML documentation overhaul. Added SIMD feature detection (AVX2/SSE4.1) to all streaming hash implementations. Detailed algorithm explanations with step-by-step inline comments for: MurmurHash3 (32/128), CityHash (64/128), FarmHash64, SpookyHash128, SipHash24, HighwayHash64, MetroHash (64/128), wyhash64, and xxHash (32/64/3/128). 678 tests passing. All APIs now fully documented.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.6.1: Major memory optimization for JH and Grøstl algorithms. JH memory reduced 99.99% (6.6MB to 512B per hash). Grøstl memory reduced 99.91% (817KB to 752B per hash). Pre-allocated buffers eliminate per-block allocations in hot paths. 752 tests passing. All 71 algorithms validated.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

@@ -28,6 +28,14 @@
 /// </list>
 /// </para>
 /// <para>
+/// <b>Performance Optimizations:</b>
+/// <list type="bullet">
+/// <item>Pre-computed S-box lookup tables for full bytes (16×16 = 256 entries)</item>
+/// <item>Pre-allocated buffers - zero allocations in hot path</item>
+/// <item>Loop unrolling in critical sections</item>
+/// </list>
+/// </para>
+/// <para>
 /// <b>References:</b>
 /// <list type="bullet">
 /// <item><see href="https://www3.ntu.edu.sg/home/wuhj/research/jh/">JH Official Page</see></item>
@@ -58,6 +66,31 @@ public sealed class JHDigest : IStreamingHashBytes {
 	private static readonly byte[] SBox1 = [
 		0x3, 0xc, 0x6, 0xd, 0x5, 0x7, 0x1, 0x9, 0xf, 0x2, 0x0, 0x4, 0xb, 0xa, 0xe, 0x8
 	];
+
+	// ========== Pre-computed S-box Lookup Tables ==========
+	// Instead of processing nibbles separately, pre-compute full byte transformations.
+	// SBoxTable0[byte] = S0[hi_nibble] << 4 | S0[lo_nibble]
+	// SBoxTable1[byte] = S1[hi_nibble] << 4 | S1[lo_nibble]
+
+	/// <summary>Pre-computed full byte S-box transformation using S0 for both nibbles.</summary>
+	private static readonly byte[] SBoxTable0 = GenerateSBoxTable(SBox0);
+
+	/// <summary>Pre-computed full byte S-box transformation using S1 for both nibbles.</summary>
+	private static readonly byte[] SBoxTable1 = GenerateSBoxTable(SBox1);
+
+	/// <summary>
+	/// Generate a lookup table for full byte S-box transformation.
+	/// Table[byte] = sbox[hi_nibble] &lt;&lt; 4 | sbox[lo_nibble]
+	/// </summary>
+	private static byte[] GenerateSBoxTable(byte[] sbox) {
+		byte[] table = new byte[256];
+		for (int i = 0; i < 256; i++) {
+			int hi = (i >> 4) & 0x0f;
+			int lo = i & 0x0f;
+			table[i] = (byte)((sbox[hi] << 4) | sbox[lo]);
+		}
+		return table;
+	}
 
 	/// <summary>
 	/// Round constants for JH. These are derived from the expansion of pi.
@@ -225,31 +258,20 @@ public sealed class JHDigest : IStreamingHashBytes {
 	}
 
 	/// <summary>
-	/// Apply S-box layer to state.
+	/// Apply S-box layer to state using pre-computed lookup tables.
+	/// Instead of processing nibbles separately, uses full byte lookups.
 	/// </summary>
 	private static void ApplySBoxLayer(byte[] state, int round) {
-		// Process all bytes in state
-		for (int i = 0; i < StateSize; i++) {
-			byte b = state[i];
+		// Process all bytes in state using pre-computed full-byte S-box tables
+		// Alternating between S0 and S1 based on position and round
+		bool useS1Base = (round & 1) == 1;
 
-			// High nibble
-			int hi = (b >> 4) & 0x0f;
-			// Low nibble
-			int lo = b & 0x0f;
-
-			// Select S-box based on position and round
-			// This creates more variation in the mixing
-			bool useS1 = ((i + round) & 1) == 1;
-
-			if (useS1) {
-				hi = SBox1[hi];
-				lo = SBox1[lo];
-			} else {
-				hi = SBox0[hi];
-				lo = SBox0[lo];
-			}
-
-			state[i] = (byte)((hi << 4) | lo);
+		// Process in pairs - even positions use one table, odd positions use the other
+		for (int i = 0; i < StateSize; i += 2) {
+			// Even index
+			state[i] = useS1Base ? SBoxTable1[state[i]] : SBoxTable0[state[i]];
+			// Odd index (opposite table)
+			state[i + 1] = useS1Base ? SBoxTable0[state[i + 1]] : SBoxTable1[state[i + 1]];
 		}
 	}
 

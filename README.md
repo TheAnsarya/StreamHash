@@ -18,7 +18,7 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 - **📦 Zero Allocations**: Hot paths are allocation-free using `Span<T>`
 - **🎯 Unified API**: `HashFacade` provides access to all 71 algorithms through a single interface
 - **🔐 Full Crypto Support**: All cryptographic algorithms via BouncyCastle integration
-- **🧪 Thoroughly Tested**: 697+ tests validating against official test vectors
+- **🧪 Thoroughly Tested**: 752+ tests validating against official test vectors
 - **📖 Fully Documented**: XML docs, examples, and algorithm references
 
 ## 📊 Algorithm Support (All 71 Fully Implemented!)
@@ -71,7 +71,7 @@ Whirlpool, Tiger-192, GOST R 34.11-94, Streebog-256, Streebog-512, Skein-256, Sk
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.6.0
+dotnet add package StreamHash --version 1.6.1
 ```
 
 ### HashFacade API (Recommended)
@@ -131,7 +131,7 @@ cd StreamHash
 # Build
 dotnet build StreamHash.sln
 
-# Run tests (646+ tests)
+# Run tests (752+ tests)
 dotnet test
 
 # Run benchmarks

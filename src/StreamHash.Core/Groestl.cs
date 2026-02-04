@@ -29,6 +29,14 @@
 /// </list>
 /// </para>
 /// <para>
+/// <b>Performance Optimizations:</b>
+/// <list type="bullet">
+/// <item>T-tables for MixBytes - pre-computed GF(2^8) multiplication tables</item>
+/// <item>Pre-allocated buffers - zero allocations in hot path</item>
+/// <item>Loop unrolling in critical sections</item>
+/// </list>
+/// </para>
+/// <para>
 /// <b>References:</b>
 /// <list type="bullet">
 /// <item><see href="https://www.groestl.info/">Grøstl Official Website</see></item>
@@ -76,6 +84,65 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 		0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
 		0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
 	];
+
+	// ========== T-Tables for MixBytes Optimization ==========
+	// Pre-computed multiplication tables for GF(2^8) with polynomial x^8 + x^4 + x^3 + x + 1 (0x11b)
+	// The MDS matrix uses coefficients [02, 02, 03, 04, 05, 03, 05, 07]
+	// These tables eliminate the need for runtime multiplication
+
+	/// <summary>Multiplication by 0x02 in GF(2^8).</summary>
+	private static readonly byte[] Mul02 = GenerateMulTable(0x02);
+
+	/// <summary>Multiplication by 0x03 in GF(2^8).</summary>
+	private static readonly byte[] Mul03 = GenerateMulTable(0x03);
+
+	/// <summary>Multiplication by 0x04 in GF(2^8).</summary>
+	private static readonly byte[] Mul04 = GenerateMulTable(0x04);
+
+	/// <summary>Multiplication by 0x05 in GF(2^8).</summary>
+	private static readonly byte[] Mul05 = GenerateMulTable(0x05);
+
+	/// <summary>Multiplication by 0x07 in GF(2^8).</summary>
+	private static readonly byte[] Mul07 = GenerateMulTable(0x07);
+
+	/// <summary>
+	/// Generate multiplication table for a constant in GF(2^8).
+	/// </summary>
+	/// <param name="constant">The constant to multiply by.</param>
+	/// <returns>Table where Table[x] = constant * x in GF(2^8).</returns>
+	private static byte[] GenerateMulTable(byte constant) {
+		byte[] table = new byte[256];
+		for (int i = 0; i < 256; i++) {
+			table[i] = MultiplyGF((byte)i, constant);
+		}
+		return table;
+	}
+
+	/// <summary>
+	/// Multiplication in GF(2^8) with irreducible polynomial x^8 + x^4 + x^3 + x + 1 (0x11b).
+	/// Used only during static initialization to generate T-tables.
+	/// </summary>
+	private static byte MultiplyGF(byte a, byte b) {
+		byte result = 0;
+		byte hi_bit;
+
+		for (int i = 0; i < 8; i++) {
+			if ((b & 1) != 0) {
+				result ^= a;
+			}
+
+			hi_bit = (byte)(a & 0x80);
+			a <<= 1;
+
+			if (hi_bit != 0) {
+				a ^= 0x1b; // x^8 + x^4 + x^3 + x + 1
+			}
+
+			b >>= 1;
+		}
+
+		return result;
+	}
 
 	/// <summary>
 	/// Shift values for ShiftBytes in P permutation (512-bit state).
@@ -447,7 +514,8 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 
 	/// <summary>
 	/// MixBytes transformation: Mix columns using MDS matrix multiplication in GF(2^8).
-	/// Uses the circulant matrix [02, 02, 03, 04, 05, 03, 05, 07].
+	/// Uses T-tables for efficient computation - each multiplication is a table lookup.
+	/// The MDS matrix is circulant: [02, 02, 03, 04, 05, 03, 05, 07].
 	/// </summary>
 	private void MixBytes(byte[] state) {
 		for (int col = 0; col < _cols; col++) {
@@ -456,46 +524,44 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 				_tempCol[row] = state[row * _cols + col];
 			}
 
-			// Apply MDS matrix multiplication
-			// The MDS matrix is circulant: [02, 02, 03, 04, 05, 03, 05, 07]
-			for (int row = 0; row < Rows; row++) {
-				byte result = 0;
-				result ^= Multiply(0x02, _tempCol[(row + 0) % Rows]);
-				result ^= Multiply(0x02, _tempCol[(row + 1) % Rows]);
-				result ^= Multiply(0x03, _tempCol[(row + 2) % Rows]);
-				result ^= Multiply(0x04, _tempCol[(row + 3) % Rows]);
-				result ^= Multiply(0x05, _tempCol[(row + 4) % Rows]);
-				result ^= Multiply(0x03, _tempCol[(row + 5) % Rows]);
-				result ^= Multiply(0x05, _tempCol[(row + 6) % Rows]);
-				result ^= Multiply(0x07, _tempCol[(row + 7) % Rows]);
-				state[row * _cols + col] = result;
-			}
+			// Apply MDS matrix multiplication using T-tables
+			// MDS matrix: [02, 02, 03, 04, 05, 03, 05, 07] (circulant)
+			// result[row] = sum of Mul[coeff][col[(row+i) mod 8]] for each coefficient
+			byte c0 = _tempCol[0], c1 = _tempCol[1], c2 = _tempCol[2], c3 = _tempCol[3];
+			byte c4 = _tempCol[4], c5 = _tempCol[5], c6 = _tempCol[6], c7 = _tempCol[7];
+
+			// Row 0: [02, 02, 03, 04, 05, 03, 05, 07] × [c0, c1, c2, c3, c4, c5, c6, c7]
+			state[0 * _cols + col] = (byte)(Mul02[c0] ^ Mul02[c1] ^ Mul03[c2] ^ Mul04[c3] ^
+										   Mul05[c4] ^ Mul03[c5] ^ Mul05[c6] ^ Mul07[c7]);
+
+			// Row 1: rotate coefficients left by 1
+			state[1 * _cols + col] = (byte)(Mul02[c1] ^ Mul02[c2] ^ Mul03[c3] ^ Mul04[c4] ^
+										   Mul05[c5] ^ Mul03[c6] ^ Mul05[c7] ^ Mul07[c0]);
+
+			// Row 2: rotate coefficients left by 2
+			state[2 * _cols + col] = (byte)(Mul02[c2] ^ Mul02[c3] ^ Mul03[c4] ^ Mul04[c5] ^
+										   Mul05[c6] ^ Mul03[c7] ^ Mul05[c0] ^ Mul07[c1]);
+
+			// Row 3: rotate coefficients left by 3
+			state[3 * _cols + col] = (byte)(Mul02[c3] ^ Mul02[c4] ^ Mul03[c5] ^ Mul04[c6] ^
+										   Mul05[c7] ^ Mul03[c0] ^ Mul05[c1] ^ Mul07[c2]);
+
+			// Row 4: rotate coefficients left by 4
+			state[4 * _cols + col] = (byte)(Mul02[c4] ^ Mul02[c5] ^ Mul03[c6] ^ Mul04[c7] ^
+										   Mul05[c0] ^ Mul03[c1] ^ Mul05[c2] ^ Mul07[c3]);
+
+			// Row 5: rotate coefficients left by 5
+			state[5 * _cols + col] = (byte)(Mul02[c5] ^ Mul02[c6] ^ Mul03[c7] ^ Mul04[c0] ^
+										   Mul05[c1] ^ Mul03[c2] ^ Mul05[c3] ^ Mul07[c4]);
+
+			// Row 6: rotate coefficients left by 6
+			state[6 * _cols + col] = (byte)(Mul02[c6] ^ Mul02[c7] ^ Mul03[c0] ^ Mul04[c1] ^
+										   Mul05[c2] ^ Mul03[c3] ^ Mul05[c4] ^ Mul07[c5]);
+
+			// Row 7: rotate coefficients left by 7
+			state[7 * _cols + col] = (byte)(Mul02[c7] ^ Mul02[c0] ^ Mul03[c1] ^ Mul04[c2] ^
+										   Mul05[c3] ^ Mul03[c4] ^ Mul05[c5] ^ Mul07[c6]);
 		}
-	}
-
-	/// <summary>
-	/// Multiplication in GF(2^8) with irreducible polynomial x^8 + x^4 + x^3 + x + 1 (0x11b).
-	/// </summary>
-	private static byte Multiply(byte a, byte b) {
-		byte result = 0;
-		byte hi_bit;
-
-		for (int i = 0; i < 8; i++) {
-			if ((b & 1) != 0) {
-				result ^= a;
-			}
-
-			hi_bit = (byte)(a & 0x80);
-			a <<= 1;
-
-			if (hi_bit != 0) {
-				a ^= 0x1b; // x^8 + x^4 + x^3 + x + 1
-			}
-
-			b >>= 1;
-		}
-
-		return result;
 	}
 }
 

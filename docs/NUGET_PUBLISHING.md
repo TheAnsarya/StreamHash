@@ -53,12 +53,12 @@ $env:NUGET_API_KEY = "your-api-key-here"
 
 2. **Push to NuGet.org**:
 	```powershell
-	dotnet nuget push nupkg\StreamHash.1.2.0.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+	dotnet nuget push nupkg\StreamHash.1.6.1.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 	```
 
 3. **Push symbols package** (for debugging):
 	```powershell
-	dotnet nuget push nupkg\StreamHash.1.2.0.snupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+	dotnet nuget push nupkg\StreamHash.1.6.1.snupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 	```
 
 ### Method 2: Using nuget.exe CLI
@@ -67,13 +67,13 @@ $env:NUGET_API_KEY = "your-api-key-here"
 
 2. **Push the package**:
 	```powershell
-	nuget push nupkg\StreamHash.1.2.0.nupkg -ApiKey $env:NUGET_API_KEY -Source https://api.nuget.org/v3/index.json
+	nuget push nupkg\StreamHash.1.6.1.nupkg -ApiKey $env:NUGET_API_KEY -Source https://api.nuget.org/v3/index.json
 	```
 
 ### Method 3: Manual Upload via Website
 
 1. Go to **[https://www.nuget.org/packages/manage/upload](https://www.nuget.org/packages/manage/upload)**
-2. Click **"Browse"** and select `StreamHash.1.2.0.nupkg`
+2. Click **"Browse"** and select `StreamHash.1.6.1.nupkg`
 3. Review the package metadata
 4. Click **"Submit"**
 
@@ -92,7 +92,7 @@ $env:NUGET_API_KEY = "your-api-key-here"
 mkdir test-streamhash
 cd test-streamhash
 dotnet new console
-dotnet add package StreamHash --version 1.2.0
+dotnet add package StreamHash --version 1.6.1
 ```
 
 ---
@@ -101,14 +101,14 @@ dotnet add package StreamHash --version 1.2.0
 
 1. **Update version** in `StreamHash.Core.csproj`:
 	```xml
-	<Version>1.3.0</Version>
-	<PackageReleaseNotes>v1.3.0: Description of changes</PackageReleaseNotes>
+	<Version>1.7.0</Version>
+	<PackageReleaseNotes>v1.7.0: Description of changes</PackageReleaseNotes>
 	```
 
 2. **Build and publish**:
 	```powershell
 	dotnet pack src\StreamHash.Core\StreamHash.Core.csproj -c Release -o .\nupkg
-	dotnet nuget push nupkg\StreamHash.1.3.0.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+	dotnet nuget push nupkg\StreamHash.1.7.0.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 	```
 
 ---
