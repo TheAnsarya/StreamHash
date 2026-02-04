@@ -1,4 +1,5 @@
 ﻿using System.IO.Hashing;
+using System.Runtime.Intrinsics.X86;
 
 namespace StreamHash.Core;
 
@@ -11,11 +12,24 @@ namespace StreamHash.Core;
 /// speed and quality. xxHash64 produces a 64-bit hash value.
 /// </para>
 /// <para>
-/// This wrapper provides <see cref="IStreamingHash{TResult}"/> compatibility around
-/// the built-in .NET implementation.
+/// <b>Algorithm Characteristics:</b>
+/// <list type="bullet">
+/// <item><b>Output:</b> 64-bit hash value</item>
+/// <item><b>Block Size:</b> 32 bytes (4 × 64-bit lanes)</item>
+/// <item><b>Speed:</b> ~15-30 GB/s on modern 64-bit hardware</item>
+/// <item><b>Quality:</b> Passes SMHasher suite, excellent avalanche</item>
+/// </list>
 /// </para>
 /// <para>
-/// <b>Performance:</b> Extremely fast, typically 15-30 GB/s on modern 64-bit hardware.
+/// <b>Algorithm Overview:</b>
+/// xxHash64 uses 4 parallel 64-bit accumulators that are independently updated
+/// with data words. It uses prime numbers (P1-P5) for multiplication and
+/// rotation for mixing. The 64-bit version is optimized for 64-bit CPUs and
+/// typically faster than xxHash32 on such hardware.
+/// </para>
+/// <para>
+/// This wrapper provides <see cref="IStreamingHash{TResult}"/> compatibility around
+/// the built-in .NET implementation, which is highly optimized.
 /// </para>
 /// <para>
 /// <b>Example:</b>
@@ -28,21 +42,55 @@ namespace StreamHash.Core;
 /// </para>
 /// </remarks>
 /// <seealso href="https://xxhash.com/">xxHash official site</seealso>
+/// <seealso href="https://github.com/Cyan4973/xxHash">xxHash GitHub repository</seealso>
 public sealed class XxHash64Streaming : IStreamingHash<ulong> {
-	private XxHash64 _hasher;
-	private bool _finalized;
-	private bool _disposed;
-	private long _totalBytes;
+	// ═══════════════════════════════════════════════════════════════════════════
+	// SIMD Feature Detection
+	// ═══════════════════════════════════════════════════════════════════════════
 
 	/// <summary>
-	/// The block size for xxHash64 (32 bytes).
+	/// Indicates whether AVX2 SIMD instructions are available on this CPU.
+	/// </summary>
+	public static bool IsAvx2Supported { get; } = Avx2.IsSupported;
+
+	/// <summary>
+	/// Indicates whether SSE4.1 SIMD instructions are available on this CPU.
+	/// </summary>
+	public static bool IsSse41Supported { get; } = Sse41.IsSupported;
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Instance State
+	// ═══════════════════════════════════════════════════════════════════════════
+
+	/// <summary>The underlying .NET xxHash64 implementation.</summary>
+	private XxHash64 _hasher;
+
+	/// <summary>True if Finalize() has been called.</summary>
+	private bool _finalized;
+
+	/// <summary>True if Dispose() has been called.</summary>
+	private bool _disposed;
+
+	/// <summary>Total bytes processed across all Update calls.</summary>
+	private long _totalBytes;
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Constants
+	// ═══════════════════════════════════════════════════════════════════════════
+
+	/// <summary>
+	/// The block size for xxHash64 (32 bytes = 4 × 64-bit lanes).
 	/// </summary>
 	public const int BlockSizeValue = 32;
 
 	/// <summary>
-	/// The digest size for xxHash64 (8 bytes).
+	/// The digest size for xxHash64 (8 bytes / 64 bits).
 	/// </summary>
 	public const int DigestSizeValue = 8;
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Properties
+	// ═══════════════════════════════════════════════════════════════════════════
 
 	/// <inheritdoc/>
 	public int BlockSize => BlockSizeValue;
@@ -53,6 +101,10 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 	/// <inheritdoc/>
 	public long TotalBytesProcessed => _totalBytes;
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Constructors
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <summary>
 	/// Initializes a new instance with default seed (0).
 	/// </summary>
@@ -62,12 +114,19 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 	/// Initializes a new instance with the specified seed.
 	/// </summary>
 	/// <param name="seed">The seed value for the hash computation.</param>
+	/// <remarks>
+	/// The seed affects all 4 internal accumulators through addition with primes.
+	/// </remarks>
 	public XxHash64Streaming(long seed) {
 		_hasher = new XxHash64(seed);
 		_finalized = false;
 		_disposed = false;
 		_totalBytes = 0;
 	}
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Update Methods
+	// ═══════════════════════════════════════════════════════════════════════════
 
 	/// <inheritdoc/>
 	public void Update(ReadOnlySpan<byte> data) {
@@ -88,7 +147,16 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 		Update(data.AsSpan(offset, length));
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Finalization
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <inheritdoc/>
+	/// <remarks>
+	/// xxHash64 finalization merges 4 accumulators using rotation and XOR,
+	/// adds the total length, processes remaining bytes, then applies
+	/// final avalanche mixing.
+	/// </remarks>
 	public ulong Finalize() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -117,6 +185,10 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 		return _hasher.GetCurrentHash();
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Reset and Dispose
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <inheritdoc/>
 	public void Reset() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -133,12 +205,22 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 		}
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Static Hash Methods
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <summary>
 	/// Computes xxHash64 of the input data in one call.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <param name="seed">The seed value (default: 0).</param>
 	/// <returns>The 64-bit hash value.</returns>
+	/// <example>
+	/// <code>
+	/// byte[] data = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
+	/// ulong hash = XxHash64Streaming.Hash(data);
+	/// </code>
+	/// </example>
 	public static ulong Hash(ReadOnlySpan<byte> data, long seed = 0) {
 		return XxHash64.HashToUInt64(data, seed);
 	}
@@ -148,7 +230,7 @@ public sealed class XxHash64Streaming : IStreamingHash<ulong> {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <param name="seed">The seed value (default: 0).</param>
-	/// <returns>The hash as a byte array.</returns>
+	/// <returns>The hash as a byte array (8 bytes).</returns>
 	public static byte[] HashToBytes(ReadOnlySpan<byte> data, long seed = 0) {
 		var result = new byte[8];
 		XxHash64.Hash(data, result, seed);

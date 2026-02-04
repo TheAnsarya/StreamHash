@@ -10,18 +10,18 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.5.0</Version>
+		<Version>1.6.0</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
 		<Description>High-performance streaming hash library for .NET 10. All 62 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle</PackageTags>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.5.0: Fixed critical bug - Grøstl and JH now use correct algorithms instead of SHA3 fallback! Custom implementations from scratch. 678 tests.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.6.0: Comprehensive XML documentation overhaul. Added SIMD feature detection (AVX2/SSE4.1) to all streaming hash implementations. Detailed algorithm explanations with step-by-step inline comments for: MurmurHash3 (32/128), CityHash (64/128), FarmHash64, SpookyHash128, SipHash24, HighwayHash64, MetroHash (64/128), wyhash64, and xxHash (32/64/3/128). 678 tests passing. All APIs now fully documented.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

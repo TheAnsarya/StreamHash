@@ -1,4 +1,10 @@
-﻿namespace StreamHash.Core;
+﻿using System.Buffers.Binary;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+
+namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of FarmHash64 algorithm.
@@ -69,24 +75,76 @@
 /// </code>
 /// </example>
 public sealed class FarmHash64 : StreamingHashBase<ulong> {
-	// FarmHash constants
+	#region SIMD Support Detection
+
+	/// <summary>
+	/// Indicates whether AVX2 (256-bit SIMD) instructions are available.
+	/// </summary>
+	private static readonly bool IsAvx2Supported = Avx2.IsSupported;
+
+	/// <summary>
+	/// Indicates whether SSE4.1 (128-bit SIMD) instructions are available.
+	/// </summary>
+	private static readonly bool IsSse41Supported = Sse41.IsSupported;
+
+	#endregion
+
+	#region Constants
+
+	/// <summary>
+	/// Magic constant k0 - shared with CityHash for compatibility.
+	/// </summary>
 	private const ulong K0 = 0xc3a5c85c97cb3127UL;
+
+	/// <summary>
+	/// Magic constant k1 - primary multiplier.
+	/// </summary>
 	private const ulong K1 = 0xb492b66fbe98f273UL;
+
+	/// <summary>
+	/// Magic constant k2 - secondary multiplier.
+	/// </summary>
 	private const ulong K2 = 0x9ae16a3b2f90404fUL;
 
-	// Streaming state
+	#endregion
+
+	#region State Variables
+
+	/// <summary>Primary mixing state variable.</summary>
 	private ulong _x;
+
+	/// <summary>Secondary mixing state variable.</summary>
 	private ulong _y;
+
+	/// <summary>Tertiary mixing state variable.</summary>
 	private ulong _z;
-	private ulong _v0, _v1;
-	private ulong _w0, _w1;
+
+	/// <summary>First component of v-pair state.</summary>
+	private ulong _v0;
+
+	/// <summary>Second component of v-pair state.</summary>
+	private ulong _v1;
+
+	/// <summary>First component of w-pair state.</summary>
+	private ulong _w0;
+
+	/// <summary>Second component of w-pair state.</summary>
+	private ulong _w1;
+
+	/// <summary>Tracks whether state has been initialized.</summary>
 	private bool _initialized;
+
+	/// <summary>Total bytes processed through ProcessBlock.</summary>
 	private long _processedBytes;
 
+	#endregion
+
 	/// <inheritdoc/>
+	/// <remarks>FarmHash64 uses 64-byte blocks like CityHash.</remarks>
 	public override int BlockSize => 64;
 
 	/// <inheritdoc/>
+	/// <remarks>Produces a 64-bit (8-byte) hash value.</remarks>
 	public override int DigestSize => 8;
 
 	/// <summary>
@@ -97,6 +155,10 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 	}
 
 	/// <inheritdoc/>
+	/// <remarks>
+	/// Processes a 64-byte block. First block initializes state;
+	/// subsequent blocks apply the mixing function.
+	/// </remarks>
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
 		if (!_initialized) {
 			InitializeState(block);
@@ -108,39 +170,61 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 	}
 
 	/// <summary>
-	/// Initializes the hash state from the first block.
+	/// Initializes hash state from the first 64-byte block.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// FarmHash initialization differs from CityHash by using additional
+	/// ShiftMix operations and different constant combinations for improved
+	/// initial diffusion.
+	/// </para>
+	/// </remarks>
+	/// <param name="block">The first 64-byte input block.</param>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private void InitializeState(ReadOnlySpan<byte> block) {
-		ulong s0 = Fetch64(block);
-		ulong s1 = Fetch64(block[8..]);
-		ulong s2 = Fetch64(block[16..]);
-		ulong s3 = Fetch64(block[24..]);
-		ulong s4 = Fetch64(block[32..]);
-		ulong s5 = Fetch64(block[40..]);
-		ulong s6 = Fetch64(block[48..]);
-		ulong s7 = Fetch64(block[56..]);
+		// Read all 8 x 8-byte words from the block
+		ulong s0 = Fetch64(block);        // bytes 0-7
+		ulong s1 = Fetch64(block[8..]);   // bytes 8-15
+		ulong s2 = Fetch64(block[16..]);  // bytes 16-23
+		ulong s3 = Fetch64(block[24..]);  // bytes 24-31
+		ulong s4 = Fetch64(block[32..]);  // bytes 32-39
+		ulong s5 = Fetch64(block[40..]);  // bytes 40-47
+		ulong s6 = Fetch64(block[48..]);  // bytes 48-55
+		ulong s7 = Fetch64(block[56..]);  // bytes 56-63
 
+		// Initialize x, y, z with mixing operations
+		// FarmHash uses different initialization than CityHash
 		_x = s0 + K2;
-		_y = s1 * K1 + 113;
-		_z = ShiftMix(_y * K2 + s2) * K2;
+		_y = s1 * K1 + 113;  // FarmHash-specific: multiply by K1, add constant
+		_z = ShiftMix(_y * K2 + s2) * K2;  // Double mixing through ShiftMix
 
+		// Initialize v-pair with combination of early and late words
 		_v0 = s0 + s4;
-		_v1 = s1 + s5 + ShiftMix(s1);
+		_v1 = s1 + s5 + ShiftMix(s1);  // Extra ShiftMix for better diffusion
 
+		// Initialize w-pair
 		_w0 = s6 + K0;
 		_w1 = s7 + ShiftMix(s6 + s7);
 
+		// Additional mixing to complete initialization
 		_z += ShiftMix(_v0 + _w0) * K2;
 		_x = Rotate64(_z + _x, 39) * K1;
 		_y = Rotate64(_y, 33);
 	}
 
 	/// <summary>
-	/// Processes a block of data after initialization.
+	/// Processes subsequent blocks after initialization.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The core mixing function is similar to CityHash but uses
+	/// WeakHashLen32WithSeeds with raw values instead of span reads.
+	/// </para>
+	/// </remarks>
+	/// <param name="block">A 64-byte input block.</param>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private void ProcessBlockInternal(ReadOnlySpan<byte> block) {
+		// Read all 8 words from the block
 		ulong s0 = Fetch64(block);
 		ulong s1 = Fetch64(block[8..]);
 		ulong s2 = Fetch64(block[16..]);
@@ -150,22 +234,28 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 		ulong s6 = Fetch64(block[48..]);
 		ulong s7 = Fetch64(block[56..]);
 
+		// Primary state update (similar to CityHash)
 		_x = Rotate64(_x + _y + _v0 + s1, 37) * K1;
 		_y = Rotate64(_y + _v1 + s6, 42) * K1;
 		_x ^= _w1;
 		_y += _v0 + s5;
 		_z = Rotate64(_z + _w0, 33) * K1;
 
+		// WeakHash with raw values (FarmHash variant)
 		(_v0, _v1) = WeakHashLen32WithSeeds(s4, s5, s6, s7, _v1 * K1, _x + _w0);
 		(_w0, _w1) = WeakHashLen32WithSeeds(s0, s1, s2, s3, _z + _w1, _y + s2);
 		(_z, _x) = (_x, _z);
 	}
 
 	/// <inheritdoc/>
+	/// <remarks>
+	/// Finalizes hash computation. Uses optimized paths for short messages,
+	/// combines streaming state for longer messages.
+	/// </remarks>
 	protected override ulong ComputeFinal(ReadOnlySpan<byte> remaining) {
 		long totalLen = TotalBytesProcessed;
 
-		// For short messages, use optimized paths
+		// Short message optimization
 		if (totalLen < 64) {
 			return HashShort(remaining, (int)totalLen);
 		}
@@ -175,6 +265,7 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 			Span<byte> padded = stackalloc byte[64];
 			remaining.CopyTo(padded);
 
+			// Mix in first 32 bytes of remainder
 			ulong s0 = Fetch64(padded);
 			ulong s1 = Fetch64(padded[8..]);
 			ulong s2 = Fetch64(padded[16..]);
@@ -186,19 +277,23 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 			_v0 += s3;
 		}
 
-		// Final mixing
+		// Final combination
 		ulong len = (ulong)totalLen;
 		return HashLen16(_v0 + _w0, _w1 + HashLen16(_x + _z, _y, len), len);
 	}
 
 	/// <summary>
-	/// Hash function for short messages (&lt; 64 bytes).
+	/// Computes hash for short messages (&lt; 64 bytes).
 	/// </summary>
+	/// <remarks>
+	/// Uses length-based dispatch identical to CityHash for compatibility.
+	/// </remarks>
 	private static ulong HashShort(ReadOnlySpan<byte> data, int len) {
 		if (len <= 0) {
 			return K2;
 		}
 		if (len <= 3) {
+			// 1-3 bytes: simple byte mixing
 			byte a = data[0];
 			byte b = len > 1 ? data[1] : data[0];
 			byte c = data[len - 1];
@@ -207,11 +302,13 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 			return ShiftMix(y * K2 ^ z * K0) * K2;
 		}
 		if (len <= 7) {
+			// 4-7 bytes: two 32-bit reads
 			ulong mul = K2 + (ulong)len * 2;
 			ulong a = Fetch32(data);
 			return HashLen16(mul + a, Fetch32(data[(len - 4)..]), mul);
 		}
 		if (len <= 16) {
+			// 8-16 bytes: two 64-bit reads
 			ulong mul = K2 + (ulong)len * 2;
 			ulong a = Fetch64(data) + K2;
 			ulong b = Fetch64(data[(len - 8)..]);
@@ -220,6 +317,7 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 			return HashLen16(c, d, mul);
 		}
 		if (len <= 32) {
+			// 17-32 bytes: four 64-bit reads
 			ulong mul = K2 + (ulong)len * 2;
 			ulong a = Fetch64(data) * K1;
 			ulong b = Fetch64(data[8..]);
@@ -230,7 +328,7 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 				a + Rotate64(b + K2, 18) + c,
 				mul);
 		}
-		// 33-63 bytes
+		// 33-63 bytes: complex mixing
 		ulong mul2 = K2 + (ulong)len * 2;
 		ulong a2 = Fetch64(data) * K2;
 		ulong b2 = Fetch64(data[8..]);
@@ -266,26 +364,41 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 
 	#region Helper Methods
 
+	/// <summary>
+	/// Reads 64-bit little-endian value.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static ulong Fetch64(ReadOnlySpan<byte> p) {
 		return BinaryPrimitives.ReadUInt64LittleEndian(p);
 	}
 
+	/// <summary>
+	/// Reads 32-bit little-endian value.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static uint Fetch32(ReadOnlySpan<byte> p) {
 		return BinaryPrimitives.ReadUInt32LittleEndian(p);
 	}
 
+	/// <summary>
+	/// Rotates 64-bit value right.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static ulong Rotate64(ulong val, int shift) {
 		return BitOperations.RotateRight(val, shift);
 	}
 
+	/// <summary>
+	/// Shift-mix finalization helper.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static ulong ShiftMix(ulong val) {
 		return val ^ (val >> 47);
 	}
 
+	/// <summary>
+	/// Reduces 128 bits to 64 bits.
+	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static ulong HashLen16(ulong u, ulong v, ulong mul) {
 		ulong a = (u ^ v) * mul;
@@ -296,6 +409,13 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 		return b;
 	}
 
+	/// <summary>
+	/// Weak hash of 4 x 64-bit values with two seeds.
+	/// </summary>
+	/// <remarks>
+	/// FarmHash variant that takes raw values instead of a span,
+	/// avoiding additional memory reads in the hot path.
+	/// </remarks>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static (ulong, ulong) WeakHashLen32WithSeeds(
 		ulong s0, ulong s1, ulong s2, ulong s3, ulong a, ulong b) {
@@ -311,10 +431,10 @@ public sealed class FarmHash64 : StreamingHashBase<ulong> {
 	#endregion
 
 	/// <summary>
-	/// Computes the FarmHash64 hash of the given data in one shot.
+	/// Computes FarmHash64 in one shot.
 	/// </summary>
-	/// <param name="data">The data to hash.</param>
-	/// <returns>The 64-bit hash value.</returns>
+	/// <param name="data">Data to hash.</param>
+	/// <returns>64-bit hash value.</returns>
 	public static ulong Hash(ReadOnlySpan<byte> data) {
 		using var hasher = new FarmHash64();
 		hasher.Update(data);

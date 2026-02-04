@@ -1,3 +1,5 @@
+using System.Runtime.Intrinsics.X86;
+
 namespace StreamHash.Core;
 
 /// <summary>
@@ -17,6 +19,14 @@ namespace StreamHash.Core;
 /// <item><b>Security:</b> Cryptographically secure PRF (keyed hash)</item>
 /// <item><b>Speed:</b> ~2-4 GB/s on modern CPUs</item>
 /// </list>
+/// </para>
+/// <para>
+/// <b>Algorithm Overview:</b>
+/// SipHash uses an ARX (Add-Rotate-XOR) structure with four 64-bit state variables
+/// (v0-v3). The state is initialized by XORing the 128-bit key with magic constants
+/// derived from "somepseudorandomlygeneratedbytes". Each 8-byte message block is
+/// XORed into v3, followed by compression rounds, then XORed into v0. Finalization
+/// applies additional rounds before XORing all state variables for the output.
 /// </para>
 /// <para>
 /// <b>Security Properties:</b>
@@ -58,18 +68,77 @@ namespace StreamHash.Core;
 /// </code>
 /// </example>
 public sealed class SipHash24 : StreamingHashBase<ulong> {
+	// ═══════════════════════════════════════════════════════════════════════════
+	// SIMD Feature Detection
+	// ═══════════════════════════════════════════════════════════════════════════
+	// SipHash's ARX structure doesn't benefit much from SIMD for single hashes,
+	// but batch processing could use SIMD for parallel independent hashes.
+
+	/// <summary>
+	/// Indicates whether AVX2 SIMD instructions are available on this CPU.
+	/// </summary>
+	public static bool IsAvx2Supported { get; } = Avx2.IsSupported;
+
+	/// <summary>
+	/// Indicates whether SSE4.1 SIMD instructions are available on this CPU.
+	/// </summary>
+	public static bool IsSse41Supported { get; } = Sse41.IsSupported;
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Key and State Variables
+	// ═══════════════════════════════════════════════════════════════════════════
+
+	/// <summary>
+	/// First 64 bits of the 128-bit key.
+	/// XORed into v0 and v2 during initialization.
+	/// </summary>
 	private readonly ulong _k0;
+
+	/// <summary>
+	/// Second 64 bits of the 128-bit key.
+	/// XORed into v1 and v3 during initialization.
+	/// </summary>
 	private readonly ulong _k1;
+
+	/// <summary>
+	/// State variable v0. Initialized with k0 ^ "somepseu" (0x736f6d6570736575).
+	/// Participates in odd-numbered ARX operations.
+	/// </summary>
 	private ulong _v0;
+
+	/// <summary>
+	/// State variable v1. Initialized with k1 ^ "dorandom" (0x646f72616e646f6d).
+	/// Paired with v0 in the first half of SipRound.
+	/// </summary>
 	private ulong _v1;
+
+	/// <summary>
+	/// State variable v2. Initialized with k0 ^ "lygenera" (0x6c7967656e657261).
+	/// Paired with v3 in the first half of SipRound.
+	/// </summary>
 	private ulong _v2;
+
+	/// <summary>
+	/// State variable v3. Initialized with k1 ^ "tedbytes" (0x7465646279746573).
+	/// Message blocks are XORed here before compression rounds.
+	/// </summary>
 	private ulong _v3;
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Properties
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <inheritdoc/>
+	/// <remarks>SipHash-2-4 processes 8 bytes (64 bits) per block.</remarks>
 	public override int BlockSize => 8;
 
 	/// <inheritdoc/>
+	/// <remarks>SipHash-2-4 produces an 8-byte (64-bit) hash value.</remarks>
 	public override int DigestSize => 8;
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Constructors
+	// ═══════════════════════════════════════════════════════════════════════════
 
 	/// <summary>
 	/// Creates a new SipHash-2-4 hasher with a zero key.
@@ -85,11 +154,16 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// </summary>
 	/// <param name="key">A 16-byte key. Must be exactly 16 bytes.</param>
 	/// <exception cref="ArgumentException">Key is not exactly 16 bytes.</exception>
+	/// <remarks>
+	/// The key is split into two 64-bit halves (k0, k1) and XORed with
+	/// magic constants during state initialization.
+	/// </remarks>
 	public SipHash24(ReadOnlySpan<byte> key) {
 		if (key.Length != 16) {
 			throw new ArgumentException("SipHash key must be exactly 16 bytes.", nameof(key));
 		}
 
+		// Split 128-bit key into two 64-bit halves
 		_k0 = BinaryPrimitives.ReadUInt64LittleEndian(key);
 		_k1 = BinaryPrimitives.ReadUInt64LittleEndian(key[8..]);
 		Initialize();
@@ -100,37 +174,104 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// </summary>
 	/// <param name="k0">First 64 bits of the key.</param>
 	/// <param name="k1">Second 64 bits of the key.</param>
+	/// <remarks>
+	/// This constructor is useful when the key is already split into 64-bit values.
+	/// </remarks>
 	public SipHash24(ulong k0, ulong k1) {
 		_k0 = k0;
 		_k1 = k1;
 		Initialize();
 	}
 
+	/// <summary>
+	/// Initializes the four state variables by XORing key halves with magic constants.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The magic constants are the ASCII encoding of "somepseudorandomlygeneratedbytes":
+	/// <list type="bullet">
+	/// <item>0x736f6d6570736575 = "somepseu"</item>
+	/// <item>0x646f72616e646f6d = "dorandom"</item>
+	/// <item>0x6c7967656e657261 = "lygenera"</item>
+	/// <item>0x7465646279746573 = "tedbytes"</item>
+	/// </list>
+	/// </para>
+	/// <para>
+	/// v0 and v2 use k0, while v1 and v3 use k1, providing key diffusion.
+	/// </para>
+	/// </remarks>
 	private void Initialize() {
-		_v0 = _k0 ^ 0x736f6d6570736575;
-		_v1 = _k1 ^ 0x646f72616e646f6d;
-		_v2 = _k0 ^ 0x6c7967656e657261;
-		_v3 = _k1 ^ 0x7465646279746573;
+		// XOR key halves with magic constants (ASCII of "somepseudorandomlygeneratedbytes")
+		_v0 = _k0 ^ 0x736f6d6570736575;  // k0 XOR "somepseu"
+		_v1 = _k1 ^ 0x646f72616e646f6d;  // k1 XOR "dorandom"
+		_v2 = _k0 ^ 0x6c7967656e657261;  // k0 XOR "lygenera"
+		_v3 = _k1 ^ 0x7465646279746573;  // k1 XOR "tedbytes"
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Core Algorithm Implementation
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <inheritdoc/>
+	/// <remarks>
+	/// <para>
+	/// Processes an 8-byte block through the SipHash-2-4 compression function.
+	/// </para>
+	/// <para>
+	/// <b>Algorithm Steps:</b>
+	/// <list type="number">
+	/// <item>Read 8 bytes as little-endian uint64 (message block m)</item>
+	/// <item>XOR m into v3</item>
+	/// <item>Apply 2 compression rounds (SipRound)</item>
+	/// <item>XOR m into v0</item>
+	/// </list>
+	/// </para>
+	/// <para>
+	/// The XOR-rounds-XOR pattern ensures the message block affects all state
+	/// variables while providing cryptographic security.
+	/// </para>
+	/// </remarks>
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
+		// Read 8-byte message block as little-endian uint64
 		ulong m = BinaryPrimitives.ReadUInt64LittleEndian(block);
 
+		// XOR message into v3 before compression
 		_v3 ^= m;
 
-		// 2 compression rounds
+		// Apply 2 compression rounds (the "2" in SipHash-2-4)
 		SipRound();
 		SipRound();
 
+		// XOR message into v0 after compression
 		_v0 ^= m;
 	}
 
 	/// <inheritdoc/>
+	/// <remarks>
+	/// <para>
+	/// Handles remaining bytes (0-7) and applies the finalization rounds.
+	/// </para>
+	/// <para>
+	/// <b>Final Block Construction:</b>
+	/// The total message length (mod 256) is placed in the high byte,
+	/// and remaining bytes fill the low bytes. This ensures different-length
+	/// messages produce different final blocks.
+	/// </para>
+	/// <para>
+	/// <b>Finalization:</b>
+	/// After processing the final block with 2 compression rounds,
+	/// v2 is XORed with 0xff and 4 finalization rounds are applied
+	/// (the "4" in SipHash-2-4). The output is v0 XOR v1 XOR v2 XOR v3.
+	/// </para>
+	/// </remarks>
 	protected override ulong ComputeFinal(ReadOnlySpan<byte> remaining) {
-		// Construct final block with length in high byte
+		// ═══════════════════════════════════════════════════════════════════════
+		// Construct Final Block
+		// ═══════════════════════════════════════════════════════════════════════
+		// High byte contains (length mod 256), low bytes contain remaining data
 		ulong b = (ulong)TotalBytesProcessed << 56;
 
+		// Fill remaining bytes using fall-through switch
 		switch (remaining.Length) {
 			case 7: b |= (ulong)remaining[6] << 48; goto case 6;
 			case 6: b |= (ulong)remaining[5] << 40; goto case 5;
@@ -141,6 +282,9 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 			case 1: b |= remaining[0]; break;
 		}
 
+		// ═══════════════════════════════════════════════════════════════════════
+		// Process Final Block (same as regular block)
+		// ═══════════════════════════════════════════════════════════════════════
 		_v3 ^= b;
 
 		// 2 compression rounds
@@ -149,14 +293,19 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 
 		_v0 ^= b;
 
-		// 4 finalization rounds
+		// ═══════════════════════════════════════════════════════════════════════
+		// Finalization Rounds
+		// ═══════════════════════════════════════════════════════════════════════
+		// XOR 0xff into v2 to mark finalization phase
 		_v2 ^= 0xff;
 
+		// Apply 4 finalization rounds (the "4" in SipHash-2-4)
 		SipRound();
 		SipRound();
 		SipRound();
 		SipRound();
 
+		// XOR all state variables for the final hash
 		return _v0 ^ _v1 ^ _v2 ^ _v3;
 	}
 
@@ -165,29 +314,56 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 		Initialize();
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Helper Functions
+	// ═══════════════════════════════════════════════════════════════════════════
+
 	/// <summary>
-	/// One round of SipHash mixing.
+	/// One round of SipHash ARX (Add-Rotate-XOR) mixing.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Each SipRound performs 4 half-rounds of ARX operations:
+	/// <list type="number">
+	/// <item>v0 += v1; v1 = rotl(v1,13); v1 ^= v0; v0 = rotl(v0,32)</item>
+	/// <item>v2 += v3; v3 = rotl(v3,16); v3 ^= v2</item>
+	/// <item>v0 += v3; v3 = rotl(v3,21); v3 ^= v0</item>
+	/// <item>v2 += v1; v1 = rotl(v1,17); v1 ^= v2; v2 = rotl(v2,32)</item>
+	/// </list>
+	/// </para>
+	/// <para>
+	/// The rotation amounts (13, 16, 21, 17, 32) were chosen to provide
+	/// optimal diffusion while remaining efficient on 64-bit processors.
+	/// </para>
+	/// </remarks>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private void SipRound() {
+		// Half-round 1: Mix v0 and v1
 		_v0 += _v1;
 		_v1 = BitOperations.RotateLeft(_v1, 13);
 		_v1 ^= _v0;
-		_v0 = BitOperations.RotateLeft(_v0, 32);
+		_v0 = BitOperations.RotateLeft(_v0, 32);  // 32-bit rotation swaps halves
 
+		// Half-round 2: Mix v2 and v3
 		_v2 += _v3;
 		_v3 = BitOperations.RotateLeft(_v3, 16);
 		_v3 ^= _v2;
 
+		// Half-round 3: Cross-mix v0 with v3
 		_v0 += _v3;
 		_v3 = BitOperations.RotateLeft(_v3, 21);
 		_v3 ^= _v0;
 
+		// Half-round 4: Cross-mix v2 with v1
 		_v2 += _v1;
 		_v1 = BitOperations.RotateLeft(_v1, 17);
 		_v1 ^= _v2;
-		_v2 = BitOperations.RotateLeft(_v2, 32);
+		_v2 = BitOperations.RotateLeft(_v2, 32);  // 32-bit rotation swaps halves
 	}
+
+	// ═══════════════════════════════════════════════════════════════════════════
+	// Static Convenience Methods
+	// ═══════════════════════════════════════════════════════════════════════════
 
 	/// <summary>
 	/// Computes SipHash-2-4 of the given data in one shot.
@@ -195,6 +371,10 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// <param name="data">The data to hash.</param>
 	/// <param name="key">A 16-byte key.</param>
 	/// <returns>The 64-bit hash value.</returns>
+	/// <remarks>
+	/// This is a convenience method for hashing data that fits in memory.
+	/// For streaming scenarios, create an instance and use Update/Finalize.
+	/// </remarks>
 	public static ulong Hash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key) {
 		using var hasher = new SipHash24(key);
 		hasher.Update(data);
@@ -208,6 +388,9 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// <param name="k0">First 64 bits of the key.</param>
 	/// <param name="k1">Second 64 bits of the key.</param>
 	/// <returns>The 64-bit hash value.</returns>
+	/// <remarks>
+	/// This is a convenience method when the key is already split into 64-bit values.
+	/// </remarks>
 	public static ulong Hash(ReadOnlySpan<byte> data, ulong k0, ulong k1) {
 		using var hasher = new SipHash24(k0, k1);
 		hasher.Update(data);
