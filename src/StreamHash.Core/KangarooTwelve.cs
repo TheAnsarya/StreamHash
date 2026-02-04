@@ -70,7 +70,7 @@
 /// represented as a fixed-size struct type.
 /// </para>
 /// </remarks>
-public sealed class KangarooTwelve : IDisposable {
+public sealed class KangarooTwelve : IDisposable, IStreamingHashBytes {
 	/// <summary>
 	/// Rate for Keccak-p[1600, 12] in K12 (1600 - 256 = 1344 bits = 168 bytes).
 	/// </summary>
@@ -536,6 +536,15 @@ public sealed class KangarooTwelve : IDisposable {
 		_chainingValues.Clear();
 		_finalized = false;
 	}
+
+	/// <inheritdoc/>
+	byte[] IStreamingHashBytes.FinalizeBytes() => Finalize();
+
+	/// <summary>
+	/// Finalizes and returns the hash as a lowercase hexadecimal string.
+	/// </summary>
+	/// <returns>The hex string representation of the hash.</returns>
+	public string FinalizeHex() => Convert.ToHexStringLower(Finalize());
 
 	/// <inheritdoc/>
 	public void Dispose() {

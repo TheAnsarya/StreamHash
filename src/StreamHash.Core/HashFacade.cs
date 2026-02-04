@@ -347,8 +347,8 @@ public static class HashFacade {
 			HashAlgorithm.HighwayHash64 => new StreamingHashBytesAdapter<ulong>(new HighwayHash64()),
 			HashAlgorithm.MetroHash64 => new StreamingHashBytesAdapter<ulong>(new MetroHash64()),
 			HashAlgorithm.MetroHash128 => new MetroHash128(),
-			HashAlgorithm.Wyhash64 => new StreamingHashBytesAdapter<ulong>(new Wyhash64()),
-			HashAlgorithm.KangarooTwelve => new KangarooTwelveAdapter(),
+			HashAlgorithm.Wyhash64 => new Wyhash64(),
+			HashAlgorithm.KangarooTwelve => new KangarooTwelve(),
 
 			_ => throw new NotSupportedException($"Streaming not supported for {algorithm} in StreamHash.Core. " +
 				"Use BouncyCastle directly for cryptographic algorithms.")

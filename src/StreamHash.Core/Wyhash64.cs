@@ -40,7 +40,7 @@ namespace StreamHash.Core;
 /// </para>
 /// </remarks>
 /// <seealso href="https://github.com/wangyi-fudan/wyhash">wyhash GitHub repository</seealso>
-public sealed class Wyhash64 : IStreamingHash<ulong> {
+public sealed class Wyhash64 : IStreamingHash<ulong>, IStreamingHashBytes {
 	// Default secret parameters from wyhash reference implementation
 	private static readonly ulong[] DefaultSecret = [
 		0x2d358dccaa6c78a5ul,
@@ -305,6 +305,15 @@ public sealed class Wyhash64 : IStreamingHash<ulong> {
 		BinaryPrimitives.WriteUInt64LittleEndian(result, hash);
 		return result;
 	}
+
+	/// <inheritdoc/>
+	byte[] IStreamingHashBytes.FinalizeBytes() => FinalizeToBytes();
+
+	/// <summary>
+	/// Finalizes and returns the hash as a lowercase hexadecimal string.
+	/// </summary>
+	/// <returns>The 16-character hex string.</returns>
+	public string FinalizeHex() => Convert.ToHexStringLower(FinalizeToBytes());
 
 	/// <inheritdoc/>
 	public void Reset() {

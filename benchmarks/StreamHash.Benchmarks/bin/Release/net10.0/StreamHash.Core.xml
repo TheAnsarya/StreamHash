@@ -4,6 +4,32 @@
         <name>StreamHash.Core</name>
     </assembly>
     <members>
+        <member name="T:StreamHash.Core.StreamingHashBytesAdapter`1">
+            <summary>
+            Adapter that wraps <see cref="T:StreamHash.Core.IStreamingHash`1"/> to provide <see cref="T:StreamHash.Core.IStreamingHashBytes"/> interface.
+            </summary>
+            <typeparam name="TResult">The native result type of the wrapped hasher.</typeparam>
+        </member>
+        <member name="T:StreamHash.Core.NonCryptoHashAdapter32">
+            <summary>
+            Adapter for System.IO.Hashing NonCryptographicHashAlgorithm with 32-bit output.
+            </summary>
+        </member>
+        <member name="T:StreamHash.Core.NonCryptoHashAdapter64">
+            <summary>
+            Adapter for System.IO.Hashing NonCryptographicHashAlgorithm with 64-bit output.
+            </summary>
+        </member>
+        <member name="T:StreamHash.Core.NonCryptoHashAdapter128">
+            <summary>
+            Adapter for System.IO.Hashing NonCryptographicHashAlgorithm with 128-bit output.
+            </summary>
+        </member>
+        <member name="T:StreamHash.Core.KangarooTwelveAdapter">
+            <summary>
+            Adapter that wraps <see cref="T:StreamHash.Core.KangarooTwelve"/> to provide <see cref="T:StreamHash.Core.IStreamingHashBytes"/> interface.
+            </summary>
+        </member>
         <member name="T:StreamHash.Core.CityHash128">
              <summary>
              Streaming implementation of CityHash128 hash algorithm.
@@ -370,6 +396,381 @@
             <param name="data">The data to hash.</param>
             <returns>The 64-bit hash value.</returns>
         </member>
+        <member name="T:StreamHash.Core.HashAlgorithm">
+            <summary>
+            Enumeration of all hash algorithms supported by StreamHash.
+            </summary>
+            <remarks>
+            <para>
+            StreamHash supports 58+ hash algorithms organized into categories:
+            </para>
+            <list type="bullet">
+            <item><description><strong>Checksums (6):</strong> CRC32, CRC32C, CRC64, Adler-32, Fletcher-16, Fletcher-32</description></item>
+            <item><description><strong>Fast Non-Crypto (16):</strong> xxHash family, MurmurHash3, CityHash, FarmHash, SpookyHash, SipHash, HighwayHash, MetroHash, wyhash</description></item>
+            <item><description><strong>Cryptographic (26):</strong> MD family, SHA family, SHA-3, Keccak, BLAKE family, RIPEMD family</description></item>
+            <item><description><strong>Other Crypto (14):</strong> Whirlpool, Tiger, GOST, Streebog, Skein, SM3</description></item>
+            </list>
+            </remarks>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Crc32">
+            <summary>CRC-32 using the IEEE polynomial (0x04C11DB7).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Crc32C">
+            <summary>CRC-32C using the Castagnoli polynomial (0x1EDC6F41) with hardware acceleration.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Crc64">
+            <summary>CRC-64 using the ECMA polynomial.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Adler32">
+            <summary>Adler-32 checksum (faster than CRC-32 but weaker).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Fletcher16">
+            <summary>Fletcher-16 checksum (2 bytes).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Fletcher32">
+            <summary>Fletcher-32 checksum (4 bytes).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.XxHash32">
+            <summary>xxHash32 - 32-bit hash by Yann Collet.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.XxHash64">
+            <summary>xxHash64 - 64-bit hash by Yann Collet.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.XxHash3">
+            <summary>xxHash3 - Latest xxHash variant (64-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.XxHash128">
+            <summary>xxHash128 - 128-bit xxHash variant.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.MurmurHash3_32">
+            <summary>MurmurHash3 32-bit variant.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.MurmurHash3_128">
+            <summary>MurmurHash3 128-bit variant (x64).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.CityHash64">
+            <summary>CityHash64 by Google.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.CityHash128">
+            <summary>CityHash128 by Google.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.FarmHash64">
+            <summary>FarmHash64 by Google (successor to CityHash).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.SpookyHash128">
+            <summary>SpookyHash V2 128-bit by Bob Jenkins.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.SipHash24">
+            <summary>SipHash-2-4 - keyed hash for hash table security.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.HighwayHash64">
+            <summary>HighwayHash64 - SIMD-accelerated hash by Google.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.MetroHash64">
+            <summary>MetroHash64 - fast hash by J. Andrew Rogers.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.MetroHash128">
+            <summary>MetroHash128 - 128-bit MetroHash variant.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Wyhash64">
+            <summary>wyhash64 - extremely fast hash by Wang Yi.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Md2">
+            <summary>MD2 hash (128-bit). Cryptographically broken.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Md4">
+            <summary>MD4 hash (128-bit). Cryptographically broken.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Md5">
+            <summary>MD5 hash (128-bit). Cryptographically weak.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha0">
+            <summary>SHA-0 (deprecated, use SHA-1).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha1">
+            <summary>SHA-1 hash (160-bit). Cryptographically weak.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha224">
+            <summary>SHA-224 hash (224-bit, truncated SHA-256).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha256">
+            <summary>SHA-256 hash (256-bit). Recommended for security.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha384">
+            <summary>SHA-384 hash (384-bit, truncated SHA-512).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha512">
+            <summary>SHA-512 hash (512-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha512_224">
+            <summary>SHA-512/224 hash (224-bit truncation of SHA-512).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha512_256">
+            <summary>SHA-512/256 hash (256-bit truncation of SHA-512).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha3_224">
+            <summary>SHA3-224 (224-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha3_256">
+            <summary>SHA3-256 (256-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha3_384">
+            <summary>SHA3-384 (384-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sha3_512">
+            <summary>SHA3-512 (512-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Keccak256">
+            <summary>Keccak-256 (256-bit). Used in Ethereum.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Keccak512">
+            <summary>Keccak-512 (512-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Blake256">
+            <summary>BLAKE-256 (256-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Blake512">
+            <summary>BLAKE-512 (512-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Blake2b">
+            <summary>BLAKE2b (512-bit). Optimized for 64-bit platforms.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Blake2s">
+            <summary>BLAKE2s (256-bit). Optimized for 8-32 bit platforms.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Blake3">
+            <summary>BLAKE3 (256-bit). Extremely fast with parallelism support.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Ripemd128">
+            <summary>RIPEMD-128 (128-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Ripemd160">
+            <summary>RIPEMD-160 (160-bit). Used in Bitcoin addresses.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Ripemd256">
+            <summary>RIPEMD-256 (256-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Ripemd320">
+            <summary>RIPEMD-320 (320-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Whirlpool">
+            <summary>Whirlpool (512-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Tiger192">
+            <summary>Tiger-192 (192-bit).</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Gost94">
+            <summary>GOST R 34.11-94 (256-bit). Russian standard.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Streebog256">
+            <summary>Streebog-256 (256-bit). GOST R 34.11-2012.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Streebog512">
+            <summary>Streebog-512 (512-bit). GOST R 34.11-2012.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Skein256">
+            <summary>Skein-256 (256-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Skein512">
+            <summary>Skein-512 (512-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Skein1024">
+            <summary>Skein-1024 (1024-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Groestl256">
+            <summary>Grøstl-256 (256-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Groestl512">
+            <summary>Grøstl-512 (512-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Jh256">
+            <summary>JH-256 (256-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Jh512">
+            <summary>JH-512 (512-bit). SHA-3 finalist.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.KangarooTwelve">
+            <summary>KangarooTwelve (K12) - fast Keccak variant.</summary>
+        </member>
+        <member name="F:StreamHash.Core.HashAlgorithm.Sm3">
+            <summary>SM3 (256-bit). Chinese cryptographic standard.</summary>
+        </member>
+        <member name="T:StreamHash.Core.HashFacade">
+             <summary>
+             Unified facade providing access to all 58+ hash algorithms in a single API.
+             </summary>
+             <remarks>
+             <para>
+             <see cref="T:StreamHash.Core.HashFacade"/> provides static methods for computing hash values using any supported algorithm.
+             It unifies access to:
+             </para>
+             <list type="bullet">
+             <item><description>StreamHash's native streaming implementations (MurmurHash, CityHash, etc.)</description></item>
+             <item><description>.NET built-in algorithms (CRC32, xxHash, SHA-256, etc.)</description></item>
+             <item><description>BouncyCastle cryptographic algorithms (SHA-3, BLAKE, RIPEMD, etc.)</description></item>
+             </list>
+             <para>
+             <b>Algorithm Categories:</b>
+             <list type="bullet">
+             <item><description><strong>Checksums (6):</strong> CRC32, CRC32C, CRC64, Adler-32, Fletcher-16, Fletcher-32</description></item>
+             <item><description><strong>Fast Non-Crypto (16):</strong> xxHash, MurmurHash3, CityHash, FarmHash, SpookyHash, SipHash, HighwayHash, MetroHash, wyhash</description></item>
+             <item><description><strong>Cryptographic (26):</strong> MD family, SHA family, SHA-3, Keccak, BLAKE family, RIPEMD family</description></item>
+             <item><description><strong>Other Crypto (14):</strong> Whirlpool, Tiger, GOST, Streebog, Skein, SM3</description></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // One-shot hashing
+             byte[] data = File.ReadAllBytes("file.bin");
+             byte[] sha256 = HashFacade.ComputeHash(HashAlgorithm.Sha256, data);
+             byte[] xxhash = HashFacade.ComputeHash(HashAlgorithm.XxHash64, data);
+            
+             // Get hex string
+             string sha256Hex = HashFacade.ComputeHashHex(HashAlgorithm.Sha256, data);
+            
+             // Stream hashing
+             using var hasher = HashFacade.CreateStreaming(HashAlgorithm.MurmurHash3_128);
+             hasher.Update(chunk1);
+             hasher.Update(chunk2);
+             byte[] hash = hasher.FinalizeBytes();
+             </code>
+             </example>
+        </member>
+        <member name="F:StreamHash.Core.HashFacade.AlgorithmCount">
+            <summary>
+            Total number of hash algorithms supported.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeHash(StreamHash.Core.HashAlgorithm,System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes a hash of the specified data using the specified algorithm.
+            </summary>
+            <param name="algorithm">The hash algorithm to use.</param>
+            <param name="data">The data to hash.</param>
+            <returns>The computed hash as a byte array.</returns>
+            <exception cref="T:System.NotSupportedException">The algorithm requires external dependencies (BouncyCastle).</exception>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeHashHex(StreamHash.Core.HashAlgorithm,System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes a hash and returns it as a lowercase hexadecimal string.
+            </summary>
+            <param name="algorithm">The hash algorithm to use.</param>
+            <param name="data">The data to hash.</param>
+            <returns>The computed hash as a lowercase hex string.</returns>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeCrc32(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes CRC-32 (IEEE polynomial).</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeCrc32C(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes CRC-32C (Castagnoli polynomial, hardware accelerated).</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeCrc64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes CRC-64 (ECMA polynomial).</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeAdler32(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes Adler-32 checksum.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeFletcher16(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes Fletcher-16 checksum.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeFletcher32(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes Fletcher-32 checksum.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeXxHash32(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes xxHash32.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeXxHash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes xxHash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeXxHash3(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes xxHash3 (64-bit).</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeXxHash128(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes xxHash128.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeMurmurHash3_32(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes MurmurHash3 32-bit.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeMurmurHash3_128(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes MurmurHash3 128-bit.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeCityHash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes CityHash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeCityHash128(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes CityHash128.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeFarmHash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes FarmHash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeSpookyHash128(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes SpookyHash V2 128-bit.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeSipHash24(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes SipHash-2-4.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeHighwayHash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes HighwayHash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeMetroHash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes MetroHash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeMetroHash128(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes MetroHash128.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.ComputeWyhash64(System.ReadOnlySpan{System.Byte})">
+            <summary>Computes wyhash64.</summary>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.CreateStreaming(StreamHash.Core.HashAlgorithm)">
+            <summary>
+            Creates a streaming hash instance for the specified algorithm.
+            </summary>
+            <param name="algorithm">The hash algorithm.</param>
+            <returns>A streaming hash interface that returns byte[] results.</returns>
+            <exception cref="T:System.NotSupportedException">The algorithm doesn't support streaming in StreamHash.Core.</exception>
+            <remarks>
+            <para>
+            This returns an <see cref="T:StreamHash.Core.IStreamingHashBytes"/> that can be used for incremental hashing
+            and always returns byte[] from <see cref="M:StreamHash.Core.IStreamingHashBytes.FinalizeBytes"/>.
+            </para>
+            <para>
+            For algorithms requiring BouncyCastle (SHA-3, BLAKE, etc.), use StreamHash.Crypto package.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.HashFacade.GetInfo(StreamHash.Core.HashAlgorithm)">
+            <summary>
+            Gets information about a hash algorithm.
+            </summary>
+            <param name="algorithm">The hash algorithm.</param>
+            <returns>Information including digest size and whether it's cryptographic.</returns>
+        </member>
+        <member name="T:StreamHash.Core.HashAlgorithmInfo">
+            <summary>
+            Information about a hash algorithm.
+            </summary>
+            <param name="DigestSize">Size of the hash output in bytes.</param>
+            <param name="IsCryptographic">Whether the algorithm is cryptographic (not just a checksum).</param>
+            <param name="DisplayName">Human-readable name of the algorithm.</param>
+        </member>
+        <member name="M:StreamHash.Core.HashAlgorithmInfo.#ctor(System.Int32,System.Boolean,System.String)">
+            <summary>
+            Information about a hash algorithm.
+            </summary>
+            <param name="DigestSize">Size of the hash output in bytes.</param>
+            <param name="IsCryptographic">Whether the algorithm is cryptographic (not just a checksum).</param>
+            <param name="DisplayName">Human-readable name of the algorithm.</param>
+        </member>
+        <member name="P:StreamHash.Core.HashAlgorithmInfo.DigestSize">
+            <summary>Size of the hash output in bytes.</summary>
+        </member>
+        <member name="P:StreamHash.Core.HashAlgorithmInfo.IsCryptographic">
+            <summary>Whether the algorithm is cryptographic (not just a checksum).</summary>
+        </member>
+        <member name="P:StreamHash.Core.HashAlgorithmInfo.DisplayName">
+            <summary>Human-readable name of the algorithm.</summary>
+        </member>
         <member name="T:StreamHash.Core.HighwayHash64">
              <summary>
              Streaming implementation of HighwayHash64 algorithm.
@@ -642,6 +1043,511 @@
             </para>
             </remarks>
             <exception cref="T:System.ObjectDisposedException">The hasher has been disposed.</exception>
+        </member>
+        <member name="T:StreamHash.Core.IStreamingHashBytes">
+            <summary>
+            Streaming hash interface that returns byte[] from finalization.
+            </summary>
+            <remarks>
+            <para>
+            This interface provides a consistent API for streaming hashing where the result
+            is always returned as a byte array, regardless of the underlying result type.
+            </para>
+            <para>
+            Use this interface when you need to work with hash algorithms polymorphically
+            and always want byte[] results.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHashBytes.BlockSize">
+            <summary>
+            Gets the block size in bytes.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHashBytes.DigestSize">
+            <summary>
+            Gets the digest size in bytes.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.IStreamingHashBytes.TotalBytesProcessed">
+            <summary>
+            Gets the total bytes processed.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHashBytes.Update(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Appends data to the hash computation.
+            </summary>
+            <param name="data">The data to add.</param>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHashBytes.FinalizeBytes">
+            <summary>
+            Completes the hash computation and returns the result as bytes.
+            </summary>
+            <returns>The hash value as a byte array.</returns>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHashBytes.FinalizeHex">
+            <summary>
+            Completes the hash computation and returns the result as a hex string.
+            </summary>
+            <returns>The hash value as a lowercase hexadecimal string.</returns>
+        </member>
+        <member name="M:StreamHash.Core.IStreamingHashBytes.Reset">
+            <summary>
+            Resets the hasher to its initial state.
+            </summary>
+        </member>
+        <member name="T:StreamHash.Core.KangarooTwelve">
+             <summary>
+             Streaming implementation of KangarooTwelve (K12), a fast extendable-output function.
+             </summary>
+             <remarks>
+             <para>
+             KangarooTwelve is a fast hash function based on Keccak-p[1600, 12] with reduced rounds.
+             It uses only 12 rounds (vs 24 in SHA-3) while maintaining excellent security margins.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> Variable length (XOF - extendable-output function)</item>
+             <item><b>Block Size:</b> 8192 bytes (chaining value block)</item>
+             <item><b>State Size:</b> 1600 bits (200 bytes)</item>
+             <item><b>Security:</b> 128-bit security level</item>
+             <item><b>Speed:</b> ~10+ GB/s on modern CPUs with SIMD</item>
+             </list>
+             </para>
+             <para>
+             <b>Structure:</b>
+             <list type="bullet">
+             <item>Uses Keccak-p[1600, 12] as the underlying permutation</item>
+             <item>Supports tree hashing for parallel processing (not used in streaming mode)</item>
+             <item>Customization string support for domain separation</item>
+             <item>XOF mode allows arbitrary output length</item>
+             </list>
+             </para>
+             <para>
+             <b>Use Cases:</b>
+             <list type="bullet">
+             <item>High-speed hashing for large files</item>
+             <item>Key derivation functions</item>
+             <item>Generating random-looking output of any length</item>
+             <item>Post-quantum secure applications</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="https://keccak.team/kangarootwelve.html">KangarooTwelve Official Page</see></item>
+             <item><see href="https://eprint.iacr.org/2016/770.pdf">KangarooTwelve Paper</see></item>
+             <item><see href="https://github.com/XKCP/XKCP">XKCP Reference Implementation</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             // Simple hash with default 32-byte output
+             using var hasher = new KangarooTwelve();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             byte[] hash = hasher.Finalize();
+            
+             // With customization string
+             using var hasher2 = new KangarooTwelve(customization: Encoding.UTF8.GetBytes("MyApp"));
+             hasher2.Update(data);
+             byte[] hash2 = hasher2.Finalize();
+            
+             // Custom output length (64 bytes)
+             using var hasher3 = new KangarooTwelve(outputLength: 64);
+             hasher3.Update(data);
+             byte[] hash3 = hasher3.Finalize();
+             </code>
+             </example>
+             <remarks>
+             <para>
+             This class does not implement <see cref="T:StreamHash.Core.IStreamingHash`1"/> because KangarooTwelve
+             is an XOF (extendable-output function) with variable-length output, which cannot be
+             represented as a fixed-size struct type.
+             </para>
+             </remarks>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.Rate">
+            <summary>
+            Rate for Keccak-p[1600, 12] in K12 (1600 - 256 = 1344 bits = 168 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.KeccakBlockSize">
+            <summary>
+            Block size for the inner Keccak absorb.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.ChunkSize">
+            <summary>
+            Chunk size for tree hashing (8192 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.Rounds">
+            <summary>
+            Number of Keccak-p rounds (12 for K12).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.RoundConstants">
+            <summary>
+            Keccak round constants for iota step.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve.RhoOffsets">
+            <summary>
+            Rotation offsets for the rho step.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._state">
+            <summary>
+            The Keccak state (25 64-bit words = 1600 bits).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._buffer">
+            <summary>
+            Buffer for absorbing data.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._bufferPosition">
+            <summary>
+            Current position in the buffer.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._totalBytes">
+            <summary>
+            Total bytes processed so far.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._finalized">
+            <summary>
+            Whether Finalize has been called.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._disposed">
+            <summary>
+            Whether the instance has been disposed.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._customization">
+            <summary>
+            The customization string (optional).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._outputLength">
+            <summary>
+            The desired output length in bytes.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkCount">
+            <summary>
+            Number of complete chunks processed.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkBuffer">
+            <summary>
+            Buffer for current chunk data.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chunkPosition">
+            <summary>
+            Position within current chunk.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._inFirstChunk">
+            <summary>
+            Whether we're still in the first chunk.
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.KangarooTwelve._chainingValues">
+            <summary>
+            Chaining values for tree hashing.
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.KangarooTwelve.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.#ctor(System.Int32,System.Byte[])">
+            <summary>
+            Creates a new KangarooTwelve hasher with default settings.
+            </summary>
+            <param name="outputLength">Desired output length in bytes. Default is 32.</param>
+            <param name="customization">Optional customization string for domain separation.</param>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.ProcessChunk">
+            <summary>
+            Processes a complete chunk.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.ComputeChainingValue(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Computes a 32-byte chaining value for a chunk.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbIntoState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Absorbs data into the main state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.XorIntoState(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            XORs a rate-sized block into the state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbBlock(System.UInt64[],System.ReadOnlySpan{System.Byte},System.Byte)">
+            <summary>
+            Absorbs a block into a given state with domain separation.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.PadAndPermute(System.UInt64[],System.Byte)">
+            <summary>
+            Pads and performs final permutation.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbCustomization">
+            <summary>
+            Absorbs the customization string.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.AbsorbLengthEncoding(System.Int32)">
+            <summary>
+            Absorbs the right-encoded length.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Squeeze(System.Int32)">
+            <summary>
+            Squeezes output bytes from the state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.KeccakPermutation">
+            <summary>
+            Performs the Keccak-p[1600, 12] permutation on the instance state.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.KeccakPermutation(System.UInt64[])">
+            <summary>
+            Performs the Keccak-p[1600, 12] permutation.
+            </summary>
+            <param name="state">The 25-word state to permute.</param>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.KangarooTwelve.Hash(System.ReadOnlySpan{System.Byte},System.Int32,System.Byte[])">
+            <summary>
+            Computes KangarooTwelve of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="outputLength">Desired output length in bytes.</param>
+            <param name="customization">Optional customization string.</param>
+            <returns>The hash value.</returns>
+        </member>
+        <member name="T:StreamHash.Core.MetroHash128">
+             <summary>
+             Streaming implementation of MetroHash128, an extremely fast non-cryptographic hash.
+             </summary>
+             <remarks>
+             <para>
+             MetroHash128 is the 128-bit variant of the MetroHash family.
+             It provides higher collision resistance while maintaining excellent speed.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 128-bit hash value</item>
+             <item><b>Block Size:</b> 32 bytes</item>
+             <item><b>Speed:</b> ~12+ GB/s on modern CPUs</item>
+             <item><b>Quality:</b> Excellent avalanche and distribution properties</item>
+             </list>
+             </para>
+             <para>
+             <b>Security Warning:</b>
+             MetroHash is NOT cryptographically secure. Do not use it for:
+             <list type="bullet">
+             <item>Password hashing</item>
+             <item>Digital signatures</item>
+             <item>Message authentication codes (MACs)</item>
+             <item>Any security-sensitive application</item>
+             </list>
+             </para>
+             <para>
+             <b>Recommended Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables requiring low collision probability</item>
+             <item>Bloom filters with many hash functions</item>
+             <item>Content-addressable storage</item>
+             <item>Large-scale deduplication</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="http://www.jandrewrogers.com/2015/05/27/metrohash/">MetroHash Blog Post</see></item>
+             <item><see href="https://github.com/jandrewrogers/MetroHash">MetroHash GitHub</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             using var hasher = new MetroHash128();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             UInt128 hash = hasher.Finalize();
+            
+             // Or use the static method
+             UInt128 hash = MetroHash128.Hash(data);
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash128.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash128.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.#ctor">
+            <summary>
+            Creates a new MetroHash128 hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.#ctor(System.UInt64)">
+            <summary>
+            Creates a new MetroHash128 hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value.</param>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.Hash(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash128 of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash128.HashToBytes(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash128 and returns the result as a byte array.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 128-bit hash as a 16-byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.MetroHash64">
+             <summary>
+             Streaming implementation of MetroHash64, an extremely fast non-cryptographic hash.
+             </summary>
+             <remarks>
+             <para>
+             MetroHash is a high-speed hash function created by J. Andrew Rogers.
+             It's designed for maximum throughput on modern CPUs while maintaining
+             excellent statistical properties.
+             </para>
+             <para>
+             <b>Algorithm Characteristics:</b>
+             <list type="bullet">
+             <item><b>Output:</b> 64-bit hash value</item>
+             <item><b>Block Size:</b> 32 bytes</item>
+             <item><b>Speed:</b> ~15+ GB/s on modern CPUs (one of the fastest)</item>
+             <item><b>Quality:</b> Excellent avalanche and distribution properties</item>
+             </list>
+             </para>
+             <para>
+             <b>Security Warning:</b>
+             MetroHash is NOT cryptographically secure. Do not use it for:
+             <list type="bullet">
+             <item>Password hashing</item>
+             <item>Digital signatures</item>
+             <item>Message authentication codes (MACs)</item>
+             <item>Any security-sensitive application</item>
+             </list>
+             </para>
+             <para>
+             <b>Recommended Use Cases:</b>
+             <list type="bullet">
+             <item>Hash tables and bloom filters</item>
+             <item>File integrity checking (non-security)</item>
+             <item>Data deduplication</item>
+             <item>Checksum calculations</item>
+             </list>
+             </para>
+             <para>
+             <b>References:</b>
+             <list type="bullet">
+             <item><see href="http://www.jandrewrogers.com/2015/05/27/metrohash/">MetroHash Blog Post</see></item>
+             <item><see href="https://github.com/jandrewrogers/MetroHash">MetroHash GitHub</see></item>
+             </list>
+             </para>
+             </remarks>
+             <example>
+             <code>
+             using var hasher = new MetroHash64();
+             hasher.Update(Encoding.UTF8.GetBytes("Hello, World!"));
+             ulong hash = hasher.Finalize();
+            
+             // Or use the static method
+             ulong hash = MetroHash64.Hash(data);
+             </code>
+             </example>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.MetroHash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.#ctor">
+            <summary>
+            Creates a new MetroHash64 hasher with seed 0.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.#ctor(System.UInt64)">
+            <summary>
+            Creates a new MetroHash64 hasher with the specified seed.
+            </summary>
+            <param name="seed">The seed value.</param>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ComputeFinal(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.ResetCore">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.MetroHash64.Hash(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes MetroHash64 of the given data in one shot.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">Optional seed value.</param>
+            <returns>The 64-bit hash value.</returns>
         </member>
         <member name="T:StreamHash.Core.MurmurHash3_128">
             <summary>
@@ -1152,6 +2058,24 @@
         <member name="M:StreamHash.Core.StreamingHashBase`1.Finalize">
             <inheritdoc/>
         </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.FinalizeBytes">
+            <summary>
+            Completes the hash computation and returns the result as a byte array.
+            </summary>
+            <returns>The computed hash value as a byte array.</returns>
+            <remarks>
+            <para>
+            This method provides a consistent byte[] output regardless of the underlying result type.
+            After calling this method, the hasher is finalized and must be reset before further use.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:StreamHash.Core.StreamingHashBase`1.FinalizeHex">
+            <summary>
+            Completes the hash computation and returns the result as a lowercase hex string.
+            </summary>
+            <returns>The computed hash value as a lowercase hexadecimal string.</returns>
+        </member>
         <member name="M:StreamHash.Core.StreamingHashBase`1.Reset">
             <inheritdoc/>
         </member>
@@ -1210,6 +2134,538 @@
         </member>
         <member name="M:StreamHash.Core.StreamingHashBase`1.Dispose">
             <inheritdoc/>
+        </member>
+        <member name="T:StreamHash.Core.Wyhash64">
+            <summary>
+            Streaming implementation of wyhash - one of the fastest hash functions available.
+            </summary>
+            <remarks>
+            <para>
+            wyhash is a non-cryptographic hash function created by Wang Yi (王一). It's designed
+            for maximum speed while maintaining excellent quality (passes SMHasher, BigCrush, PractRand).
+            </para>
+            <para>
+            <b>Algorithm Details:</b>
+            <list type="bullet">
+            <item>Uses 128-bit multiply for mixing (MUM - MUltiply and Mix)</item>
+            <item>Processes data in 48-byte blocks using 3 parallel accumulators</item>
+            <item>Excellent avalanche properties and collision resistance</item>
+            <item>Public domain (The Unlicense)</item>
+            </list>
+            </para>
+            <para>
+            <b>Performance:</b> 15-25 GB/s on modern hardware - one of the fastest hash functions available.
+            </para>
+            <para>
+            <b>Streaming Implementation Notes:</b>
+            wyhash processes data in 48-byte blocks for large inputs. This streaming implementation
+            buffers data until a complete 48-byte block is available, then processes it.
+            For inputs less than 48 bytes, special handling is used in finalization.
+            </para>
+            <para>
+            <b>Example:</b>
+            <code>
+            using var hasher = new Wyhash64();
+            hasher.Update(chunk1);
+            hasher.Update(chunk2);
+            ulong hash = hasher.Finalize();
+            </code>
+            </para>
+            </remarks>
+            <seealso href="https://github.com/wangyi-fudan/wyhash">wyhash GitHub repository</seealso>
+        </member>
+        <member name="F:StreamHash.Core.Wyhash64.BlockSizeValue">
+            <summary>
+            The block size for wyhash (48 bytes for main loop).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.Wyhash64.DigestSizeValue">
+            <summary>
+            The digest size for wyhash (8 bytes / 64 bits).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.Wyhash64.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.Wyhash64.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.Wyhash64.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.#ctor">
+            <summary>
+            Initializes a new instance with default seed (0) and default secret.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.#ctor(System.UInt64)">
+            <summary>
+            Initializes a new instance with the specified seed and default secret.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.#ctor(System.UInt64,System.UInt64[])">
+            <summary>
+            Initializes a new instance with the specified seed and custom secret.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+            <param name="secret">Custom secret parameters (must be 4 elements).</param>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.UpdateLast16(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Updates the last 16 bytes tracking.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.ProcessBlock(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Processes a single 48-byte block.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.FinalizeSmall">
+            <summary>
+            Finalizes for small inputs (0-16 bytes).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.FinalizeToBytes">
+            <summary>
+            Finalizes and returns the hash as a byte array.
+            </summary>
+            <returns>The 8-byte hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.WyMum(System.UInt64@,System.UInt64@)">
+            <summary>
+            MUM (MUltiply and Mix) - core mixing function.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.WyMix(System.UInt64,System.UInt64)">
+            <summary>
+            Mix function combining MUM and XOR.
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.Hash(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes wyhash of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.HashWithSecret(System.ReadOnlySpan{System.Byte},System.UInt64,System.UInt64[])">
+            <summary>
+            Computes wyhash of the input data with custom secret.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value.</param>
+            <param name="secret">Custom secret parameters (must be 4 elements).</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.Wyhash64.HashToBytes(System.ReadOnlySpan{System.Byte},System.UInt64)">
+            <summary>
+            Computes wyhash of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The hash as a byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.XxHash128Streaming">
+            <summary>
+            Streaming wrapper for xxHash128 using System.IO.Hashing.XxHash128.
+            </summary>
+            <remarks>
+            <para>
+            xxHash128 is the 128-bit variant of xxHash3, designed by Yann Collet.
+            It provides higher collision resistance while maintaining excellent performance.
+            </para>
+            <para>
+            This wrapper provides <see cref="T:StreamHash.Core.IStreamingHash`1"/> compatibility around
+            the built-in .NET implementation.
+            </para>
+            <para>
+            <b>Performance:</b> State-of-the-art performance, typically 20-50+ GB/s on modern hardware
+            with SIMD support. The 128-bit variant has minimal overhead compared to 64-bit.
+            </para>
+            <para>
+            <b>Example:</b>
+            <code>
+            using var hasher = new XxHash128Streaming();
+            hasher.Update(data1);
+            hasher.Update(data2);
+            UInt128 hash = hasher.Finalize();
+            </code>
+            </para>
+            </remarks>
+            <seealso href="https://xxhash.com/">xxHash official site</seealso>
+            <seealso href="https://github.com/Cyan4973/xxHash">xxHash GitHub repository</seealso>
+        </member>
+        <member name="F:StreamHash.Core.XxHash128Streaming.BlockSizeValue">
+            <summary>
+            The internal block size for xxHash128 (256 bytes for vectorized processing).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.XxHash128Streaming.DigestSizeValue">
+            <summary>
+            The digest size for xxHash128 (16 bytes).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.XxHash128Streaming.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash128Streaming.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash128Streaming.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.#ctor">
+            <summary>
+            Initializes a new instance with default seed (0).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.#ctor(System.Int64)">
+            <summary>
+            Initializes a new instance with the specified seed.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.FinalizeToBytes">
+            <summary>
+            Finalizes and returns the hash as a byte array.
+            </summary>
+            <returns>The 16-byte hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.Hash(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash128 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The 128-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash128Streaming.HashToBytes(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash128 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The hash as a byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.XxHash32Streaming">
+            <summary>
+            Streaming wrapper for xxHash32 using System.IO.Hashing.XxHash32.
+            </summary>
+            <remarks>
+            <para>
+            xxHash is a non-cryptographic hash algorithm created by Yann Collet, focusing on
+            speed and quality. xxHash32 produces a 32-bit hash value.
+            </para>
+            <para>
+            This wrapper provides <see cref="T:StreamHash.Core.IStreamingHash`1"/> compatibility around
+            the built-in .NET implementation.
+            </para>
+            <para>
+            <b>Performance:</b> Extremely fast, typically 10-20 GB/s on modern hardware.
+            </para>
+            <para>
+            <b>Example:</b>
+            <code>
+            using var hasher = new XxHash32Streaming();
+            hasher.Update(data1);
+            hasher.Update(data2);
+            uint hash = hasher.Finalize();
+            </code>
+            </para>
+            </remarks>
+            <seealso href="https://xxhash.com/">xxHash official site</seealso>
+        </member>
+        <member name="F:StreamHash.Core.XxHash32Streaming.BlockSizeValue">
+            <summary>
+            The block size for xxHash32 (4 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.XxHash32Streaming.DigestSizeValue">
+            <summary>
+            The digest size for xxHash32 (4 bytes).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.XxHash32Streaming.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash32Streaming.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash32Streaming.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.#ctor">
+            <summary>
+            Initializes a new instance with default seed (0).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.#ctor(System.Int32)">
+            <summary>
+            Initializes a new instance with the specified seed.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.FinalizeToBytes">
+            <summary>
+            Finalizes and returns the hash as a byte array.
+            </summary>
+            <returns>The 4-byte hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.Hash(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Computes xxHash32 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The 32-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash32Streaming.HashToBytes(System.ReadOnlySpan{System.Byte},System.Int32)">
+            <summary>
+            Computes xxHash32 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The hash as a byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.XxHash3Streaming">
+            <summary>
+            Streaming wrapper for xxHash3 (XXH3) using System.IO.Hashing.XxHash3.
+            </summary>
+            <remarks>
+            <para>
+            xxHash3 is the latest generation of the xxHash family, designed by Yann Collet.
+            It offers excellent performance across all input sizes, with particularly
+            strong performance on small inputs where previous xxHash versions were slower.
+            </para>
+            <para>
+            This wrapper provides <see cref="T:StreamHash.Core.IStreamingHash`1"/> compatibility around
+            the built-in .NET implementation.
+            </para>
+            <para>
+            <b>Performance:</b> State-of-the-art performance, typically 20-50+ GB/s on modern hardware
+            with SIMD support. Excellent for both small and large inputs.
+            </para>
+            <para>
+            <b>Example:</b>
+            <code>
+            using var hasher = new XxHash3Streaming();
+            hasher.Update(data1);
+            hasher.Update(data2);
+            ulong hash = hasher.Finalize();
+            </code>
+            </para>
+            </remarks>
+            <seealso href="https://xxhash.com/">xxHash official site</seealso>
+            <seealso href="https://github.com/Cyan4973/xxHash">xxHash GitHub repository</seealso>
+        </member>
+        <member name="F:StreamHash.Core.XxHash3Streaming.BlockSizeValue">
+            <summary>
+            The internal block size for xxHash3 (256 bytes for vectorized processing).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.XxHash3Streaming.DigestSizeValue">
+            <summary>
+            The digest size for xxHash3 64-bit (8 bytes).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.XxHash3Streaming.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash3Streaming.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash3Streaming.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.#ctor">
+            <summary>
+            Initializes a new instance with default seed (0).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.#ctor(System.Int64)">
+            <summary>
+            Initializes a new instance with the specified seed.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.FinalizeToBytes">
+            <summary>
+            Finalizes and returns the hash as a byte array.
+            </summary>
+            <returns>The 8-byte hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.Hash(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash3 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash3Streaming.HashToBytes(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash3 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The hash as a byte array.</returns>
+        </member>
+        <member name="T:StreamHash.Core.XxHash64Streaming">
+            <summary>
+            Streaming wrapper for xxHash64 using System.IO.Hashing.XxHash64.
+            </summary>
+            <remarks>
+            <para>
+            xxHash is a non-cryptographic hash algorithm created by Yann Collet, focusing on
+            speed and quality. xxHash64 produces a 64-bit hash value.
+            </para>
+            <para>
+            This wrapper provides <see cref="T:StreamHash.Core.IStreamingHash`1"/> compatibility around
+            the built-in .NET implementation.
+            </para>
+            <para>
+            <b>Performance:</b> Extremely fast, typically 15-30 GB/s on modern 64-bit hardware.
+            </para>
+            <para>
+            <b>Example:</b>
+            <code>
+            using var hasher = new XxHash64Streaming();
+            hasher.Update(data1);
+            hasher.Update(data2);
+            ulong hash = hasher.Finalize();
+            </code>
+            </para>
+            </remarks>
+            <seealso href="https://xxhash.com/">xxHash official site</seealso>
+        </member>
+        <member name="F:StreamHash.Core.XxHash64Streaming.BlockSizeValue">
+            <summary>
+            The block size for xxHash64 (32 bytes).
+            </summary>
+        </member>
+        <member name="F:StreamHash.Core.XxHash64Streaming.DigestSizeValue">
+            <summary>
+            The digest size for xxHash64 (8 bytes).
+            </summary>
+        </member>
+        <member name="P:StreamHash.Core.XxHash64Streaming.BlockSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash64Streaming.DigestSize">
+            <inheritdoc/>
+        </member>
+        <member name="P:StreamHash.Core.XxHash64Streaming.TotalBytesProcessed">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.#ctor">
+            <summary>
+            Initializes a new instance with default seed (0).
+            </summary>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.#ctor(System.Int64)">
+            <summary>
+            Initializes a new instance with the specified seed.
+            </summary>
+            <param name="seed">The seed value for the hash computation.</param>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Update(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Update(System.Byte[],System.Int32,System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Finalize">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.FinalizeToBytes">
+            <summary>
+            Finalizes and returns the hash as a byte array.
+            </summary>
+            <returns>The 8-byte hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Reset">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.Hash(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash64 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The 64-bit hash value.</returns>
+        </member>
+        <member name="M:StreamHash.Core.XxHash64Streaming.HashToBytes(System.ReadOnlySpan{System.Byte},System.Int64)">
+            <summary>
+            Computes xxHash64 of the input data in one call.
+            </summary>
+            <param name="data">The data to hash.</param>
+            <param name="seed">The seed value (default: 0).</param>
+            <returns>The hash as a byte array.</returns>
         </member>
     </members>
 </doc>
