@@ -32,6 +32,7 @@
 /// <b>Performance Optimizations:</b>
 /// <list type="bullet">
 /// <item>T-tables for MixBytes - pre-computed GF(2^8) multiplication tables</item>
+/// <item>AES-NI hardware acceleration for SubBytes (16 bytes at a time using Aes.EncryptLast)</item>
 /// <item>Pre-allocated buffers - zero allocations in hot path</item>
 /// <item>Loop unrolling in critical sections</item>
 /// </list>
@@ -485,12 +486,101 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 
 	/// <summary>
 	/// SubBytes transformation: Apply AES S-box to every byte.
+	/// Uses AES-NI hardware acceleration when available (16 bytes at a time).
 	/// </summary>
 	private void SubBytes(byte[] state) {
+		// Use AES-NI when available for vectorized S-box lookup
+		if (System.Runtime.Intrinsics.X86.Aes.IsSupported && Ssse3.IsSupported && state.Length >= 16) {
+			SubBytesAesNi(state);
+		} else {
+			SubBytesScalar(state);
+		}
+	}
+
+	/// <summary>
+	/// AES-NI accelerated SubBytes using hardware S-box.
+	/// Aes.EncryptLast performs SubBytes + ShiftRows, so we undo ShiftRows.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void SubBytesAesNi(byte[] state) {
+		// Zero round key - EncryptLast with zero key gives us SubBytes + ShiftRows
+		Vector128<byte> zeroKey = Vector128<byte>.Zero;
+
+		// Process 16 bytes at a time
+		int i = 0;
+		int len = state.Length;
+
+		// Unroll for common sizes: 64 bytes (512-bit state) or 128 bytes (1024-bit state)
+		while (i + 64 <= len) {
+			// Load 4 vectors
+			var v0 = Vector128.Create(state, i);
+			var v1 = Vector128.Create(state, i + 16);
+			var v2 = Vector128.Create(state, i + 32);
+			var v3 = Vector128.Create(state, i + 48);
+
+			// Apply SubBytes via AES-NI (EncryptLast does SubBytes + ShiftRows)
+			// Then apply inverse ShiftRows to get just SubBytes
+			v0 = System.Runtime.Intrinsics.X86.Aes.EncryptLast(v0, zeroKey);
+			v1 = System.Runtime.Intrinsics.X86.Aes.EncryptLast(v1, zeroKey);
+			v2 = System.Runtime.Intrinsics.X86.Aes.EncryptLast(v2, zeroKey);
+			v3 = System.Runtime.Intrinsics.X86.Aes.EncryptLast(v3, zeroKey);
+
+			// Undo ShiftRows: inverse shuffle pattern
+			// ShiftRows shifts row i left by i positions, so we shift right to undo
+			// Row 0: [0,1,2,3] -> [0,1,2,3] (no shift)
+			// Row 1: [4,5,6,7] -> [5,6,7,4] (undo: [7,4,5,6])
+			// Row 2: [8,9,A,B] -> [A,B,8,9] (undo: [A,B,8,9])
+			// Row 3: [C,D,E,F] -> [F,C,D,E] (undo: [D,E,F,C])
+			// Inverse shuffle: [0,13,10,7, 4,1,14,11, 8,5,2,15, 12,9,6,3]
+			v0 = Ssse3.Shuffle(v0, InverseShiftRowsMask);
+			v1 = Ssse3.Shuffle(v1, InverseShiftRowsMask);
+			v2 = Ssse3.Shuffle(v2, InverseShiftRowsMask);
+			v3 = Ssse3.Shuffle(v3, InverseShiftRowsMask);
+
+			// Store back
+			v0.CopyTo(state, i);
+			v1.CopyTo(state, i + 16);
+			v2.CopyTo(state, i + 32);
+			v3.CopyTo(state, i + 48);
+
+			i += 64;
+		}
+
+		// Handle remaining 16-byte blocks
+		while (i + 16 <= len) {
+			var v = Vector128.Create(state, i);
+			v = System.Runtime.Intrinsics.X86.Aes.EncryptLast(v, zeroKey);
+			v = Ssse3.Shuffle(v, InverseShiftRowsMask);
+			v.CopyTo(state, i);
+			i += 16;
+		}
+
+		// Handle remaining bytes (shouldn't happen for Grøstl, but just in case)
+		for (; i < len; i++) {
+			state[i] = SBox[state[i]];
+		}
+	}
+
+	/// <summary>
+	/// Scalar SubBytes fallback for non-AES-NI systems.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void SubBytesScalar(byte[] state) {
 		for (int i = 0; i < state.Length; i++) {
 			state[i] = SBox[state[i]];
 		}
 	}
+
+	/// <summary>
+	/// Inverse ShiftRows shuffle mask for AES-NI optimization.
+	/// Undoes the ShiftRows that EncryptLast applies, leaving only SubBytes.
+	/// </summary>
+	private static readonly Vector128<byte> InverseShiftRowsMask = Vector128.Create(
+		(byte)0, 13, 10, 7,  // Row 0: unchanged, Row 1: shift right 1
+		4, 1, 14, 11,         // Row 2: shift right 2
+		8, 5, 2, 15,          // Row 3: shift right 3
+		12, 9, 6, 3
+	);
 
 	/// <summary>
 	/// ShiftBytes transformation: Cyclically shift each row by different amounts.
