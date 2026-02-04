@@ -608,49 +608,83 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// The MDS matrix is circulant: [02, 02, 03, 04, 05, 03, 05, 07].
 	/// </summary>
 	private void MixBytes(byte[] state) {
-		for (int col = 0; col < _cols; col++) {
-			// Extract column using pre-allocated buffer
-			for (int row = 0; row < Rows; row++) {
-				_tempCol[row] = state[row * _cols + col];
-			}
+		// Process 2 columns at a time for better cache utilization
+		// This interleaved approach reduces memory access latency
+		for (int col = 0; col < _cols; col += 2) {
+			// Column 1
+			byte c0_0 = state[0 * _cols + col], c0_1 = state[1 * _cols + col];
+			byte c0_2 = state[2 * _cols + col], c0_3 = state[3 * _cols + col];
+			byte c0_4 = state[4 * _cols + col], c0_5 = state[5 * _cols + col];
+			byte c0_6 = state[6 * _cols + col], c0_7 = state[7 * _cols + col];
 
-			// Apply MDS matrix multiplication using T-tables
-			// MDS matrix: [02, 02, 03, 04, 05, 03, 05, 07] (circulant)
-			// result[row] = sum of Mul[coeff][col[(row+i) mod 8]] for each coefficient
-			byte c0 = _tempCol[0], c1 = _tempCol[1], c2 = _tempCol[2], c3 = _tempCol[3];
-			byte c4 = _tempCol[4], c5 = _tempCol[5], c6 = _tempCol[6], c7 = _tempCol[7];
+			// Column 2 (if available)
+			int col2 = col + 1;
+			byte c1_0 = state[0 * _cols + col2], c1_1 = state[1 * _cols + col2];
+			byte c1_2 = state[2 * _cols + col2], c1_3 = state[3 * _cols + col2];
+			byte c1_4 = state[4 * _cols + col2], c1_5 = state[5 * _cols + col2];
+			byte c1_6 = state[6 * _cols + col2], c1_7 = state[7 * _cols + col2];
 
+			// Pre-fetch multiplication results for both columns
+			// Column 1 multiplications
+			byte m02_c0_0 = Mul02[c0_0], m02_c0_1 = Mul02[c0_1], m03_c0_2 = Mul03[c0_2], m04_c0_3 = Mul04[c0_3];
+			byte m05_c0_4 = Mul05[c0_4], m03_c0_5 = Mul03[c0_5], m05_c0_6 = Mul05[c0_6], m07_c0_7 = Mul07[c0_7];
+			byte m02_c0_2 = Mul02[c0_2], m02_c0_3 = Mul02[c0_3], m03_c0_4 = Mul03[c0_4], m04_c0_5 = Mul04[c0_5];
+			byte m05_c0_0 = Mul05[c0_0], m03_c0_1 = Mul03[c0_1], m05_c0_2 = Mul05[c0_2], m07_c0_3 = Mul07[c0_3];
+			byte m02_c0_4 = Mul02[c0_4], m02_c0_5 = Mul02[c0_5], m03_c0_6 = Mul03[c0_6], m04_c0_7 = Mul04[c0_7];
+			byte m05_c0_1 = Mul05[c0_1], m07_c0_1 = Mul07[c0_1], m02_c0_6 = Mul02[c0_6], m02_c0_7 = Mul02[c0_7];
+			byte m03_c0_0 = Mul03[c0_0], m04_c0_1 = Mul04[c0_1], m03_c0_7 = Mul03[c0_7], m04_c0_0 = Mul04[c0_0];
+			byte m07_c0_5 = Mul07[c0_5], m05_c0_3 = Mul05[c0_3], m07_c0_4 = Mul07[c0_4], m05_c0_5 = Mul05[c0_5];
+			byte m05_c0_7 = Mul05[c0_7], m07_c0_0 = Mul07[c0_0], m04_c0_2 = Mul04[c0_2], m03_c0_3 = Mul03[c0_3];
+			byte m04_c0_4 = Mul04[c0_4], m04_c0_6 = Mul04[c0_6], m07_c0_2 = Mul07[c0_2], m07_c0_6 = Mul07[c0_6];
+
+			// Column 2 multiplications
+			byte m02_c1_0 = Mul02[c1_0], m02_c1_1 = Mul02[c1_1], m03_c1_2 = Mul03[c1_2], m04_c1_3 = Mul04[c1_3];
+			byte m05_c1_4 = Mul05[c1_4], m03_c1_5 = Mul03[c1_5], m05_c1_6 = Mul05[c1_6], m07_c1_7 = Mul07[c1_7];
+			byte m02_c1_2 = Mul02[c1_2], m02_c1_3 = Mul02[c1_3], m03_c1_4 = Mul03[c1_4], m04_c1_5 = Mul04[c1_5];
+			byte m05_c1_0 = Mul05[c1_0], m03_c1_1 = Mul03[c1_1], m05_c1_2 = Mul05[c1_2], m07_c1_3 = Mul07[c1_3];
+			byte m02_c1_4 = Mul02[c1_4], m02_c1_5 = Mul02[c1_5], m03_c1_6 = Mul03[c1_6], m04_c1_7 = Mul04[c1_7];
+			byte m05_c1_1 = Mul05[c1_1], m07_c1_1 = Mul07[c1_1], m02_c1_6 = Mul02[c1_6], m02_c1_7 = Mul02[c1_7];
+			byte m03_c1_0 = Mul03[c1_0], m04_c1_1 = Mul04[c1_1], m03_c1_7 = Mul03[c1_7], m04_c1_0 = Mul04[c1_0];
+			byte m07_c1_5 = Mul07[c1_5], m05_c1_3 = Mul05[c1_3], m07_c1_4 = Mul07[c1_4], m05_c1_5 = Mul05[c1_5];
+			byte m05_c1_7 = Mul05[c1_7], m07_c1_0 = Mul07[c1_0], m04_c1_2 = Mul04[c1_2], m03_c1_3 = Mul03[c1_3];
+			byte m04_c1_4 = Mul04[c1_4], m04_c1_6 = Mul04[c1_6], m07_c1_2 = Mul07[c1_2], m07_c1_6 = Mul07[c1_6];
+
+			// Compute all 8 rows for column 1
 			// Row 0: [02, 02, 03, 04, 05, 03, 05, 07] × [c0, c1, c2, c3, c4, c5, c6, c7]
-			state[0 * _cols + col] = (byte)(Mul02[c0] ^ Mul02[c1] ^ Mul03[c2] ^ Mul04[c3] ^
-										   Mul05[c4] ^ Mul03[c5] ^ Mul05[c6] ^ Mul07[c7]);
+			state[0 * _cols + col] = (byte)(m02_c0_0 ^ m02_c0_1 ^ m03_c0_2 ^ m04_c0_3 ^
+										   m05_c0_4 ^ m03_c0_5 ^ m05_c0_6 ^ m07_c0_7);
+			state[1 * _cols + col] = (byte)(m02_c0_1 ^ m02_c0_2 ^ m03_c0_3 ^ m04_c0_4 ^
+										   m05_c0_5 ^ m03_c0_6 ^ m05_c0_7 ^ m07_c0_0);
+			state[2 * _cols + col] = (byte)(m02_c0_2 ^ m02_c0_3 ^ m03_c0_4 ^ m04_c0_5 ^
+										   m05_c0_6 ^ m03_c0_7 ^ m05_c0_0 ^ m07_c0_1);
+			state[3 * _cols + col] = (byte)(m02_c0_3 ^ m02_c0_4 ^ m03_c0_5 ^ m04_c0_6 ^
+										   m05_c0_7 ^ m03_c0_0 ^ m05_c0_1 ^ m07_c0_2);
+			state[4 * _cols + col] = (byte)(m02_c0_4 ^ m02_c0_5 ^ m03_c0_6 ^ m04_c0_7 ^
+										   m05_c0_0 ^ m03_c0_1 ^ m05_c0_2 ^ m07_c0_3);
+			state[5 * _cols + col] = (byte)(m02_c0_5 ^ m02_c0_6 ^ m03_c0_7 ^ m04_c0_0 ^
+										   m05_c0_1 ^ m03_c0_2 ^ m05_c0_3 ^ m07_c0_4);
+			state[6 * _cols + col] = (byte)(m02_c0_6 ^ m02_c0_7 ^ m03_c0_0 ^ m04_c0_1 ^
+										   m05_c0_2 ^ m03_c0_3 ^ m05_c0_4 ^ m07_c0_5);
+			state[7 * _cols + col] = (byte)(m02_c0_7 ^ m02_c0_0 ^ m03_c0_1 ^ m04_c0_2 ^
+										   m05_c0_3 ^ m03_c0_4 ^ m05_c0_5 ^ m07_c0_6);
 
-			// Row 1: rotate coefficients left by 1
-			state[1 * _cols + col] = (byte)(Mul02[c1] ^ Mul02[c2] ^ Mul03[c3] ^ Mul04[c4] ^
-										   Mul05[c5] ^ Mul03[c6] ^ Mul05[c7] ^ Mul07[c0]);
-
-			// Row 2: rotate coefficients left by 2
-			state[2 * _cols + col] = (byte)(Mul02[c2] ^ Mul02[c3] ^ Mul03[c4] ^ Mul04[c5] ^
-										   Mul05[c6] ^ Mul03[c7] ^ Mul05[c0] ^ Mul07[c1]);
-
-			// Row 3: rotate coefficients left by 3
-			state[3 * _cols + col] = (byte)(Mul02[c3] ^ Mul02[c4] ^ Mul03[c5] ^ Mul04[c6] ^
-										   Mul05[c7] ^ Mul03[c0] ^ Mul05[c1] ^ Mul07[c2]);
-
-			// Row 4: rotate coefficients left by 4
-			state[4 * _cols + col] = (byte)(Mul02[c4] ^ Mul02[c5] ^ Mul03[c6] ^ Mul04[c7] ^
-										   Mul05[c0] ^ Mul03[c1] ^ Mul05[c2] ^ Mul07[c3]);
-
-			// Row 5: rotate coefficients left by 5
-			state[5 * _cols + col] = (byte)(Mul02[c5] ^ Mul02[c6] ^ Mul03[c7] ^ Mul04[c0] ^
-										   Mul05[c1] ^ Mul03[c2] ^ Mul05[c3] ^ Mul07[c4]);
-
-			// Row 6: rotate coefficients left by 6
-			state[6 * _cols + col] = (byte)(Mul02[c6] ^ Mul02[c7] ^ Mul03[c0] ^ Mul04[c1] ^
-										   Mul05[c2] ^ Mul03[c3] ^ Mul05[c4] ^ Mul07[c5]);
-
-			// Row 7: rotate coefficients left by 7
-			state[7 * _cols + col] = (byte)(Mul02[c7] ^ Mul02[c0] ^ Mul03[c1] ^ Mul04[c2] ^
-										   Mul05[c3] ^ Mul03[c4] ^ Mul05[c5] ^ Mul07[c6]);
+			// Compute all 8 rows for column 2
+			state[0 * _cols + col2] = (byte)(m02_c1_0 ^ m02_c1_1 ^ m03_c1_2 ^ m04_c1_3 ^
+										    m05_c1_4 ^ m03_c1_5 ^ m05_c1_6 ^ m07_c1_7);
+			state[1 * _cols + col2] = (byte)(m02_c1_1 ^ m02_c1_2 ^ m03_c1_3 ^ m04_c1_4 ^
+										    m05_c1_5 ^ m03_c1_6 ^ m05_c1_7 ^ m07_c1_0);
+			state[2 * _cols + col2] = (byte)(m02_c1_2 ^ m02_c1_3 ^ m03_c1_4 ^ m04_c1_5 ^
+										    m05_c1_6 ^ m03_c1_7 ^ m05_c1_0 ^ m07_c1_1);
+			state[3 * _cols + col2] = (byte)(m02_c1_3 ^ m02_c1_4 ^ m03_c1_5 ^ m04_c1_6 ^
+										    m05_c1_7 ^ m03_c1_0 ^ m05_c1_1 ^ m07_c1_2);
+			state[4 * _cols + col2] = (byte)(m02_c1_4 ^ m02_c1_5 ^ m03_c1_6 ^ m04_c1_7 ^
+										    m05_c1_0 ^ m03_c1_1 ^ m05_c1_2 ^ m07_c1_3);
+			state[5 * _cols + col2] = (byte)(m02_c1_5 ^ m02_c1_6 ^ m03_c1_7 ^ m04_c1_0 ^
+										    m05_c1_1 ^ m03_c1_2 ^ m05_c1_3 ^ m07_c1_4);
+			state[6 * _cols + col2] = (byte)(m02_c1_6 ^ m02_c1_7 ^ m03_c1_0 ^ m04_c1_1 ^
+										    m05_c1_2 ^ m03_c1_3 ^ m05_c1_4 ^ m07_c1_5);
+			state[7 * _cols + col2] = (byte)(m02_c1_7 ^ m02_c1_0 ^ m03_c1_1 ^ m04_c1_2 ^
+										    m05_c1_3 ^ m03_c1_4 ^ m05_c1_5 ^ m07_c1_6);
 		}
 	}
 }

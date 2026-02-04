@@ -278,13 +278,61 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// <summary>
 	/// Apply linear transformation L to state.
 	/// L is a 2×2 MDS matrix applied to pairs of state bytes.
-	/// Uses SIMD (AVX2/SSE2) when available for parallel processing.
+	/// Uses SIMD (SSSE3) when available for parallel processing.
 	/// </summary>
 	private static void ApplyLinearTransform(byte[] state) {
-		// For now, use the scalar path - SIMD optimization of the interleaved
-		// pair processing requires complex shuffles that may not be worth it
-		// compared to the simple scalar loop which processes 64 pairs efficiently.
-		ApplyLinearTransformScalar(state);
+		if (Ssse3.IsSupported) {
+			ApplyLinearTransformSsse3(state);
+		} else {
+			ApplyLinearTransformScalar(state);
+		}
+	}
+
+	/// <summary>
+	/// SSSE3-optimized linear transformation processing 16 bytes (8 pairs) at a time.
+	/// Uses byte shuffles to separate even/odd bytes, then recombines.
+	/// </summary>
+	private static void ApplyLinearTransformSsse3(byte[] state) {
+		// L transformation: for each pair (a, b), compute:
+		// a' = a XOR b
+		// b' = a XOR (b <<< 1) where <<< is bit rotation within each byte
+
+		// Shuffle mask to extract even bytes (indices 0,2,4,6,8,10,12,14) to low 8 bytes
+		var shuffleEvens = Vector128.Create((byte)0, 2, 4, 6, 8, 10, 12, 14, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
+		// Shuffle mask to extract odd bytes (indices 1,3,5,7,9,11,13,15) to low 8 bytes
+		var shuffleOdds = Vector128.Create((byte)1, 3, 5, 7, 9, 11, 13, 15, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80);
+		// Shuffle mask to interleave: takes bytes from positions and interleaves
+		var interleave = Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15);
+
+		// Process 128 bytes in 8 iterations of 16 bytes
+		for (int i = 0; i < StateSize; i += 16) {
+			// Load 16 bytes (8 pairs)
+			var v = Vector128.Create(state.AsSpan(i, 16));
+
+			// Extract even bytes (a values) to low half
+			var evens = Ssse3.Shuffle(v, shuffleEvens);  // a0,a1,a2,a3,a4,a5,a6,a7,0,0,0,0,0,0,0,0
+			// Extract odd bytes (b values) to low half
+			var odds = Ssse3.Shuffle(v, shuffleOdds);    // b0,b1,b2,b3,b4,b5,b6,b7,0,0,0,0,0,0,0,0
+
+			// Compute a' = a XOR b
+			var newA = Sse2.Xor(evens, odds);
+
+			// Compute b <<< 1 (rotate left by 1 bit within each byte)
+			// b <<< 1 = ((b << 1) & 0xfe) | ((b >> 7) & 0x01)
+			var bShl1 = Sse2.And(Sse2.ShiftLeftLogical(odds.AsUInt16(), 1).AsByte(), Vector128.Create((byte)0xfe));
+			var bShr7 = Sse2.And(Sse2.ShiftRightLogical(odds.AsUInt16(), 7).AsByte(), Vector128.Create((byte)0x01));
+			var bRotated = Sse2.Or(bShl1, bShr7);
+
+			// Compute b' = a XOR (b <<< 1)
+			var newB = Sse2.Xor(evens, bRotated);
+
+			// Combine: newA in low positions 0-7, newB needs to go to positions 8-15
+			// Then interleave them back to pairs
+			var combined = Sse2.Or(newA, Sse2.ShiftLeftLogical128BitLane(newB, 8));
+			var result = Ssse3.Shuffle(combined, interleave);
+
+			result.CopyTo(state.AsSpan(i, 16));
+		}
 	}
 
 	/// <summary>
