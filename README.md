@@ -2,8 +2,9 @@
 
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
+[![NuGet](https://img.shields.io/nuget/v/StreamHash)](https://www.nuget.org/packages/StreamHash)
 
-**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular non-cryptographic hash algorithms that traditionally require loading entire files into memory.
+**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular hash algorithms and a unified `HashFacade` API supporting **62 algorithms**.
 
 ## 🎯 Why StreamHash?
 
@@ -12,46 +13,70 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 ## ✨ Features
 
 - **🚀 Memory Efficient**: Hash multi-gigabyte files with minimal memory footprint
-- **⚡ High Performance**: SIMD-optimized implementations (SSE2, AVX2, AVX-512)
+- **⚡ High Performance**: SIMD-optimized implementations where available
 - **🔄 Streaming API**: Process data incrementally with `Update()` and `Finalize()`
 - **📦 Zero Allocations**: Hot paths are allocation-free using `Span<T>`
-- **🧪 Thoroughly Tested**: Validated against official test vectors
+- **🎯 Unified API**: `HashFacade` provides access to 62 algorithms through a single interface
+- **🧪 Thoroughly Tested**: 619+ tests validating against official test vectors
 - **📖 Fully Documented**: XML docs, examples, and algorithm references
 
-## 📊 Supported Algorithms
+## 📊 Algorithm Support
 
-| Algorithm | Digest Size | Streaming | SIMD | Status |
-|-----------|-------------|-----------|------|--------|
-| MurmurHash3-32 | 32-bit | ✅ | ❌ | ✅ Complete |
-| MurmurHash3-128 | 128-bit | ✅ | ❌ | ✅ Complete |
-| CityHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
-| CityHash128 | 128-bit | ✅ | ❌ | ✅ Complete |
-| SpookyHash V2 | 128-bit | ✅ | ❌ | ✅ Complete |
-| SipHash-2-4 | 64-bit | ✅ | ❌ | ✅ Complete |
-| FarmHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
-| HighwayHash64 | 64-bit | ✅ | 🚧 | ✅ Complete |
-| KangarooTwelve | Variable (XOF) | ✅ | ❌ | ✅ Complete |
-| MetroHash64 | 64-bit | ✅ | ❌ | ✅ Complete |
-| MetroHash128 | 128-bit | ✅ | ❌ | ✅ Complete |
-| wyhash64 | 64-bit | ✅ | ❌ | ✅ Complete |
-| xxHash32* | 32-bit | ✅ | ✅ | ✅ Complete |
-| xxHash64* | 64-bit | ✅ | ✅ | ✅ Complete |
-| xxHash3* | 64-bit | ✅ | ✅ | ✅ Complete |
-| xxHash128* | 128-bit | ✅ | ✅ | ✅ Complete |
+### Streaming Implementations (16 native)
 
-**16 algorithms total** with 532 tests!
+| Algorithm | Digest Size | Status |
+|-----------|-------------|--------|
+| MurmurHash3-32/128 | 32/128-bit | ✅ Complete |
+| CityHash64/128 | 64/128-bit | ✅ Complete |
+| SpookyHash V2 | 128-bit | ✅ Complete |
+| SipHash-2-4 | 64-bit | ✅ Complete |
+| FarmHash64 | 64-bit | ✅ Complete |
+| HighwayHash64 | 64-bit | ✅ Complete |
+| KangarooTwelve | Variable (XOF) | ✅ Complete |
+| MetroHash64/128 | 64/128-bit | ✅ Complete |
+| wyhash64 | 64-bit | ✅ Complete |
+| xxHash32/64/3/128* | 32-128 bit | ✅ Complete |
 
-\* xxHash wrappers use System.IO.Hashing for IStreamingHash compatibility
+### HashFacade Unified API (62 algorithms)
+
+The `HashFacade` class provides one-shot and streaming access to:
+- **Checksums (6)**: CRC32, CRC32C, CRC64, Adler-32, Fletcher-16, Fletcher-32
+- **Fast Non-Crypto (16)**: xxHash, MurmurHash3, CityHash, FarmHash, SpookyHash, SipHash, HighwayHash, MetroHash, wyhash
+- **Cryptographic (26)**: MD family, SHA family, SHA-3, Keccak, BLAKE family, RIPEMD family
+- **Other (14)**: Whirlpool, Tiger, GOST, Streebog, Skein, SM3
+
+> **Note**: Cryptographic algorithms (SHA-3, BLAKE, etc.) require BouncyCastle. StreamHash.Core provides fast non-crypto hashes natively.
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.2.0
+dotnet add package StreamHash --version 1.3.0
 ```
 
-### Basic Usage
+### HashFacade API (Recommended)
+
+```csharp
+using StreamHash.Core;
+
+// One-shot hashing
+byte[] data = File.ReadAllBytes("file.bin");
+byte[] hash = HashFacade.ComputeHash(HashAlgorithm.XxHash64, data);
+string hex = HashFacade.ComputeHashHex(HashAlgorithm.Sha256, data);
+
+// Streaming hashing
+using var hasher = HashFacade.CreateStreaming(HashAlgorithm.MurmurHash3_128);
+hasher.Update(chunk1);
+hasher.Update(chunk2);
+byte[] result = hasher.FinalizeBytes();
+
+// Algorithm info
+var info = HashFacade.GetInfo(HashAlgorithm.Sha256);
+Console.WriteLine($"{info.DisplayName}: {info.DigestSize} bytes, Crypto: {info.IsCryptographic}");
+```
+
+### Direct Streaming API
 
 ```csharp
 using StreamHash.Core;
@@ -67,15 +92,8 @@ while ((bytesRead = await stream.ReadAsync(buffer)) > 0) {
     hasher.Update(buffer.AsSpan(0, bytesRead));
 }
 
-var hash = hasher.Finalize();
-Console.WriteLine($"Hash: {Convert.ToHexStringLower(hash)}");
-```
-
-### One-Shot API
-
-```csharp
-// For small data that fits in memory
-var hash = MurmurHash3.ComputeHash128(data);
+UInt128 hash = hasher.Finalize();
+Console.WriteLine($"Hash: {hasher.FinalizeHex()}");
 ```
 
 ## 📖 Documentation
@@ -83,7 +101,6 @@ var hash = MurmurHash3.ComputeHash128(data);
 - [📚 Algorithm Reference](docs/algorithms/README.md)
 - [🔧 API Documentation](docs/api/README.md)
 - [📈 Performance Benchmarks](docs/benchmarks.md)
-- [🎓 Usage Guides](docs/guides/README.md)
 
 ## 🏗️ Building
 
@@ -95,7 +112,7 @@ cd StreamHash
 # Build
 dotnet build StreamHash.sln
 
-# Run tests
+# Run tests (619+ tests)
 dotnet test
 
 # Run benchmarks
