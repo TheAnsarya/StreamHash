@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using StreamHash.Core;
 
 namespace StreamHash.Core.Tests;
