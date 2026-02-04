@@ -5,6 +5,20 @@ All notable changes to StreamHash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2025-02-04
+
+### Fixed
+- All 71 algorithms confirmed working and accessible via HashFacade
+- Package tags updated to include FNV, DJB2, SDBM keywords for discoverability
+
+### Verified
+- FNV-1a 32/64-bit implementations with correct prime (0x01000193 / 0x00000100000001B3) and offset basis
+- DJB2 and DJB2a (XOR variant) with initial value 5381
+- SDBM with multiply by 65599 (optimized as x + x<<6 + x<<16)
+- LoseLose simple byte sum implementation
+- All CRC-16 variants (CCITT, MODBUS, USB, ARC, XMODEM, KERMIT, DNP, MAXIM)
+- All 752 tests passing
+
 ## [1.6.2] - 2025-02-04
 
 ### Added
