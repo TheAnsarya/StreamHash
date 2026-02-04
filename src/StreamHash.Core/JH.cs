@@ -157,6 +157,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 		// JH IV generation: H_0^(n) is computed by applying F (compression) to
 		// an all-zero state with message block containing hash length
 		byte[] iv = new byte[StateSize];
+		byte[] temp = new byte[StateSize]; // Temporary buffer for permutation
 
 		// Initial state is zero with hash length in first block
 		byte[] initialBlock = new byte[BlockSizeBytes];
@@ -164,7 +165,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 		initialBlock[1] = (byte)hashBits;
 
 		// Apply E8 compression
-		ApplyE8(iv, initialBlock);
+		ApplyE8(iv, initialBlock, temp);
 
 		return iv;
 	}
@@ -172,19 +173,23 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// <summary>
 	/// Apply E8 bijective function to state with message block XOR'd in.
 	/// </summary>
-	private static void ApplyE8(byte[] state, byte[] block) {
+	/// <param name="state">The 1024-bit state to transform.</param>
+	/// <param name="block">The 512-bit message block.</param>
+	/// <param name="temp">Pre-allocated temporary buffer for permutation (128 bytes).</param>
+	private static void ApplyE8(byte[] state, ReadOnlySpan<byte> block, byte[] temp) {
 		// XOR message block into first half of state
-		for (int i = 0; i < BlockSizeBytes && i < block.Length; i++) {
+		int blockLen = Math.Min(BlockSizeBytes, block.Length);
+		for (int i = 0; i < blockLen; i++) {
 			state[i] ^= block[i];
 		}
 
 		// Apply 42 rounds of round function
 		for (int round = 0; round < Rounds; round++) {
-			RoundFunction(state, round);
+			RoundFunction(state, round, temp);
 		}
 
 		// XOR message block into last half of state
-		for (int i = 0; i < BlockSizeBytes && i < block.Length; i++) {
+		for (int i = 0; i < blockLen; i++) {
 			state[StateSize - BlockSizeBytes + i] ^= block[i];
 		}
 	}
@@ -193,7 +198,10 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// Single round of JH round function.
 	/// Consists of: S-box layer, linear transform (L), permutation (P).
 	/// </summary>
-	private static void RoundFunction(byte[] state, int round) {
+	/// <param name="state">The state to transform.</param>
+	/// <param name="round">The round number (0-41).</param>
+	/// <param name="temp">Pre-allocated temporary buffer for permutation (128 bytes).</param>
+	private static void RoundFunction(byte[] state, int round, byte[] temp) {
 		byte[] roundConst = RoundConstants[round];
 
 		// Process state in groups of 4 bits (nibbles)
@@ -212,8 +220,8 @@ public sealed class JHDigest : IStreamingHashBytes {
 		// Step 3: Linear transformation L
 		ApplyLinearTransform(state);
 
-		// Step 4: Permutation P_round
-		ApplyPermutation(state, round);
+		// Step 4: Permutation P_round (uses temp buffer)
+		ApplyPermutation(state, round, temp);
 	}
 
 	/// <summary>
@@ -269,9 +277,10 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// Apply permutation P_r to state.
 	/// The permutation depends on the round number modulo 7.
 	/// </summary>
-	private static void ApplyPermutation(byte[] state, int round) {
-		byte[] temp = new byte[StateSize];
-
+	/// <param name="state">The state to permute (modified in place).</param>
+	/// <param name="round">The round number.</param>
+	/// <param name="temp">Pre-allocated temporary buffer (128 bytes minimum).</param>
+	private static void ApplyPermutation(byte[] state, int round, byte[] temp) {
 		// JH permutation - swap halves and interleave
 		// This ensures that different positions get mixed
 		int half = StateSize / 2;
@@ -289,7 +298,8 @@ public sealed class JHDigest : IStreamingHashBytes {
 			temp[destB] = state[srcB];
 		}
 
-		Array.Copy(temp, state, StateSize);
+		// Copy back to state
+		Buffer.BlockCopy(temp, 0, state, 0, StateSize);
 	}
 
 	/// <summary>
@@ -310,6 +320,9 @@ public sealed class JHDigest : IStreamingHashBytes {
 
 	/// <summary>Message buffer for incomplete blocks.</summary>
 	private readonly byte[] _buffer;
+
+	/// <summary>Pre-allocated temporary buffer for permutation operations.</summary>
+	private readonly byte[] _temp;
 
 	/// <summary>Current position in buffer.</summary>
 	private int _bufferPos;
@@ -338,6 +351,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 		_hashSize = hashBits / 8;
 		_state = new byte[StateSize];
 		_buffer = new byte[BlockSizeBytes];
+		_temp = new byte[StateSize]; // Pre-allocate for permutation
 
 		Reset();
 	}
@@ -449,6 +463,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 		if (!_disposed) {
 			Array.Clear(_state);
 			Array.Clear(_buffer);
+			Array.Clear(_temp);
 			_disposed = true;
 		}
 	}
@@ -460,8 +475,8 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// F(H, M) = E8(H XOR (M || 0^512)) XOR (0^512 || M)
 	/// </summary>
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
-		byte[] blockArray = block.ToArray();
-		ApplyE8(_state, blockArray);
+		// Use the instance's pre-allocated temp buffer
+		ApplyE8(_state, block, _temp);
 	}
 }
 

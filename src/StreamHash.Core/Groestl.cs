@@ -119,6 +119,18 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// <summary>Message buffer for incomplete blocks.</summary>
 	private readonly byte[] _buffer;
 
+	/// <summary>Pre-allocated temporary buffer for message block (m).</summary>
+	private readonly byte[] _tempM;
+
+	/// <summary>Pre-allocated temporary buffer for h XOR m.</summary>
+	private readonly byte[] _tempHM;
+
+	/// <summary>Pre-allocated temporary row buffer for ShiftBytes.</summary>
+	private readonly byte[] _tempRow;
+
+	/// <summary>Pre-allocated temporary column buffer for MixBytes.</summary>
+	private readonly byte[] _tempCol;
+
 	/// <summary>Current position in buffer.</summary>
 	private int _bufferPos;
 
@@ -161,6 +173,10 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 
 		_state = new byte[Rows * _cols];
 		_buffer = new byte[_blockSize];
+		_tempM = new byte[Rows * _cols];
+		_tempHM = new byte[Rows * _cols];
+		_tempRow = new byte[_cols > Cols512 ? Cols1024 : Cols512];
+		_tempCol = new byte[Rows];
 
 		Reset();
 	}
@@ -290,6 +306,10 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 		if (!_disposed) {
 			Array.Clear(_state);
 			Array.Clear(_buffer);
+			Array.Clear(_tempM);
+			Array.Clear(_tempHM);
+			Array.Clear(_tempRow);
+			Array.Clear(_tempCol);
 			_disposed = true;
 		}
 	}
@@ -302,29 +322,27 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// </summary>
 	/// <param name="block">The message block to process.</param>
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
-		// Convert block to column-major matrix
-		byte[] m = new byte[Rows * _cols];
+		// Convert block to column-major matrix using pre-allocated buffer
 		for (int col = 0; col < _cols; col++) {
 			for (int row = 0; row < Rows; row++) {
-				m[row * _cols + col] = block[col * Rows + row];
+				_tempM[row * _cols + col] = block[col * Rows + row];
 			}
 		}
 
-		// Compute h XOR m for P input
-		byte[] hm = new byte[_state.Length];
+		// Compute h XOR m for P input using pre-allocated buffer
 		for (int i = 0; i < _state.Length; i++) {
-			hm[i] = (byte)(_state[i] ^ m[i]);
+			_tempHM[i] = (byte)(_state[i] ^ _tempM[i]);
 		}
 
 		// Apply P permutation to (h XOR m)
-		PermutationP(hm);
+		PermutationP(_tempHM);
 
 		// Apply Q permutation to m
-		PermutationQ(m);
+		PermutationQ(_tempM);
 
 		// New state: P(h XOR m) XOR Q(m) XOR h
 		for (int i = 0; i < _state.Length; i++) {
-			_state[i] = (byte)(hm[i] ^ m[i] ^ _state[i]);
+			_state[i] = (byte)(_tempHM[i] ^ _tempM[i] ^ _state[i]);
 		}
 	}
 
@@ -411,20 +429,18 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// ShiftBytes transformation: Cyclically shift each row by different amounts.
 	/// </summary>
 	private void ShiftBytes(byte[] state, int[] shift) {
-		byte[] temp = new byte[_cols];
-
 		for (int row = 0; row < Rows; row++) {
 			int s = shift[row];
 			if (s == 0) continue;
 
-			// Copy row with shift
+			// Copy row with shift using pre-allocated buffer
 			for (int col = 0; col < _cols; col++) {
-				temp[col] = state[row * _cols + (col + s) % _cols];
+				_tempRow[col] = state[row * _cols + (col + s) % _cols];
 			}
 
 			// Write back
 			for (int col = 0; col < _cols; col++) {
-				state[row * _cols + col] = temp[col];
+				state[row * _cols + col] = _tempRow[col];
 			}
 		}
 	}
@@ -434,26 +450,24 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// Uses the circulant matrix [02, 02, 03, 04, 05, 03, 05, 07].
 	/// </summary>
 	private void MixBytes(byte[] state) {
-		byte[] temp = new byte[Rows];
-
 		for (int col = 0; col < _cols; col++) {
-			// Extract column
+			// Extract column using pre-allocated buffer
 			for (int row = 0; row < Rows; row++) {
-				temp[row] = state[row * _cols + col];
+				_tempCol[row] = state[row * _cols + col];
 			}
 
 			// Apply MDS matrix multiplication
 			// The MDS matrix is circulant: [02, 02, 03, 04, 05, 03, 05, 07]
 			for (int row = 0; row < Rows; row++) {
 				byte result = 0;
-				result ^= Multiply(0x02, temp[(row + 0) % Rows]);
-				result ^= Multiply(0x02, temp[(row + 1) % Rows]);
-				result ^= Multiply(0x03, temp[(row + 2) % Rows]);
-				result ^= Multiply(0x04, temp[(row + 3) % Rows]);
-				result ^= Multiply(0x05, temp[(row + 4) % Rows]);
-				result ^= Multiply(0x03, temp[(row + 5) % Rows]);
-				result ^= Multiply(0x05, temp[(row + 6) % Rows]);
-				result ^= Multiply(0x07, temp[(row + 7) % Rows]);
+				result ^= Multiply(0x02, _tempCol[(row + 0) % Rows]);
+				result ^= Multiply(0x02, _tempCol[(row + 1) % Rows]);
+				result ^= Multiply(0x03, _tempCol[(row + 2) % Rows]);
+				result ^= Multiply(0x04, _tempCol[(row + 3) % Rows]);
+				result ^= Multiply(0x05, _tempCol[(row + 4) % Rows]);
+				result ^= Multiply(0x03, _tempCol[(row + 5) % Rows]);
+				result ^= Multiply(0x05, _tempCol[(row + 6) % Rows]);
+				result ^= Multiply(0x07, _tempCol[(row + 7) % Rows]);
 				state[row * _cols + col] = result;
 			}
 		}
