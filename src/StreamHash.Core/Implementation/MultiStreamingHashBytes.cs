@@ -21,7 +21,7 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	private bool _disposed;
 	private bool _finalized;
 
-	private const int InitialBufferSize = 1024 * 1024; // 1MB default
+	private const int InitialBufferSize = 16 * 1024 * 1024; // 16MB buffer for optimal throughput
 	private const int ParallelThreshold = 8;
 
 	/// <summary>
@@ -71,11 +71,11 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			// Single copy to shared buffer
 			data.CopyTo(_buffer);
 			int len = data.Length;
+			var hashers = _hasherArray;
+			var buffer = _buffer;
 
-			// Parallel update with captured locals
-			Parallel.For(0, _hasherArray.Length, i => {
-				_hasherArray[i].Update(_buffer.AsSpan(0, len));
-			});
+			// Parallel update - direct foreach for optimal distribution
+			Parallel.ForEach(hashers, hasher => hasher.Update(buffer.AsSpan(0, len)));
 		} else {
 			// Sequential for few hashers
 			foreach (var hasher in _hasherArray) {
