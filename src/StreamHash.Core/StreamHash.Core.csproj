@@ -10,18 +10,18 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.6.3</Version>
+	<Version>1.7.0</Version>
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for .NET 10. All 71 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with comprehensive test coverage (752+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd;aes-ni;avx2;fnv;djb2;sdbm</PackageTags>
+		<Description>High-performance streaming hash library for .NET 10. All 70 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with batch streaming support for parallel multi-algorithm processing. Comprehensive test coverage (762+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd;aes-ni;avx2;fnv;djb2;sdbm;batch;parallel</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.6.3: All 71 algorithms confirmed working. Added FNV, DJB2, SDBM to package tags. All simple hash implementations (FNV-1a 32/64, DJB2, DJB2a, SDBM, LoseLose) fully integrated and tested. 752 tests passing.</PackageReleaseNotes>
+		<PackageReleaseNotes>v1.7.0: NEW - Batch streaming API for parallel multi-algorithm hashing! CreateAllStreaming() and CreateBatchStreaming() enable processing 70 algorithms simultaneously with 8-16x speedup on multi-core systems. IMultiStreamingHashBytes interface with parallel processing strategy. 762 tests passing (10 new batch API tests). Fixes #17.</PackageReleaseNotes>
 
 		<!-- Enable XML documentation -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

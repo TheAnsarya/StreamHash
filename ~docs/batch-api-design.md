@@ -1,4 +1,4 @@
-# StreamHash Batch API Design
+﻿# StreamHash Batch API Design
 
 **Created:** January 26, 2026  
 **Status:** Design / Planning  
