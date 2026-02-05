@@ -8,7 +8,7 @@
 
 ## 🎯 Why StreamHash?
 
-Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have official streaming APIs. This means hashing a 10GB file requires 10GB of RAM! StreamHash solves this by providing streaming implementations that process data in chunks, using only ~1MB of memory regardless of file size.
+Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have official streaming APIs. This means hashing a 10GB file requires 10GB of RAM! StreamHash solves this by providing streaming implementations that process data in chunks, using only ~16MB of memory regardless of file size.
 
 ## ✨ Features
 
