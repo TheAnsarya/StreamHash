@@ -1,28 +1,28 @@
-﻿using StreamHash.Core.Abstractions;
+﻿using System.Buffers;
+using StreamHash.Core.Abstractions;
 
 namespace StreamHash.Core.Implementation;
 
 /// <summary>
-/// Implementation of <see cref="IMultiStreamingHashBytes"/> that processes
-/// multiple hash algorithms sequentially for optimal performance.
+/// High-performance batch streaming hash implementation using parallel processing.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Sequential processing is used because benchmarks show parallelization overhead
-/// (thread pool scheduling, data copying for lambda capture) exceeds the benefit
-/// of parallel execution for streaming hash updates.
-/// </para>
-/// <para>
-/// Each Update() call feeds the same data chunk to all 70 algorithms in sequence.
-/// This approach minimizes memory allocation and avoids thread synchronization costs.
+/// Uses parallel processing for 70 hash algorithms with a single pre-allocated buffer.
+/// The buffer is rented once at construction and reused for all Update() calls.
 /// </para>
 /// </remarks>
 internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	private readonly Dictionary<string, IStreamingHashBytes> _hashers;
 	private readonly string[] _algorithmNames;
 	private readonly IStreamingHashBytes[] _hasherArray;
+	private byte[] _buffer;
+	private int _bufferSize;
 	private bool _disposed;
 	private bool _finalized;
+
+	private const int InitialBufferSize = 1024 * 1024; // 1MB default
+	private const int ParallelThreshold = 8;
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="MultiStreamingHashBytes"/> class.
@@ -36,8 +36,16 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			_hashers[name] = hasher;
 		}
 		_algorithmNames = _hashers.Keys.ToArray();
-		// Pre-compute array for efficient iteration (avoids dictionary enumeration overhead)
 		_hasherArray = _hashers.Values.ToArray();
+
+		// Pre-allocate buffer for parallel processing
+		if (_hasherArray.Length >= ParallelThreshold) {
+			_buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+			_bufferSize = _buffer.Length;
+		} else {
+			_buffer = [];
+			_bufferSize = 0;
+		}
 	}
 
 	/// <inheritdoc/>
@@ -51,11 +59,28 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			return;
 		}
 
-		// Sequential update - feed the same data to each hasher in turn
-		// No locks needed: each hasher maintains independent state
-		// No data copying: ReadOnlySpan is passed directly to each hasher
-		foreach (var hasher in _hasherArray) {
-			hasher.Update(data);
+		// Parallel for many hashers
+		if (_hasherArray.Length >= ParallelThreshold) {
+			// Grow buffer if needed (rare - only if chunk > 1MB)
+			if (data.Length > _bufferSize) {
+				ArrayPool<byte>.Shared.Return(_buffer);
+				_buffer = ArrayPool<byte>.Shared.Rent(data.Length);
+				_bufferSize = _buffer.Length;
+			}
+
+			// Single copy to shared buffer
+			data.CopyTo(_buffer);
+			int len = data.Length;
+
+			// Parallel update with captured locals
+			Parallel.For(0, _hasherArray.Length, i => {
+				_hasherArray[i].Update(_buffer.AsSpan(0, len));
+			});
+		} else {
+			// Sequential for few hashers
+			foreach (var hasher in _hasherArray) {
+				hasher.Update(data);
+			}
 		}
 	}
 
@@ -94,6 +119,13 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	public void Dispose() {
 		if (_disposed) {
 			return;
+		}
+
+		// Return rented buffer to pool
+		if (_buffer.Length > 0) {
+			ArrayPool<byte>.Shared.Return(_buffer);
+			_buffer = [];
+			_bufferSize = 0;
 		}
 
 		foreach (var hasher in _hasherArray) {
