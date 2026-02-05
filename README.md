@@ -4,7 +4,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 [![NuGet](https://img.shields.io/nuget/v/StreamHash)](https://www.nuget.org/packages/StreamHash)
 
-**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular hash algorithms and a unified `HashFacade` API supporting **71 algorithms** - all fully implemented and accessible.
+**StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. It provides incremental/streaming implementations of popular hash algorithms and a unified `HashFacade` API supporting **70 algorithms** - all fully implemented and accessible.
 
 ## 🎯 Why StreamHash?
 
@@ -16,12 +16,13 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 - **⚡ High Performance**: SIMD-optimized implementations where available
 - **🔄 Streaming API**: Process data incrementally with `Update()` and `Finalize()`
 - **📦 Zero Allocations**: Hot paths are allocation-free using `Span<T>`
-- **🎯 Unified API**: `HashFacade` provides access to all 71 algorithms through a single interface
+- **🎯 Unified API**: `HashFacade` provides access to all 70 algorithms through a single interface
 - **🔐 Full Crypto Support**: All cryptographic algorithms via BouncyCastle integration
-- **🧪 Thoroughly Tested**: 752+ tests validating against official test vectors
+- **⚡ Batch Streaming**: Process 70 algorithms in parallel with `CreateAllStreaming()`
+- **🧪 Thoroughly Tested**: 762+ tests validating against official test vectors
 - **📖 Fully Documented**: XML docs, examples, and algorithm references
 
-## 📊 Algorithm Support (All 71 Fully Implemented!)
+## 📊 Algorithm Support (All 70 Fully Implemented!)
 
 ### Native Streaming Implementations (16)
 
@@ -38,9 +39,9 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 | wyhash64 | 64-bit | ✅ Complete |
 | xxHash32/64/3/128* | 32-128 bit | ✅ Complete |
 
-### HashFacade Unified API (71 algorithms)
+### HashFacade Unified API (70 algorithms)
 
-The `HashFacade` class provides one-shot and streaming access to **all 71 algorithms**:
+The `HashFacade` class provides one-shot and streaming access to **all 70 algorithms**:
 
 #### Checksums (9)
 CRC32, CRC32C, CRC64, CRC-16-CCITT, CRC-16-MODBUS, CRC-16-USB, Adler-32, Fletcher-16, Fletcher-32
@@ -71,8 +72,35 @@ Whirlpool, Tiger-192, GOST R 34.11-94, Streebog-256, Streebog-512, Skein-256, Sk
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.6.2
+dotnet add package StreamHash --version 1.8.0
 ```
+
+### Batch Streaming API (New in v1.7.0, Optimized in v1.8.0)
+
+Hash files with **all 70 algorithms in parallel** - perfect for file verification tools:
+
+```csharp
+using StreamHash.Core;
+
+// Create batch hasher for all 70 algorithms
+using var multi = HashFacade.CreateAllStreaming();
+
+// Stream file through all hashers in parallel
+using var stream = File.OpenRead("large-file.bin");
+byte[] buffer = new byte[16 * 1024 * 1024]; // 16MB buffer recommended
+int read;
+while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
+    multi.Update(buffer.AsSpan(0, read));
+}
+
+// Get all 70 hashes as hex strings
+Dictionary<string, string> results = multi.FinalizeAll();
+// results["SHA256"] = "abc123..."
+// results["MD5"] = "def456..."
+// ... all 70 algorithms
+```
+
+**Performance**: 34MB file with 70 algorithms: **~12 seconds** (~2.8 MB/s effective throughput)
 
 ### HashFacade API (Recommended)
 
@@ -138,7 +166,7 @@ dotnet test
 dotnet run -c Release --project benchmarks/StreamHash.Benchmarks
 ```
 
-## 📊 Benchmarks (v1.6.2)
+## 📊 Benchmarks (v1.8.0)
 
 Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 
