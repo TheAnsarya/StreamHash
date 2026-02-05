@@ -1,4 +1,4 @@
-namespace StreamHash.Core.Abstractions;
+﻿namespace StreamHash.Core.Abstractions;
 
 /// <summary>
 /// Represents a streaming hash context for multiple algorithms.

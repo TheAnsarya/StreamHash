@@ -3,12 +3,24 @@
 namespace StreamHash.Core.Implementation;
 
 /// <summary>
-/// Implementation of <see cref="IMultiStreamingHashBytes"/> that efficiently
-/// processes multiple hash algorithms in parallel.
+/// Implementation of <see cref="IMultiStreamingHashBytes"/> that processes
+/// multiple hash algorithms sequentially for optimal performance.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Sequential processing is used because benchmarks show parallelization overhead
+/// (thread pool scheduling, data copying for lambda capture) exceeds the benefit
+/// of parallel execution for streaming hash updates.
+/// </para>
+/// <para>
+/// Each Update() call feeds the same data chunk to all 70 algorithms in sequence.
+/// This approach minimizes memory allocation and avoids thread synchronization costs.
+/// </para>
+/// </remarks>
 internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	private readonly Dictionary<string, IStreamingHashBytes> _hashers;
 	private readonly string[] _algorithmNames;
+	private readonly IStreamingHashBytes[] _hasherArray;
 	private bool _disposed;
 	private bool _finalized;
 
@@ -24,6 +36,8 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			_hashers[name] = hasher;
 		}
 		_algorithmNames = _hashers.Keys.ToArray();
+		// Pre-compute array for efficient iteration (avoids dictionary enumeration overhead)
+		_hasherArray = _hashers.Values.ToArray();
 	}
 
 	/// <inheritdoc/>
@@ -33,25 +47,15 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			throw new InvalidOperationException("Cannot update after FinalizeAll(). Call Reset() first.");
 		}
 
-		// Parallel processing strategy for maximum throughput
-		// On 8+ core systems, this provides ~8x speedup
-		// On 4-core systems, ~4x speedup
-		// On 2-core systems, ~2x speedup
-		if (_hashers.Count >= 8) {
-			// Use parallel processing for large hasher counts
-			// Copy data to array to avoid ref-like type issue in lambda
-			byte[] dataCopy = data.ToArray();
-			Parallel.ForEach(_hashers.Values, hasher => {
-				lock (hasher) {
-					hasher.Update(dataCopy);
-				}
-			});
-		} else {
-			// Sequential processing is faster for small hasher counts
-			// due to reduced thread overhead
-			foreach (var hasher in _hashers.Values) {
-				hasher.Update(data);
-			}
+		if (data.Length == 0) {
+			return;
+		}
+
+		// Sequential update - feed the same data to each hasher in turn
+		// No locks needed: each hasher maintains independent state
+		// No data copying: ReadOnlySpan is passed directly to each hasher
+		foreach (var hasher in _hasherArray) {
+			hasher.Update(data);
 		}
 	}
 
@@ -65,28 +69,11 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 
 		var results = new Dictionary<string, string>(_hashers.Count, StringComparer.OrdinalIgnoreCase);
-		
-		// Parallelize finalization for large hasher counts
-		if (_hashers.Count >= 8) {
-			var resultArray = new KeyValuePair<string, string>[_hashers.Count];
-			var hasherArray = _hashers.ToArray();
-			
-			Parallel.For(0, hasherArray.Length, i => {
-				var (name, hasher) = hasherArray[i];
-				var hashBytes = hasher.FinalizeBytes();
-				var hash = Convert.ToHexStringLower(hashBytes);
-				resultArray[i] = new KeyValuePair<string, string>(name, hash);
-			});
-			
-			foreach (var kvp in resultArray) {
-				results[kvp.Key] = kvp.Value;
-			}
-		} else {
-			// Sequential finalization for small counts
-			foreach (var (name, hasher) in _hashers) {
-				var hashBytes = hasher.FinalizeBytes();
-				results[name] = Convert.ToHexStringLower(hashBytes);
-			}
+
+		// Finalize each hasher and collect hex string results
+		foreach (var (name, hasher) in _hashers) {
+			var hashBytes = hasher.FinalizeBytes();
+			results[name] = Convert.ToHexStringLower(hashBytes);
 		}
 
 		_finalized = true;
@@ -97,7 +84,7 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	public void Reset() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 
-		foreach (var hasher in _hashers.Values) {
+		foreach (var hasher in _hasherArray) {
 			hasher.Reset();
 		}
 		_finalized = false;
@@ -109,7 +96,7 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 			return;
 		}
 
-		foreach (var hasher in _hashers.Values) {
+		foreach (var hasher in _hasherArray) {
 			hasher.Dispose();
 		}
 		_hashers.Clear();

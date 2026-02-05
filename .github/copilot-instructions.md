@@ -85,6 +85,58 @@ if (condition) {
 - **XML documentation on ALL public AND private members**
 - Inline comments for complex algorithms with reference links
 
+## Code Documentation Standards
+
+### XML Documentation (xmldoc)
+**Every type, method, property, and field must have XML documentation:**
+
+```csharp
+/// <summary>
+/// Brief description of what this does.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Additional details, usage notes, or implementation notes.
+/// Use &lt;para&gt; tags for multiple paragraphs.
+/// </para>
+/// </remarks>
+/// <param name="data">Description of the parameter.</param>
+/// <returns>Description of return value.</returns>
+/// <exception cref="ArgumentNullException">When data is null.</exception>
+/// <example>
+/// <code>
+/// var result = MyMethod(data);
+/// </code>
+/// </example>
+public string MyMethod(byte[] data) {
+	// Implementation
+}
+```
+
+**Indentation rules for xmldoc:**
+- Use TABS for indentation inside xmldoc comments (not spaces)
+- Align continuation lines with the content above
+- Keep `<para>` content indented with tabs
+
+### Inline Comments
+**Add inline comments when:**
+- Explaining a non-obvious algorithm or calculation
+- Documenting magic numbers or constants
+- Describing why code exists (not just what it does)
+- Warning about edge cases or gotchas
+- Referencing external specifications or papers
+
+**Example:**
+```csharp
+// MurmurHash3 finalization mix - forces all bits to avalanche
+// Reference: https://github.com/aappleby/smhasher/wiki/MurmurHash3
+h ^= h >> 16;
+h *= 0x85ebca6b;
+h ^= h >> 13;
+h *= 0xc2b2ae35;
+h ^= h >> 16;
+```
+
 ### Documentation Requirements
 - Every public type must have `<summary>` and `<remarks>`
 - Every method must document parameters, return values, and exceptions
@@ -200,4 +252,20 @@ Instead:
 - Then implement it
 
 The goal is to implement EVERYTHING we plan to implement. Complexity is not an excuse to skip work.
+
+## ⚠️ CRITICAL: Don't Half-Ass It
+
+**Always do the whole thing. Don't quit at 80%.**
+
+- If you can't complete something now, create a GitHub issue for later
+- Never leave work partially done without tracking
+- If a label doesn't exist, CREATE IT, then add it to the issue
+- If you encounter blockers, document them and create issues
+- Complete all follow-up tasks (docs, tests, issues, labels)
+
+**GitHub Issue Management:**
+- **ALWAYS create missing labels** - Never skip labels because they don't exist
+- Use `gh label create` to create missing labels first
+- Then create/update the issue with proper labels
+- Labels should include: `performance`, `bug`, `enhancement`, `documentation`, `investigation`, `high-priority`, `medium-priority`, `low-priority`
 
