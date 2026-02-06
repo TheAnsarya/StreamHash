@@ -112,13 +112,13 @@ public static class HashFacade {
 			HashAlgorithm.Sha512_224 => Sha512tFactory.ComputeSha512_224(data),
 			HashAlgorithm.Sha512_256 => Sha512tFactory.ComputeSha512_256(data),
 
-			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
-			HashAlgorithm.Sha3_224 => Sha3Factory.ComputeSha3_224(data),
-			HashAlgorithm.Sha3_256 => Sha3Factory.ComputeSha3_256(data),
-			HashAlgorithm.Sha3_384 => Sha3Factory.ComputeSha3_384(data),
-			HashAlgorithm.Sha3_512 => Sha3Factory.ComputeSha3_512(data),
-			HashAlgorithm.Keccak256 => AcryptohashnetFactory.ComputeKeccak256(data),
-			HashAlgorithm.Keccak512 => AcryptohashnetFactory.ComputeKeccak512(data),
+			// SHA-3 (Native implementation) & Keccak (Native implementation)
+			HashAlgorithm.Sha3_224 => NativeSha3Factory.ComputeSha3_224(data),
+			HashAlgorithm.Sha3_256 => NativeSha3Factory.ComputeSha3_256(data),
+			HashAlgorithm.Sha3_384 => NativeSha3Factory.ComputeSha3_384(data),
+			HashAlgorithm.Sha3_512 => NativeSha3Factory.ComputeSha3_512(data),
+			HashAlgorithm.Keccak256 => NativeSha3Factory.ComputeKeccak256(data),
+			HashAlgorithm.Keccak512 => NativeSha3Factory.ComputeKeccak512(data),
 
 			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
 			HashAlgorithm.Blake256 => Blake2Factory.ComputeBlake256(data),
@@ -538,13 +538,13 @@ public static class HashFacade {
 			HashAlgorithm.Sha512_224 => Sha512tFactory.CreateSha512_224(),
 			HashAlgorithm.Sha512_256 => Sha512tFactory.CreateSha512_256(),
 
-			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
-			HashAlgorithm.Sha3_224 => Sha3Factory.CreateSha3_224(),
-			HashAlgorithm.Sha3_256 => Sha3Factory.CreateSha3_256(),
-			HashAlgorithm.Sha3_384 => Sha3Factory.CreateSha3_384(),
-			HashAlgorithm.Sha3_512 => Sha3Factory.CreateSha3_512(),
-			HashAlgorithm.Keccak256 => AcryptohashnetFactory.CreateKeccak256(),
-			HashAlgorithm.Keccak512 => AcryptohashnetFactory.CreateKeccak512(),
+			// SHA-3 (Native implementation) & Keccak (Native implementation)
+			HashAlgorithm.Sha3_224 => NativeSha3Factory.CreateSha3_224(),
+			HashAlgorithm.Sha3_256 => NativeSha3Factory.CreateSha3_256(),
+			HashAlgorithm.Sha3_384 => NativeSha3Factory.CreateSha3_384(),
+			HashAlgorithm.Sha3_512 => NativeSha3Factory.CreateSha3_512(),
+			HashAlgorithm.Keccak256 => NativeSha3Factory.CreateKeccak256(),
+			HashAlgorithm.Keccak512 => NativeSha3Factory.CreateKeccak512(),
 
 			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
 			HashAlgorithm.Blake256 => Blake2Factory.CreateBlake256(),
