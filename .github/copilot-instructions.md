@@ -59,6 +59,29 @@ StreamHash/
 
 ## Coding Standards
 
+### File Formatting (CRITICAL)
+
+**ALL files must follow these rules:**
+
+- **Encoding:** UTF-8 with BOM
+- **Line Endings:** CRLF (Windows style)
+- **Indentation:** TABS only, NEVER spaces
+- **Final Newline:** Always include a blank line at the end of every file
+- **Trailing Whitespace:** Remove from all lines
+
+**Markdown Files:**
+- Format using `.editorconfig` rules
+- Use markdownlint with **MD010 disabled** (hard tabs are REQUIRED, not forbidden)
+- All markdown files must have proper heading hierarchy
+- Include blank line at end of file
+
+**When creating or editing files:**
+1. Always use tabs for indentation
+2. Always add a blank line at the end
+3. Always use UTF-8 encoding with BOM
+4. Always use CRLF line endings
+5. Never leave trailing whitespace
+
 ### Indentation
 - **ALWAYS use TABS, never spaces** - Enforced by `.editorconfig`
 - Tab width: 4 spaces equivalent

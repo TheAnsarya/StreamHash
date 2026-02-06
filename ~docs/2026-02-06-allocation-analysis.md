@@ -1,4 +1,4 @@
-# StreamHash & HashNow Allocation Analysis
+﻿# StreamHash & HashNow Allocation Analysis
 
 **Date:** February 6, 2026  
 **Purpose:** Analyze where memory allocations originate and plan optimization strategy

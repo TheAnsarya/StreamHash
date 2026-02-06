@@ -215,8 +215,23 @@ This project is released into the public domain under [The Unlicense](LICENSE). 
 
 ## 🙏 Acknowledgments
 
+### BouncyCastle - Thank You! 💎
+
+Many of our optimized algorithm implementations (Grøstl, JH, Whirlpool, and others) were **based on or inspired by the excellent work** of the [BouncyCastle](https://www.bouncycastle.org/) team. Their C# implementations provided invaluable reference material for understanding these complex cryptographic algorithms.
+
+- **[BouncyCastle C# GitHub](https://github.com/bcgit/bc-csharp)** - The Legion of the Bouncy Castle (C#/.NET)
+- **[BouncyCastle Java GitHub](https://github.com/bcgit/bc-java)** - The original Java implementation
+- **[NuGet: BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - The official NuGet package
+
+We use BouncyCastle directly for many algorithms (SHA-3, BLAKE, RIPEMD, Tiger, GOST, Streebog, Skein, SM3) and studied their implementations to create our optimized native versions with SIMD acceleration and reduced memory allocations.
+
+**Giving Back:** If our performance optimizations prove successful and stable, we plan to contribute them back to the BouncyCastle project via pull requests. Open source thrives when we all give back! 🌱
+
+### Other References
+
 - [SMHasher](https://github.com/aappleby/smhasher) - MurmurHash reference implementation
 - [CityHash](https://github.com/google/cityhash) - Google's CityHash
 - [SpookyHash](http://burtleburtle.net/bob/hash/spooky.html) - Bob Jenkins' SpookyHash
 - [SipHash](https://github.com/veorq/SipHash) - Reference SipHash implementation
+- [XKCP](https://github.com/XKCP/XKCP) - Keccak/SHA-3 reference implementations
 
