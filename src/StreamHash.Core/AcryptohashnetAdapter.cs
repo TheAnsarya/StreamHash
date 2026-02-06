@@ -1,4 +1,5 @@
-﻿using CryptoHashAlgorithm = System.Security.Cryptography.HashAlgorithm;
+﻿using System.Buffers;
+using CryptoHashAlgorithm = System.Security.Cryptography.HashAlgorithm;
 
 namespace StreamHash.Core;
 
@@ -12,8 +13,15 @@ namespace StreamHash.Core;
 /// supporting streaming via TransformBlock/TransformFinalBlock.
 /// </remarks>
 internal sealed class AcryptohashnetAdapter : IStreamingHashBytes {
+	/// <summary>
+	/// Size of the reusable buffer for streaming operations.
+	/// 64KB is a good balance between allocation pressure and cache efficiency.
+	/// </summary>
+	private const int BufferSize = 65536;
+
 	private readonly CryptoHashAlgorithm _algorithm;
 	private readonly int _digestSize;
+	private byte[]? _rentedBuffer;
 	private bool _disposed;
 	private long _totalBytes;
 	private bool _finalized;
@@ -44,17 +52,20 @@ internal sealed class AcryptohashnetAdapter : IStreamingHashBytes {
 			throw new InvalidOperationException("Cannot update after finalization. Call Reset() first.");
 		}
 
-		// acryptohashnet HashAlgorithm.TransformBlock requires byte[]
-		// Use ArrayPool for efficiency with larger data
-		if (data.Length <= 256) {
-			// Small data: use stackalloc to avoid allocation
-			Span<byte> buffer = stackalloc byte[data.Length];
-			data.CopyTo(buffer);
-			_algorithm.TransformBlock(buffer.ToArray(), 0, data.Length, null, 0);
-		} else {
-			// Larger data: copy to array (acryptohashnet needs byte[])
-			byte[] buffer = data.ToArray();
-			_algorithm.TransformBlock(buffer, 0, buffer.Length, null, 0);
+		if (data.IsEmpty) {
+			return;
+		}
+
+		// Rent buffer from pool on first use (lazy initialization)
+		_rentedBuffer ??= ArrayPool<byte>.Shared.Rent(BufferSize);
+
+		// Process data in chunks to avoid per-call allocations
+		int offset = 0;
+		while (offset < data.Length) {
+			int chunkSize = Math.Min(data.Length - offset, BufferSize);
+			data.Slice(offset, chunkSize).CopyTo(_rentedBuffer);
+			_algorithm.TransformBlock(_rentedBuffer, 0, chunkSize, null, 0);
+			offset += chunkSize;
 		}
 
 		_totalBytes += data.Length;
@@ -79,12 +90,17 @@ internal sealed class AcryptohashnetAdapter : IStreamingHashBytes {
 		_algorithm.Initialize();
 		_totalBytes = 0;
 		_finalized = false;
+		// Keep the rented buffer for reuse
 	}
 
 	/// <inheritdoc/>
 	public void Dispose() {
 		if (!_disposed) {
 			_algorithm.Dispose();
+			if (_rentedBuffer is not null) {
+				ArrayPool<byte>.Shared.Return(_rentedBuffer);
+				_rentedBuffer = null;
+			}
 			_disposed = true;
 		}
 	}
@@ -108,10 +124,26 @@ internal sealed class AcryptohashnetAdapter : IStreamingHashBytes {
 /// <item><description>Snefru, Snefru256</description></item>
 /// </list>
 /// <para>
-/// Optimized with low memory footprint compared to BouncyCastle for these algorithms.
+/// All one-shot compute methods use the streaming adapter internally to avoid
+/// allocating a copy of the input data. This provides O(1) memory overhead
+/// regardless of input size.
 /// </para>
 /// </remarks>
 public static class AcryptohashnetFactory {
+	// =========================================================================
+	// Helper Method - Computes hash using streaming adapter to avoid data copy
+	// =========================================================================
+
+	/// <summary>
+	/// Computes hash using the streaming adapter to avoid data.ToArray() allocation.
+	/// </summary>
+	private static byte[] ComputeViaStreaming(IStreamingHashBytes adapter, ReadOnlySpan<byte> data) {
+		using (adapter) {
+			adapter.Update(data);
+			return adapter.FinalizeBytes();
+		}
+	}
+
 	// =========================================================================
 	// RIPEMD Family - Pure managed C# implementation
 	// =========================================================================
@@ -135,20 +167,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 16-byte RIPEMD-128 hash.</returns>
-	public static byte[] ComputeRipemd128(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.RIPEMD128();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeRipemd128(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateRipemd128(), data);
 
 	/// <summary>
 	/// Computes RIPEMD-160 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 20-byte RIPEMD-160 hash.</returns>
-	public static byte[] ComputeRipemd160(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.RIPEMD160();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeRipemd160(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateRipemd160(), data);
 
 	// =========================================================================
 	// Keccak Family - Pure managed C# implementation
@@ -173,20 +201,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 32-byte Keccak-256 hash.</returns>
-	public static byte[] ComputeKeccak256(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Keccak256();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeKeccak256(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateKeccak256(), data);
 
 	/// <summary>
 	/// Computes Keccak-512 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 64-byte Keccak-512 hash.</returns>
-	public static byte[] ComputeKeccak512(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Keccak512();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeKeccak512(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateKeccak512(), data);
 
 	// =========================================================================
 	// MD Family - Pure managed C# (MD2 is only in acryptohashnet, not .NET)
@@ -217,20 +241,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 16-byte MD2 hash.</returns>
-	public static byte[] ComputeMd2(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.MD2();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeMd2(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateMd2(), data);
 
 	/// <summary>
 	/// Computes MD4 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 16-byte MD4 hash.</returns>
-	public static byte[] ComputeMd4(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.MD4();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeMd4(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateMd4(), data);
 
 	// =========================================================================
 	// SHA Family - Pure managed C# (SHA-0 and SHA-224 not in .NET BCL)
@@ -259,20 +279,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 20-byte SHA-0 hash.</returns>
-	public static byte[] ComputeSha0(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.SHA0();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeSha0(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateSha0(), data);
 
 	/// <summary>
 	/// Computes SHA-224 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 28-byte SHA-224 hash.</returns>
-	public static byte[] ComputeSha224(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.SHA224();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeSha224(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateSha224(), data);
 
 	// =========================================================================
 	// Tiger Family - Pure managed C# implementation
@@ -297,20 +313,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 24-byte Tiger-192 hash.</returns>
-	public static byte[] ComputeTiger192(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Tiger();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeTiger192(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateTiger192(), data);
 
 	/// <summary>
 	/// Computes Tiger2-192 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 24-byte Tiger2-192 hash.</returns>
-	public static byte[] ComputeTiger2_192(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Tiger2();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeTiger2_192(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateTiger2_192(), data);
 
 	// =========================================================================
 	// Snefru Family - Pure managed C# implementation
@@ -335,20 +347,16 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 16-byte Snefru-128 hash.</returns>
-	public static byte[] ComputeSnefru128(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Snefru();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeSnefru128(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateSnefru128(), data);
 
 	/// <summary>
 	/// Computes Snefru-256 hash in one shot.
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 32-byte Snefru-256 hash.</returns>
-	public static byte[] ComputeSnefru256(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Snefru256();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeSnefru256(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateSnefru256(), data);
 
 	// =========================================================================
 	// Haval Family - Pure managed C# implementation
@@ -394,8 +402,6 @@ public static class AcryptohashnetFactory {
 	/// </summary>
 	/// <param name="data">The data to hash.</param>
 	/// <returns>The 32-byte Haval-256 hash.</returns>
-	public static byte[] ComputeHaval256(ReadOnlySpan<byte> data) {
-		using var hasher = new acryptohashnet.Haval256();
-		return hasher.ComputeHash(data.ToArray());
-	}
+	public static byte[] ComputeHaval256(ReadOnlySpan<byte> data) =>
+		ComputeViaStreaming(CreateHaval256(), data);
 }

@@ -25,6 +25,14 @@
 
 ### ❌ Still on BouncyCastle (10 algorithms)
 
+#### GitHub Issues
+- **Epic #26**: Complete BouncyCastle Removal
+  - **#27**: SHA-512/224, SHA-512/256 - Custom implementation
+  - **#28**: RIPEMD-256, RIPEMD-320 - Custom implementation
+  - **#29**: GOST-94, Streebog-256/512 - Custom implementation
+  - **#30**: Skein-256/512/1024 - Custom implementation
+  - **#31**: SM3 - Custom implementation
+
 #### ComputeHash (One-Shot)
 | Algorithm | BouncyCastle Type | Alternative |
 |-----------|-------------------|-------------|

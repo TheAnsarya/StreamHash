@@ -111,6 +111,15 @@ internal sealed class Sha3StreamingAdapter : IStreamingHashBytes, IDisposable {
 /// <summary>
 /// Static factory methods for nebulae.dotSHA3 integration.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>Note on memory allocations:</b> The nebulae.dotSHA3 library internally allocates
+/// memory proportional to input size during <c>Update()</c> calls. This is a library
+/// limitation that cannot be worked around at the adapter level. For very large data,
+/// consider using streaming with smaller chunks or the built-in .NET SHA3 (which
+/// doesn't support streaming but has zero allocations for one-shot).
+/// </para>
+/// </remarks>
 internal static class Sha3Factory {
 	/// <summary>
 	/// Creates a new SHA3-224 streaming adapter (28 bytes / 224 bits).
