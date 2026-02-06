@@ -57,32 +57,81 @@ internal static class BouncyCastleFactory {
 	public static IStreamingHashBytes CreateSha512_224() => new BouncyCastleAdapter(new Sha512tDigest(224));
 	public static IStreamingHashBytes CreateSha512_256() => new BouncyCastleAdapter(new Sha512tDigest(256));
 
-	// SHA-3 Family
+	// SHA-3 Family - DEPRECATED: Use Sha3Factory instead for native SIMD performance
+	/// <summary>Creates SHA3-224 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha3Factory.CreateSha3_224() instead for native SIMD performance via dotSHA3")]
 	public static IStreamingHashBytes CreateSha3_224() => new BouncyCastleAdapter(new Sha3Digest(224));
+
+	/// <summary>Creates SHA3-256 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha3Factory.CreateSha3_256() instead for native SIMD performance via dotSHA3")]
 	public static IStreamingHashBytes CreateSha3_256() => new BouncyCastleAdapter(new Sha3Digest(256));
+
+	/// <summary>Creates SHA3-384 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha3Factory.CreateSha3_384() instead for native SIMD performance via dotSHA3")]
 	public static IStreamingHashBytes CreateSha3_384() => new BouncyCastleAdapter(new Sha3Digest(384));
+
+	/// <summary>Creates SHA3-512 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha3Factory.CreateSha3_512() instead for native SIMD performance via dotSHA3")]
 	public static IStreamingHashBytes CreateSha3_512() => new BouncyCastleAdapter(new Sha3Digest(512));
 
-	// Keccak
+	// Keccak - DEPRECATED: Use AcryptohashnetFactory instead
+	/// <summary>Creates Keccak-256 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateKeccak256() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateKeccak256() => new BouncyCastleAdapter(new KeccakDigest(256));
+
+	/// <summary>Creates Keccak-512 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateKeccak512() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateKeccak512() => new BouncyCastleAdapter(new KeccakDigest(512));
 
-	// BLAKE Family
+	// BLAKE Family - DEPRECATED: Use Blake2Factory instead for 5-10x better performance
+	/// <summary>Creates BLAKE2b-256 (BLAKE-256) using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Blake2Factory.CreateBlake256() instead for 5-10x better performance via Blake2Fast")]
 	public static IStreamingHashBytes CreateBlake256() => new BouncyCastleAdapter(new Blake2bDigest(256));
+
+	/// <summary>Creates BLAKE2b-512 (BLAKE-512) using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Blake2Factory.CreateBlake512() instead for 5-10x better performance via Blake2Fast")]
 	public static IStreamingHashBytes CreateBlake512() => new BouncyCastleAdapter(new Blake2bDigest(512));
+
+	/// <summary>Creates BLAKE2b-512 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Blake2Factory.CreateBlake2b() instead for 5-10x better performance via Blake2Fast")]
 	public static IStreamingHashBytes CreateBlake2b() => new BouncyCastleAdapter(new Blake2bDigest(512));
+
+	/// <summary>Creates BLAKE2s-256 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Blake2Factory.CreateBlake2s() instead for 5-10x better performance via Blake2Fast")]
 	public static IStreamingHashBytes CreateBlake2s() => new BouncyCastleAdapter(new Blake2sDigest(256));
+
+	/// <summary>
+	/// Creates a BLAKE3 streaming hasher using BouncyCastle.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <b>DEPRECATED:</b> Use <see cref="Blake3Factory.CreateBlake3"/> instead for
+	/// significantly better performance (10-20x faster with native SIMD via Blake3.NET).
+	/// </para>
+	/// </remarks>
+	[Obsolete("Use Blake3Factory.CreateBlake3() instead for 10-20x better performance via Blake3.NET")]
 	public static IStreamingHashBytes CreateBlake3() => new BouncyCastleAdapter(new Blake3Digest(256));
 
-	// RIPEMD Family
+	// RIPEMD Family - DEPRECATED for 128/160: Use AcryptohashnetFactory instead
+	/// <summary>Creates RIPEMD-128 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateRipemd128() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateRipemd128() => new BouncyCastleAdapter(new RipeMD128Digest());
+
+	/// <summary>Creates RIPEMD-160 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateRipemd160() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateRipemd160() => new BouncyCastleAdapter(new RipeMD160Digest());
+
+	// RIPEMD-256 and RIPEMD-320 stay on BouncyCastle (not in acryptohashnet)
 	public static IStreamingHashBytes CreateRipemd256() => new BouncyCastleAdapter(new RipeMD256Digest());
 	public static IStreamingHashBytes CreateRipemd320() => new BouncyCastleAdapter(new RipeMD320Digest());
 
-	// Other Crypto
+	// Other Crypto - Tiger DEPRECATED: Use AcryptohashnetFactory instead
 	public static IStreamingHashBytes CreateWhirlpool() => new BouncyCastleAdapter(new Org.BouncyCastle.Crypto.Digests.WhirlpoolDigest());
+
+	/// <summary>Creates Tiger-192 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateTiger192() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateTiger192() => new BouncyCastleAdapter(new TigerDigest());
+
 	public static IStreamingHashBytes CreateGost94() => new BouncyCastleAdapter(new Gost3411Digest());
 	public static IStreamingHashBytes CreateStreebog256() => new BouncyCastleAdapter(new Gost3411_2012_256Digest());
 	public static IStreamingHashBytes CreateStreebog512() => new BouncyCastleAdapter(new Gost3411_2012_512Digest());

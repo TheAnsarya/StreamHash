@@ -215,17 +215,69 @@ This project is released into the public domain under [The Unlicense](LICENSE). 
 
 ## 🙏 Acknowledgments
 
-### BouncyCastle - Thank You! 💎
+StreamHash leverages several excellent libraries for cryptographic and high-performance hash implementations.
 
-Many of our optimized algorithm implementations (Grøstl, JH, Whirlpool, and others) were **based on or inspired by the excellent work** of the [BouncyCastle](https://www.bouncycastle.org/) team. Their C# implementations provided invaluable reference material for understanding these complex cryptographic algorithms.
+### Blake3.NET - BLAKE3 Native SIMD 🚀
 
+**[Blake3](https://www.nuget.org/packages/Blake3)** - Native SIMD Rust wrapper for BLAKE3, 10-20x faster than pure C#.
+
+**Algorithms from Blake3.NET (1):**
+- **BLAKE3** (native SIMD via Rust bindings)
+
+### SauceControl.Blake2Fast - BLAKE2 SIMD 🔥
+
+**[SauceControl.Blake2Fast](https://www.nuget.org/packages/SauceControl.Blake2Fast)** - Fastest RFC 7693 BLAKE2 implementation for .NET with SSE2-AVX512 SIMD support.
+
+**Algorithms from Blake2Fast (4):**
+- **BLAKE-256, BLAKE-512** (BLAKE2b variants)
+- **BLAKE2b** (512-bit)
+- **BLAKE2s** (256-bit)
+
+### nebulae.dotSHA3 - SHA-3 Native SIMD ⚡
+
+**[nebulae.dotSHA3](https://www.nuget.org/packages/nebulae.dotSHA3)** - XKCP-based native SHA-3 implementation with AVX2/NEON acceleration.
+
+**Algorithms from dotSHA3 (4):**
+- **SHA3-224, SHA3-256, SHA3-384, SHA3-512**
+
+### acryptohashnet - Pure Managed C# 💎
+
+**[acryptohashnet](https://www.nuget.org/packages/acryptohashnet)** - Pure managed C# implementations with low memory footprint, compatible with `System.Security.Cryptography.HashAlgorithm`.
+
+**Algorithms from acryptohashnet (5):**
+- **Keccak-256, Keccak-512** (original Keccak, not SHA-3)
+- **RIPEMD-128, RIPEMD-160**
+- **Tiger-192**
+
+### BouncyCastle - Cryptographic Foundation 🏰
+
+**[BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - Comprehensive cryptographic library (v2.6.2).
+
+**Algorithms from BouncyCastle (12):**
+- **MD Family:** MD2, MD4
+- **SHA Family:** SHA-224, SHA-512/224, SHA-512/256
+- **RIPEMD Family:** RIPEMD-256, RIPEMD-320
+- **GOST/Streebog:** GOST R 34.11-94, Streebog-256, Streebog-512
+- **Skein Family:** Skein-256, Skein-512, Skein-1024
+- **Other:** SM3
+
+**Links:**
 - **[BouncyCastle C# GitHub](https://github.com/bcgit/bc-csharp)** - The Legion of the Bouncy Castle (C#/.NET)
 - **[BouncyCastle Java GitHub](https://github.com/bcgit/bc-java)** - The original Java implementation
-- **[NuGet: BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - The official NuGet package
+- **[NuGet: BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - v2.6.2+, MIT License
 
-We use BouncyCastle directly for many algorithms (SHA-3, BLAKE, RIPEMD, Tiger, GOST, Streebog, Skein, SM3) and studied their implementations to create our optimized native versions with SIMD acceleration and reduced memory allocations.
+### Native StreamHash Implementations
 
-**Giving Back:** If our performance optimizations prove successful and stable, we plan to contribute them back to the BouncyCastle project via pull requests. Open source thrives when we all give back! 🌱
+Custom optimized implementations built into StreamHash:
+- **Grøstl-256/512** (AES-NI + T-tables)
+- **JH-256/512** (bit-sliced + SSSE3)
+- **Whirlpool** (custom T-tables, 3.2x faster than BouncyCastle)
+- **SHA-0** (historical algorithm, not in BouncyCastle)
+- **All checksums** (CRC32, CRC64, Adler, Fletcher)
+- **All fast non-crypto hashes** (MurmurHash, CityHash, SpookyHash, etc.)
+- **All .NET built-in algorithms** (MD5, SHA-1, SHA-256, SHA-384, SHA-512)
+
+**Giving Back:** If our performance optimizations prove successful and stable, we plan to contribute them back to the upstream projects. Open source thrives when we all give back! 🌱
 
 ### Other References
 

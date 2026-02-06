@@ -112,30 +112,30 @@ public static class HashFacade {
 			HashAlgorithm.Sha512_224 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(224), data),
 			HashAlgorithm.Sha512_256 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(256), data),
 
-			// SHA-3 & Keccak
-			HashAlgorithm.Sha3_224 => BouncyCastleFactory.ComputeHash(new Sha3Digest(224), data),
-			HashAlgorithm.Sha3_256 => BouncyCastleFactory.ComputeHash(new Sha3Digest(256), data),
-			HashAlgorithm.Sha3_384 => BouncyCastleFactory.ComputeHash(new Sha3Digest(384), data),
-			HashAlgorithm.Sha3_512 => BouncyCastleFactory.ComputeHash(new Sha3Digest(512), data),
-			HashAlgorithm.Keccak256 => BouncyCastleFactory.ComputeHash(new KeccakDigest(256), data),
-			HashAlgorithm.Keccak512 => BouncyCastleFactory.ComputeHash(new KeccakDigest(512), data),
+			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
+			HashAlgorithm.Sha3_224 => Sha3Factory.ComputeSha3_224(data),
+			HashAlgorithm.Sha3_256 => Sha3Factory.ComputeSha3_256(data),
+			HashAlgorithm.Sha3_384 => Sha3Factory.ComputeSha3_384(data),
+			HashAlgorithm.Sha3_512 => Sha3Factory.ComputeSha3_512(data),
+			HashAlgorithm.Keccak256 => AcryptohashnetFactory.ComputeKeccak256(data),
+			HashAlgorithm.Keccak512 => AcryptohashnetFactory.ComputeKeccak512(data),
 
-			// BLAKE Family
-			HashAlgorithm.Blake256 => BouncyCastleFactory.ComputeHash(new Blake2bDigest(256), data),
-			HashAlgorithm.Blake512 => BouncyCastleFactory.ComputeHash(new Blake2bDigest(512), data),
-			HashAlgorithm.Blake2b => BouncyCastleFactory.ComputeHash(new Blake2bDigest(512), data),
-			HashAlgorithm.Blake2s => BouncyCastleFactory.ComputeHash(new Blake2sDigest(256), data),
-			HashAlgorithm.Blake3 => BouncyCastleFactory.ComputeHash(new Blake3Digest(256), data),
+			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
+			HashAlgorithm.Blake256 => Blake2Factory.ComputeBlake256(data),
+			HashAlgorithm.Blake512 => Blake2Factory.ComputeBlake512(data),
+			HashAlgorithm.Blake2b => Blake2Factory.ComputeBlake2b(data),
+			HashAlgorithm.Blake2s => Blake2Factory.ComputeBlake2s(data),
+			HashAlgorithm.Blake3 => Blake3Factory.ComputeHash(data),
 
-			// RIPEMD Family
-			HashAlgorithm.Ripemd128 => BouncyCastleFactory.ComputeHash(new RipeMD128Digest(), data),
-			HashAlgorithm.Ripemd160 => BouncyCastleFactory.ComputeHash(new RipeMD160Digest(), data),
+			// RIPEMD Family (acryptohashnet for 128/160, BouncyCastle for 256/320)
+			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.ComputeRipemd128(data),
+			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.ComputeRipemd160(data),
 			HashAlgorithm.Ripemd256 => BouncyCastleFactory.ComputeHash(new RipeMD256Digest(), data),
 			HashAlgorithm.Ripemd320 => BouncyCastleFactory.ComputeHash(new RipeMD320Digest(), data),
 
-			// Other Crypto
+			// Other Crypto (acryptohashnet for Tiger192)
 			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
-			HashAlgorithm.Tiger192 => BouncyCastleFactory.ComputeHash(new TigerDigest(), data),
+			HashAlgorithm.Tiger192 => AcryptohashnetFactory.ComputeTiger192(data),
 			HashAlgorithm.Gost94 => BouncyCastleFactory.ComputeHash(new Gost3411Digest(), data),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_256Digest(), data),
 			HashAlgorithm.Streebog512 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_512Digest(), data),
@@ -538,30 +538,30 @@ public static class HashFacade {
 			HashAlgorithm.Sha512_224 => BouncyCastleFactory.CreateSha512_224(),
 			HashAlgorithm.Sha512_256 => BouncyCastleFactory.CreateSha512_256(),
 
-			// SHA-3 & Keccak (BouncyCastle)
-			HashAlgorithm.Sha3_224 => BouncyCastleFactory.CreateSha3_224(),
-			HashAlgorithm.Sha3_256 => BouncyCastleFactory.CreateSha3_256(),
-			HashAlgorithm.Sha3_384 => BouncyCastleFactory.CreateSha3_384(),
-			HashAlgorithm.Sha3_512 => BouncyCastleFactory.CreateSha3_512(),
-			HashAlgorithm.Keccak256 => BouncyCastleFactory.CreateKeccak256(),
-			HashAlgorithm.Keccak512 => BouncyCastleFactory.CreateKeccak512(),
+			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
+			HashAlgorithm.Sha3_224 => Sha3Factory.CreateSha3_224(),
+			HashAlgorithm.Sha3_256 => Sha3Factory.CreateSha3_256(),
+			HashAlgorithm.Sha3_384 => Sha3Factory.CreateSha3_384(),
+			HashAlgorithm.Sha3_512 => Sha3Factory.CreateSha3_512(),
+			HashAlgorithm.Keccak256 => AcryptohashnetFactory.CreateKeccak256(),
+			HashAlgorithm.Keccak512 => AcryptohashnetFactory.CreateKeccak512(),
 
-			// BLAKE Family (BouncyCastle)
-			HashAlgorithm.Blake256 => BouncyCastleFactory.CreateBlake256(),
-			HashAlgorithm.Blake512 => BouncyCastleFactory.CreateBlake512(),
-			HashAlgorithm.Blake2b => BouncyCastleFactory.CreateBlake2b(),
-			HashAlgorithm.Blake2s => BouncyCastleFactory.CreateBlake2s(),
-			HashAlgorithm.Blake3 => BouncyCastleFactory.CreateBlake3(),
+			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
+			HashAlgorithm.Blake256 => Blake2Factory.CreateBlake256(),
+			HashAlgorithm.Blake512 => Blake2Factory.CreateBlake512(),
+			HashAlgorithm.Blake2b => Blake2Factory.CreateBlake2b(),
+			HashAlgorithm.Blake2s => Blake2Factory.CreateBlake2s(),
+			HashAlgorithm.Blake3 => Blake3Factory.CreateBlake3(),
 
-			// RIPEMD Family (BouncyCastle)
-			HashAlgorithm.Ripemd128 => BouncyCastleFactory.CreateRipemd128(),
-			HashAlgorithm.Ripemd160 => BouncyCastleFactory.CreateRipemd160(),
+			// RIPEMD Family (acryptohashnet for 128/160, BouncyCastle for 256/320)
+			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.CreateRipemd128(),
+			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.CreateRipemd160(),
 			HashAlgorithm.Ripemd256 => BouncyCastleFactory.CreateRipemd256(),
 			HashAlgorithm.Ripemd320 => BouncyCastleFactory.CreateRipemd320(),
 
-			// Other Crypto
+			// Other Crypto (acryptohashnet for Tiger192)
 			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
-			HashAlgorithm.Tiger192 => BouncyCastleFactory.CreateTiger192(),
+			HashAlgorithm.Tiger192 => AcryptohashnetFactory.CreateTiger192(),
 			HashAlgorithm.Gost94 => BouncyCastleFactory.CreateGost94(),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.CreateStreebog256(),
 			HashAlgorithm.Streebog512 => BouncyCastleFactory.CreateStreebog512(),
