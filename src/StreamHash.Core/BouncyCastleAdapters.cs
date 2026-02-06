@@ -66,8 +66,13 @@ internal static class BouncyCastleFactory {
 	[Obsolete("Use AcryptohashnetFactory.CreateSha224() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateSha224() => new BouncyCastleAdapter(new Sha224Digest());
 
-	// SHA-512/t variants stay on BouncyCastle (custom truncation not in acryptohashnet)
+	// SHA-512/t variants DEPRECATED: Use Sha512tFactory instead
+	/// <summary>Creates SHA-512/224 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha512tFactory.CreateSha512_224() instead for native implementation without BouncyCastle")]
 	public static IStreamingHashBytes CreateSha512_224() => new BouncyCastleAdapter(new Sha512tDigest(224));
+
+	/// <summary>Creates SHA-512/256 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use Sha512tFactory.CreateSha512_256() instead for native implementation without BouncyCastle")]
 	public static IStreamingHashBytes CreateSha512_256() => new BouncyCastleAdapter(new Sha512tDigest(256));
 
 	// SHA-3 Family - DEPRECATED: Use Sha3Factory instead for native SIMD performance

@@ -535,8 +535,8 @@ public static class HashFacade {
 			HashAlgorithm.Sha256 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA256),
 			HashAlgorithm.Sha384 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA384),
 			HashAlgorithm.Sha512 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA512),
-			HashAlgorithm.Sha512_224 => BouncyCastleFactory.CreateSha512_224(),
-			HashAlgorithm.Sha512_256 => BouncyCastleFactory.CreateSha512_256(),
+			HashAlgorithm.Sha512_224 => Sha512tFactory.CreateSha512_224(),
+			HashAlgorithm.Sha512_256 => Sha512tFactory.CreateSha512_256(),
 
 			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
 			HashAlgorithm.Sha3_224 => Sha3Factory.CreateSha3_224(),
