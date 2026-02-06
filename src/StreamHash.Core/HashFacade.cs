@@ -109,8 +109,8 @@ public static class HashFacade {
 			HashAlgorithm.Sha256 => SHA256.HashData(data),
 			HashAlgorithm.Sha384 => SHA384.HashData(data),
 			HashAlgorithm.Sha512 => SHA512.HashData(data),
-			HashAlgorithm.Sha512_224 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(224), data),
-			HashAlgorithm.Sha512_256 => BouncyCastleFactory.ComputeHash(new Sha512tDigest(256), data),
+			HashAlgorithm.Sha512_224 => Sha512tFactory.ComputeSha512_224(data),
+			HashAlgorithm.Sha512_256 => Sha512tFactory.ComputeSha512_256(data),
 
 			// SHA-3 (dotSHA3 native SIMD) & Keccak (acryptohashnet)
 			HashAlgorithm.Sha3_224 => Sha3Factory.ComputeSha3_224(data),
