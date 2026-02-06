@@ -1,4 +1,4 @@
-using Blake3;
+﻿using Blake3;
 
 namespace StreamHash.Core;
 

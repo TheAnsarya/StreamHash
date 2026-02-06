@@ -233,6 +233,48 @@ public static class AcryptohashnetFactory {
 	}
 
 	// =========================================================================
+	// SHA Family - Pure managed C# (SHA-0 and SHA-224 not in .NET BCL)
+	// =========================================================================
+
+	/// <summary>
+	/// Creates a streaming SHA-0 hasher.
+	/// </summary>
+	/// <returns>A streaming hash adapter for SHA-0.</returns>
+	/// <remarks>
+	/// SHA-0 is the original version of SHA before NIST patched a weakness.
+	/// It is insecure and should only be used for legacy compatibility.
+	/// </remarks>
+	public static IStreamingHashBytes CreateSha0() =>
+		new AcryptohashnetAdapter(new acryptohashnet.SHA0(), 20);
+
+	/// <summary>
+	/// Creates a streaming SHA-224 hasher.
+	/// </summary>
+	/// <returns>A streaming hash adapter for SHA-224.</returns>
+	public static IStreamingHashBytes CreateSha224() =>
+		new AcryptohashnetAdapter(new acryptohashnet.SHA224(), 28);
+
+	/// <summary>
+	/// Computes SHA-0 hash in one shot.
+	/// </summary>
+	/// <param name="data">The data to hash.</param>
+	/// <returns>The 20-byte SHA-0 hash.</returns>
+	public static byte[] ComputeSha0(ReadOnlySpan<byte> data) {
+		using var hasher = new acryptohashnet.SHA0();
+		return hasher.ComputeHash(data.ToArray());
+	}
+
+	/// <summary>
+	/// Computes SHA-224 hash in one shot.
+	/// </summary>
+	/// <param name="data">The data to hash.</param>
+	/// <returns>The 28-byte SHA-224 hash.</returns>
+	public static byte[] ComputeSha224(ReadOnlySpan<byte> data) {
+		using var hasher = new acryptohashnet.SHA224();
+		return hasher.ComputeHash(data.ToArray());
+	}
+
+	// =========================================================================
 	// Tiger Family - Pure managed C# implementation
 	// =========================================================================
 

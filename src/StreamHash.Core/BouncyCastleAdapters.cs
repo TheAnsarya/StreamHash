@@ -48,12 +48,25 @@ internal sealed class BouncyCastleAdapter : IStreamingHashBytes {
 /// Static factory for creating BouncyCastle digest wrappers.
 /// </summary>
 internal static class BouncyCastleFactory {
-	// MD Family
+	// MD Family - DEPRECATED: Use AcryptohashnetFactory instead for lower memory overhead
+	/// <summary>Creates MD2 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateMd2() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateMd2() => new BouncyCastleAdapter(new MD2Digest());
+
+	/// <summary>Creates MD4 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateMd4() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateMd4() => new BouncyCastleAdapter(new MD4Digest());
 
-	// SHA Family
+	// SHA Family - SHA-0/224 DEPRECATED: Use AcryptohashnetFactory instead
+	/// <summary>Creates SHA-0 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateSha0() instead for lower memory overhead")]
+	public static IStreamingHashBytes CreateSha0() => new Sha0StreamingHash();
+
+	/// <summary>Creates SHA-224 using BouncyCastle. DEPRECATED.</summary>
+	[Obsolete("Use AcryptohashnetFactory.CreateSha224() instead for lower memory overhead")]
 	public static IStreamingHashBytes CreateSha224() => new BouncyCastleAdapter(new Sha224Digest());
+
+	// SHA-512/t variants stay on BouncyCastle (custom truncation not in acryptohashnet)
 	public static IStreamingHashBytes CreateSha512_224() => new BouncyCastleAdapter(new Sha512tDigest(224));
 	public static IStreamingHashBytes CreateSha512_256() => new BouncyCastleAdapter(new Sha512tDigest(256));
 
@@ -139,9 +152,6 @@ internal static class BouncyCastleFactory {
 	public static IStreamingHashBytes CreateSkein512() => new BouncyCastleAdapter(new SkeinDigest(512, 512));
 	public static IStreamingHashBytes CreateSkein1024() => new BouncyCastleAdapter(new SkeinDigest(1024, 1024));
 	public static IStreamingHashBytes CreateSm3() => new BouncyCastleAdapter(new SM3Digest());
-
-	// SHA-0 uses custom implementation (not in BouncyCastle)
-	public static IStreamingHashBytes CreateSha0() => new Sha0StreamingHash();
 
 	// Groestl - custom implementations (not available in BouncyCastle)
 	public static IStreamingHashBytes CreateGroestl256() => new Groestl256();

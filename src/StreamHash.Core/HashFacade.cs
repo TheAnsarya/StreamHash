@@ -97,15 +97,15 @@ public static class HashFacade {
 			HashAlgorithm.Sdbm => ComputeSdbm(data),
 			HashAlgorithm.LoseLose => ComputeLoseLose(data),
 
-			// MD Family
-			HashAlgorithm.Md2 => BouncyCastleFactory.ComputeHash(new MD2Digest(), data),
-			HashAlgorithm.Md4 => BouncyCastleFactory.ComputeHash(new MD4Digest(), data),
+			// MD Family (acryptohashnet for MD2/MD4, .NET for MD5)
+			HashAlgorithm.Md2 => AcryptohashnetFactory.ComputeMd2(data),
+			HashAlgorithm.Md4 => AcryptohashnetFactory.ComputeMd4(data),
 			HashAlgorithm.Md5 => MD5.HashData(data),
 
-			// SHA-1/2 Family (built-in)
-			HashAlgorithm.Sha0 => ComputeSha0(data),
+			// SHA-1/2 Family (acryptohashnet for SHA-0/224, .NET for rest)
+			HashAlgorithm.Sha0 => AcryptohashnetFactory.ComputeSha0(data),
 			HashAlgorithm.Sha1 => SHA1.HashData(data),
-			HashAlgorithm.Sha224 => BouncyCastleFactory.ComputeHash(new Sha224Digest(), data),
+			HashAlgorithm.Sha224 => AcryptohashnetFactory.ComputeSha224(data),
 			HashAlgorithm.Sha256 => SHA256.HashData(data),
 			HashAlgorithm.Sha384 => SHA384.HashData(data),
 			HashAlgorithm.Sha512 => SHA512.HashData(data),
@@ -523,15 +523,15 @@ public static class HashFacade {
 			HashAlgorithm.Sdbm => new StreamingHashBytesAdapter<uint>(new SdbmStreaming()),
 			HashAlgorithm.LoseLose => new StreamingHashBytesAdapter<uint>(new LoseLoseStreaming()),
 
-			// MD Family (BouncyCastle)
-			HashAlgorithm.Md2 => BouncyCastleFactory.CreateMd2(),
-			HashAlgorithm.Md4 => BouncyCastleFactory.CreateMd4(),
+			// MD Family (acryptohashnet for MD2/MD4, .NET for MD5)
+			HashAlgorithm.Md2 => AcryptohashnetFactory.CreateMd2(),
+			HashAlgorithm.Md4 => AcryptohashnetFactory.CreateMd4(),
 			HashAlgorithm.Md5 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.MD5),
 
-			// SHA-1/2 Family
-			HashAlgorithm.Sha0 => BouncyCastleFactory.CreateSha0(),
+			// SHA-1/2 Family (acryptohashnet for SHA-0/224, .NET for rest)
+			HashAlgorithm.Sha0 => AcryptohashnetFactory.CreateSha0(),
 			HashAlgorithm.Sha1 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA1),
-			HashAlgorithm.Sha224 => BouncyCastleFactory.CreateSha224(),
+			HashAlgorithm.Sha224 => AcryptohashnetFactory.CreateSha224(),
 			HashAlgorithm.Sha256 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA256),
 			HashAlgorithm.Sha384 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA384),
 			HashAlgorithm.Sha512 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA512),

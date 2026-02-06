@@ -1,4 +1,4 @@
-using nebulae.dotSHA3;
+﻿using nebulae.dotSHA3;
 using StreamHash.Core.Abstractions;
 
 namespace StreamHash.Core;
