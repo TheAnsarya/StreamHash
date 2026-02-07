@@ -14,7 +14,7 @@
 		<Authors>TheAnsarya</Authors>
 		<Company>TheAnsarya</Company>
 		<Description>High-performance streaming hash library for .NET 10. All 70 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with batch streaming support for parallel multi-algorithm processing. Comprehensive test coverage (788+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;bouncycastle;simd;aes-ni;avx2;fnv;djb2;sdbm;batch;parallel</PackageTags>
+		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;simd;aes-ni;avx2;fnv;djb2;sdbm;batch;parallel</PackageTags>
 		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
@@ -42,7 +42,6 @@
 	<ItemGroup>
 		<PackageReference Include="acryptohashnet" Version="3.1.0" />
 		<PackageReference Include="Blake3" Version="2.2.0" />
-		<PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
 		<PackageReference Include="SauceControl.Blake2Fast" Version="2.0.0" />
 		<PackageReference Include="System.IO.Hashing" Version="9.0.3" />
 	</ItemGroup>

@@ -21,6 +21,8 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="FluentAssertions" Version="8.*" />
+		<!-- BouncyCastle used only for comparison testing in Gost94NativeTests -->
+		<PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
 	</ItemGroup>
 
 	<ItemGroup>
