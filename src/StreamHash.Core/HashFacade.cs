@@ -127,11 +127,11 @@ public static class HashFacade {
 			HashAlgorithm.Blake2s => Blake2Factory.ComputeBlake2s(data),
 			HashAlgorithm.Blake3 => Blake3Factory.ComputeHash(data),
 
-			// RIPEMD Family (acryptohashnet for 128/160, BouncyCastle for 256/320)
+			// RIPEMD Family (acryptohashnet for 128/160, native for 256/320)
 			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.ComputeRipemd128(data),
 			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.ComputeRipemd160(data),
-			HashAlgorithm.Ripemd256 => BouncyCastleFactory.ComputeHash(new RipeMD256Digest(), data),
-			HashAlgorithm.Ripemd320 => BouncyCastleFactory.ComputeHash(new RipeMD320Digest(), data),
+			HashAlgorithm.Ripemd256 => Ripemd256Factory.ComputeRipemd256(data),
+			HashAlgorithm.Ripemd320 => Ripemd320Factory.ComputeRipemd320(data),
 
 			// Other Crypto (acryptohashnet for Tiger192)
 			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
@@ -553,11 +553,11 @@ public static class HashFacade {
 			HashAlgorithm.Blake2s => Blake2Factory.CreateBlake2s(),
 			HashAlgorithm.Blake3 => Blake3Factory.CreateBlake3(),
 
-			// RIPEMD Family (acryptohashnet for 128/160, BouncyCastle for 256/320)
+			// RIPEMD Family (acryptohashnet for 128/160, native for 256/320)
 			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.CreateRipemd128(),
 			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.CreateRipemd160(),
-			HashAlgorithm.Ripemd256 => BouncyCastleFactory.CreateRipemd256(),
-			HashAlgorithm.Ripemd320 => BouncyCastleFactory.CreateRipemd320(),
+			HashAlgorithm.Ripemd256 => Ripemd256Factory.CreateRipemd256(),
+			HashAlgorithm.Ripemd320 => Ripemd320Factory.CreateRipemd320(),
 
 			// Other Crypto (acryptohashnet for Tiger192)
 			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
