@@ -133,15 +133,15 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.ComputeRipemd256(data),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.ComputeRipemd320(data),
 
-			// Other Crypto (acryptohashnet for Tiger192, native for GOST-94)
+			// Other Crypto (acryptohashnet for Tiger192, native for GOST-94, Streebog, Skein)
 			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
 			HashAlgorithm.Tiger192 => AcryptohashnetFactory.ComputeTiger192(data),
 			HashAlgorithm.Gost94 => Gost94Factory.ComputeGost94(data),
-			HashAlgorithm.Streebog256 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_256Digest(), data),
-			HashAlgorithm.Streebog512 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_512Digest(), data),
-			HashAlgorithm.Skein256 => BouncyCastleFactory.ComputeHash(new SkeinDigest(256, 256), data),
-			HashAlgorithm.Skein512 => BouncyCastleFactory.ComputeHash(new SkeinDigest(512, 512), data),
-			HashAlgorithm.Skein1024 => BouncyCastleFactory.ComputeHash(new SkeinDigest(1024, 1024), data),
+			HashAlgorithm.Streebog256 => StreebogFactory.ComputeStreebog256(data),
+			HashAlgorithm.Streebog512 => StreebogFactory.ComputeStreebog512(data),
+			HashAlgorithm.Skein256 => SkeinFactory.ComputeSkein256(data),
+			HashAlgorithm.Skein512 => SkeinFactory.ComputeSkein512(data),
+			HashAlgorithm.Skein1024 => SkeinFactory.ComputeSkein1024(data),
 			HashAlgorithm.Groestl256 => ComputeGroestl256(data),
 			HashAlgorithm.Groestl512 => ComputeGroestl512(data),
 			HashAlgorithm.Jh256 => ComputeJh256(data),
@@ -559,15 +559,15 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.CreateRipemd256(),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.CreateRipemd320(),
 
-			// Other Crypto (acryptohashnet for Tiger192)
+			// Other Crypto (native for GOST-94, Streebog, Skein)
 			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
 			HashAlgorithm.Tiger192 => AcryptohashnetFactory.CreateTiger192(),
 			HashAlgorithm.Gost94 => new NativeGost94(),
-			HashAlgorithm.Streebog256 => BouncyCastleFactory.CreateStreebog256(),
-			HashAlgorithm.Streebog512 => BouncyCastleFactory.CreateStreebog512(),
-			HashAlgorithm.Skein256 => BouncyCastleFactory.CreateSkein256(),
-			HashAlgorithm.Skein512 => BouncyCastleFactory.CreateSkein512(),
-			HashAlgorithm.Skein1024 => BouncyCastleFactory.CreateSkein1024(),
+			HashAlgorithm.Streebog256 => StreebogFactory.CreateStreebog256(),
+			HashAlgorithm.Streebog512 => StreebogFactory.CreateStreebog512(),
+			HashAlgorithm.Skein256 => SkeinFactory.CreateSkein256(),
+			HashAlgorithm.Skein512 => SkeinFactory.CreateSkein512(),
+			HashAlgorithm.Skein1024 => SkeinFactory.CreateSkein1024(),
 			HashAlgorithm.Groestl256 => BouncyCastleFactory.CreateGroestl256(),
 			HashAlgorithm.Groestl512 => BouncyCastleFactory.CreateGroestl512(),
 			HashAlgorithm.Jh256 => BouncyCastleFactory.CreateJh256(),

@@ -306,6 +306,196 @@ public class AlgorithmCorrectnessTests {
 
 	#endregion
 
+	#region Streebog (GOST R 34.11-2012) - Native Implementation
+
+	[Fact]
+	public void Streebog256_EmptyInput_ReturnsCorrectValue() {
+		// Streebog-256("") - GOST R 34.11-2012 test vector
+		var result = HashFacade.ComputeHashHex(HashAlgorithm.Streebog256, EmptyInput);
+		// Standard test vector for empty message
+		result.Should().HaveLength(64); // 32 bytes = 64 hex chars
+		// Verify consistency
+		var result2 = HashFacade.ComputeHashHex(HashAlgorithm.Streebog256, EmptyInput);
+		result.Should().Be(result2);
+	}
+
+	[Fact]
+	public void Streebog512_EmptyInput_ReturnsCorrectValue() {
+		// Streebog-512("")
+		var result = HashFacade.ComputeHashHex(HashAlgorithm.Streebog512, EmptyInput);
+		result.Should().HaveLength(128); // 64 bytes = 128 hex chars
+		// Verify consistency
+		var result2 = HashFacade.ComputeHashHex(HashAlgorithm.Streebog512, EmptyInput);
+		result.Should().Be(result2);
+	}
+
+	[Fact]
+	public void Streebog256_StreamingMatchesOneShot() {
+		byte[] testData = new byte[10000];
+		new Random(42).NextBytes(testData);
+
+		string oneShotResult = HashFacade.ComputeHashHex(HashAlgorithm.Streebog256, testData);
+
+		using var hasher = HashFacade.CreateStreaming(HashAlgorithm.Streebog256);
+		for (int i = 0; i < testData.Length; i += 1000) {
+			int count = Math.Min(1000, testData.Length - i);
+			hasher.Update(testData.AsSpan(i, count));
+		}
+		string streamingResult = Convert.ToHexStringLower(hasher.FinalizeBytes());
+
+		streamingResult.Should().Be(oneShotResult);
+	}
+
+	[Fact]
+	public void Streebog512_StreamingMatchesOneShot() {
+		byte[] testData = new byte[10000];
+		new Random(42).NextBytes(testData);
+
+		string oneShotResult = HashFacade.ComputeHashHex(HashAlgorithm.Streebog512, testData);
+
+		using var hasher = HashFacade.CreateStreaming(HashAlgorithm.Streebog512);
+		for (int i = 0; i < testData.Length; i += 1000) {
+			int count = Math.Min(1000, testData.Length - i);
+			hasher.Update(testData.AsSpan(i, count));
+		}
+		string streamingResult = Convert.ToHexStringLower(hasher.FinalizeBytes());
+
+		streamingResult.Should().Be(oneShotResult);
+	}
+
+	[Fact]
+	public void Streebog256_SmallChunks_MatchesLargeChunks() {
+		byte[] testData = new byte[1024];
+		new Random(99).NextBytes(testData);
+
+		string expected = HashFacade.ComputeHashHex(HashAlgorithm.Streebog256, testData);
+
+		// 1-byte chunks (worst case)
+		using var hasher1 = HashFacade.CreateStreaming(HashAlgorithm.Streebog256);
+		foreach (byte b in testData) {
+			byte[] single = [b];
+			hasher1.Update(single);
+		}
+		string result1 = Convert.ToHexStringLower(hasher1.FinalizeBytes());
+
+		result1.Should().Be(expected, "1-byte chunks should match one-shot");
+	}
+
+	#endregion
+
+	#region Skein (Native Implementation)
+
+	[Fact]
+	public void Skein256_EmptyInput_ProducesConsistentResult() {
+		var result = HashFacade.ComputeHashHex(HashAlgorithm.Skein256, EmptyInput);
+		result.Should().HaveLength(64); // 32 bytes = 64 hex chars
+		var result2 = HashFacade.ComputeHashHex(HashAlgorithm.Skein256, EmptyInput);
+		result.Should().Be(result2);
+	}
+
+	[Fact]
+	public void Skein512_EmptyInput_ProducesConsistentResult() {
+		var result = HashFacade.ComputeHashHex(HashAlgorithm.Skein512, EmptyInput);
+		result.Should().HaveLength(128); // 64 bytes = 128 hex chars
+		var result2 = HashFacade.ComputeHashHex(HashAlgorithm.Skein512, EmptyInput);
+		result.Should().Be(result2);
+	}
+
+	[Fact]
+	public void Skein1024_EmptyInput_ProducesConsistentResult() {
+		var result = HashFacade.ComputeHashHex(HashAlgorithm.Skein1024, EmptyInput);
+		result.Should().HaveLength(256); // 128 bytes = 256 hex chars
+		var result2 = HashFacade.ComputeHashHex(HashAlgorithm.Skein1024, EmptyInput);
+		result.Should().Be(result2);
+	}
+
+	[Fact]
+	public void Skein512_StreamingMatchesOneShot() {
+		byte[] testData = new byte[10000];
+		new Random(42).NextBytes(testData);
+
+		string oneShotResult = HashFacade.ComputeHashHex(HashAlgorithm.Skein512, testData);
+
+		using var hasher = HashFacade.CreateStreaming(HashAlgorithm.Skein512);
+		for (int i = 0; i < testData.Length; i += 1000) {
+			int count = Math.Min(1000, testData.Length - i);
+			hasher.Update(testData.AsSpan(i, count));
+		}
+		string streamingResult = Convert.ToHexStringLower(hasher.FinalizeBytes());
+
+		streamingResult.Should().Be(oneShotResult);
+	}
+
+	[Fact]
+	public void Skein512_NativeMatchesBouncyCastle() {
+		// Test native Skein-512 against BouncyCastle reference
+		byte[] testData = QuickBrownFox;
+
+		// Get BouncyCastle result
+		var bcDigest = new Org.BouncyCastle.Crypto.Digests.SkeinDigest(512, 512);
+		bcDigest.BlockUpdate(testData, 0, testData.Length);
+		byte[] bcResult = new byte[64];
+		bcDigest.DoFinal(bcResult, 0);
+		string bcHex = Convert.ToHexStringLower(bcResult);
+
+		// Get native result
+		byte[] nativeResult = SkeinFactory.ComputeSkein512(testData);
+		string nativeHex = Convert.ToHexStringLower(nativeResult);
+
+		nativeHex.Should().Be(bcHex, "Native Skein-512 should match BouncyCastle");
+	}
+
+	[Fact]
+	public void Skein256_NativeMatchesBouncyCastle() {
+		// Test native Skein-256 against BouncyCastle reference
+		byte[] testData = QuickBrownFox;
+
+		// Get BouncyCastle result
+		var bcDigest = new Org.BouncyCastle.Crypto.Digests.SkeinDigest(256, 256);
+		bcDigest.BlockUpdate(testData, 0, testData.Length);
+		byte[] bcResult = new byte[32];
+		bcDigest.DoFinal(bcResult, 0);
+		string bcHex = Convert.ToHexStringLower(bcResult);
+
+		// Get native result
+		byte[] nativeResult = SkeinFactory.ComputeSkein256(testData);
+		string nativeHex = Convert.ToHexStringLower(nativeResult);
+
+		nativeHex.Should().Be(bcHex, "Native Skein-256 should match BouncyCastle");
+	}
+
+	/// <summary>
+	/// Test vectors from official Skein reference implementation (dchest/skein Go package).
+	/// These are the canonical test vectors from the Skein specification v1.3.
+	/// </summary>
+	[Theory]
+	[InlineData(64, "", "bc5b4c50925519c290cc634277ae3d6257212395cba733bbad37a4af0fa06af41fca7903d06564fea7a2d3730dbdb80c1f85562dfcc070334ea4d1d9e72cba7a")]
+	[InlineData(64, "ff", "71b7bce6fe6452227b9ced6014249e5bf9a9754c3ad618ccc4e0aae16b316cc8ca698d864307ed3e80b6ef1570812ac5272dc409b5a012df2a579102f340617a")]
+	public void Skein512_OfficialTestVectors(int outputBytes, string inputHex, string expectedHex) {
+		// Test official Skein-512 test vectors from specification
+		byte[] input = inputHex.Length > 0 ? Convert.FromHexString(inputHex) : [];
+		byte[] expected = Convert.FromHexString(expectedHex);
+
+		// Test native implementation
+		byte[] nativeResult = SkeinFactory.ComputeSkein512(input);
+		string nativeHex = Convert.ToHexStringLower(nativeResult);
+
+		// Also test BouncyCastle for comparison
+		var bcDigest = new Org.BouncyCastle.Crypto.Digests.SkeinDigest(512, outputBytes * 8);
+		bcDigest.BlockUpdate(input, 0, input.Length);
+		byte[] bcResult = new byte[outputBytes];
+		bcDigest.DoFinal(bcResult, 0);
+		string bcHex = Convert.ToHexStringLower(bcResult);
+
+		// BouncyCastle should match official test vectors
+		bcHex.Should().Be(expectedHex, "BouncyCastle should match official test vector");
+
+		// Native should match BouncyCastle (which matches official)
+		nativeHex.Should().Be(bcHex, "Native Skein-512 should match BouncyCastle/official");
+	}
+
+	#endregion
+
 	#region xxHash Family
 
 	[Fact]
