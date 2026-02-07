@@ -133,10 +133,10 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.ComputeRipemd256(data),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.ComputeRipemd320(data),
 
-			// Other Crypto (acryptohashnet for Tiger192)
+			// Other Crypto (acryptohashnet for Tiger192, native for GOST-94)
 			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
 			HashAlgorithm.Tiger192 => AcryptohashnetFactory.ComputeTiger192(data),
-			HashAlgorithm.Gost94 => BouncyCastleFactory.ComputeHash(new Gost3411Digest(), data),
+			HashAlgorithm.Gost94 => Gost94Factory.ComputeGost94(data),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_256Digest(), data),
 			HashAlgorithm.Streebog512 => BouncyCastleFactory.ComputeHash(new Gost3411_2012_512Digest(), data),
 			HashAlgorithm.Skein256 => BouncyCastleFactory.ComputeHash(new SkeinDigest(256, 256), data),
@@ -562,7 +562,7 @@ public static class HashFacade {
 			// Other Crypto (acryptohashnet for Tiger192)
 			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
 			HashAlgorithm.Tiger192 => AcryptohashnetFactory.CreateTiger192(),
-			HashAlgorithm.Gost94 => BouncyCastleFactory.CreateGost94(),
+			HashAlgorithm.Gost94 => new NativeGost94(),
 			HashAlgorithm.Streebog256 => BouncyCastleFactory.CreateStreebog256(),
 			HashAlgorithm.Streebog512 => BouncyCastleFactory.CreateStreebog512(),
 			HashAlgorithm.Skein256 => BouncyCastleFactory.CreateSkein256(),
