@@ -328,10 +328,113 @@ public static class Sm3Factory {
 	/// <summary>Creates a streaming SM3 hasher.</summary>
 	public static IStreamingHashBytes CreateSm3() => new Sm3Digest();
 
-	/// <summary>Computes SM3 hash in one shot.</summary>
+	/// <summary>Computes SM3 hash in one shot with minimal allocations.</summary>
 	public static byte[] ComputeSm3(ReadOnlySpan<byte> data) {
-		using var hasher = new Sm3Digest();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeSm3Static(data);
 	}
+
+	/// <summary>
+	/// Static optimized one-shot computation using stack-allocated state.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	private static byte[] ComputeSm3Static(ReadOnlySpan<byte> data) {
+		const int BlockSize = 64;
+		const int HashSize = 32;
+
+		// Stack-allocated state (8 words)
+		Span<uint> state = stackalloc uint[8];
+		state[0] = 0x7380166fu; state[1] = 0x4914b2b9u;
+		state[2] = 0x172442d7u; state[3] = 0xda8a0600u;
+		state[4] = 0xa96f30bcu; state[5] = 0x163138aau;
+		state[6] = 0xe38dee4du; state[7] = 0xb0fb0e4eu;
+
+		long totalBytes = data.Length;
+		int offset = 0;
+
+		// Stack-allocated working arrays
+		Span<uint> w = stackalloc uint[68];
+		Span<uint> wPrime = stackalloc uint[64];
+
+		while (offset + BlockSize <= data.Length) {
+			ProcessBlockStatic(data.Slice(offset, BlockSize), state, w, wPrime);
+			offset += BlockSize;
+		}
+
+		// Padding
+		Span<byte> finalBlock = stackalloc byte[BlockSize];
+		int remaining = data.Length - offset;
+		if (remaining > 0) {
+			data.Slice(offset).CopyTo(finalBlock);
+		}
+
+		int padPos = remaining;
+		finalBlock[padPos++] = 0x80;
+
+		if (padPos > BlockSize - 8) {
+			finalBlock.Slice(padPos).Clear();
+			ProcessBlockStatic(finalBlock, state, w, wPrime);
+			finalBlock.Clear();
+			padPos = 0;
+		}
+
+		finalBlock.Slice(padPos, BlockSize - 8 - padPos).Clear();
+		BinaryPrimitives.WriteUInt64BigEndian(finalBlock.Slice(BlockSize - 8), (ulong)(totalBytes * 8));
+		ProcessBlockStatic(finalBlock, state, w, wPrime);
+
+		// Finalize
+		byte[] result = new byte[HashSize];
+		for (int i = 0; i < 8; i++) {
+			BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan(i * 4, 4), state[i]);
+		}
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void ProcessBlockStatic(ReadOnlySpan<byte> block, Span<uint> state, Span<uint> w, Span<uint> wPrime) {
+		// Message expansion
+		for (int i = 0; i < 16; i++) {
+			w[i] = BinaryPrimitives.ReadUInt32BigEndian(block.Slice(i * 4, 4));
+		}
+		for (int i = 16; i < 68; i++) {
+			w[i] = P1(w[i - 16] ^ w[i - 9] ^ RotL(w[i - 3], 15)) ^ RotL(w[i - 13], 7) ^ w[i - 6];
+		}
+		for (int i = 0; i < 64; i++) {
+			wPrime[i] = w[i] ^ w[i + 4];
+		}
+
+		uint a = state[0], b = state[1], c = state[2], d = state[3];
+		uint e = state[4], f = state[5], g = state[6], h = state[7];
+
+		// Rounds 0-15
+		for (int j = 0; j < 16; j++) {
+			uint ss1 = RotL(RotL(a, 12) + e + RotL(0x79cc4519u, j), 7);
+			uint ss2 = ss1 ^ RotL(a, 12);
+			uint tt1 = (a ^ b ^ c) + d + ss2 + wPrime[j];
+			uint tt2 = (e ^ f ^ g) + h + ss1 + w[j];
+			d = c; c = RotL(b, 9); b = a; a = tt1;
+			h = g; g = RotL(f, 19); f = e; e = P0(tt2);
+		}
+
+		// Rounds 16-63
+		for (int j = 16; j < 64; j++) {
+			uint ss1 = RotL(RotL(a, 12) + e + RotL(0x7a879d8au, j), 7);
+			uint ss2 = ss1 ^ RotL(a, 12);
+			uint tt1 = ((a & b) | (a & c) | (b & c)) + d + ss2 + wPrime[j];
+			uint tt2 = ((e & f) | (~e & g)) + h + ss1 + w[j];
+			d = c; c = RotL(b, 9); b = a; a = tt1;
+			h = g; g = RotL(f, 19); f = e; e = P0(tt2);
+		}
+
+		state[0] ^= a; state[1] ^= b; state[2] ^= c; state[3] ^= d;
+		state[4] ^= e; state[5] ^= f; state[6] ^= g; state[7] ^= h;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static uint RotL(uint x, int n) => (x << n) | (x >> (32 - n));
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static uint P0(uint x) => x ^ RotL(x, 9) ^ RotL(x, 17);
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static uint P1(uint x) => x ^ RotL(x, 15) ^ RotL(x, 23);
 }

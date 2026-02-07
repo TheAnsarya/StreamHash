@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace StreamHash.Core;
@@ -289,10 +289,147 @@ public static class Ripemd256Factory {
 	/// <summary>Creates a streaming RIPEMD-256 hasher.</summary>
 	public static IStreamingHashBytes CreateRipemd256() => new Ripemd256Digest();
 
-	/// <summary>Computes RIPEMD-256 hash in one shot.</summary>
+	/// <summary>Computes RIPEMD-256 hash in one shot with minimal allocations.</summary>
 	public static byte[] ComputeRipemd256(ReadOnlySpan<byte> data) {
-		using var hasher = new Ripemd256Digest();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		// For small data, use optimized static computation
+		// Only the result array is allocated
+		return ComputeRipemd256Static(data);
 	}
+
+	/// <summary>
+	/// Static optimized one-shot computation using stack-allocated state.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	private static byte[] ComputeRipemd256Static(ReadOnlySpan<byte> data) {
+		const int BlockSize = 64;
+		const int HashSize = 32;
+
+		// Stack-allocated state
+		Span<uint> stateLeft = stackalloc uint[4];
+		Span<uint> stateRight = stackalloc uint[4];
+		stateLeft[0] = 0x67452301u; stateLeft[1] = 0xefcdab89u; stateLeft[2] = 0x98badcfeu; stateLeft[3] = 0x10325476u;
+		stateRight[0] = 0x76543210u; stateRight[1] = 0xfedcba98u; stateRight[2] = 0x89abcdefu; stateRight[3] = 0x01234567u;
+
+		long totalBytes = data.Length;
+		int offset = 0;
+
+		// Process complete blocks
+		while (offset + BlockSize <= data.Length) {
+			ProcessBlockStatic(data.Slice(offset, BlockSize), stateLeft, stateRight);
+			offset += BlockSize;
+		}
+
+		// Handle final block with padding
+		Span<byte> finalBlock = stackalloc byte[BlockSize];
+		int remaining = data.Length - offset;
+		if (remaining > 0) {
+			data.Slice(offset).CopyTo(finalBlock);
+		}
+
+		// Padding
+		int padPos = remaining;
+		finalBlock[padPos++] = 0x80;
+
+		if (padPos > BlockSize - 8) {
+			finalBlock.Slice(padPos).Clear();
+			ProcessBlockStatic(finalBlock, stateLeft, stateRight);
+			finalBlock.Clear();
+			padPos = 0;
+		}
+
+		finalBlock.Slice(padPos, BlockSize - 8 - padPos).Clear();
+		BinaryPrimitives.WriteUInt64LittleEndian(finalBlock.Slice(BlockSize - 8), (ulong)(totalBytes * 8));
+		ProcessBlockStatic(finalBlock, stateLeft, stateRight);
+
+		// Output - only allocation
+		byte[] result = new byte[HashSize];
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(0, 4), stateLeft[0]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4, 4), stateLeft[1]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(8, 4), stateLeft[2]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(12, 4), stateLeft[3]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(16, 4), stateRight[0]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(20, 4), stateRight[1]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(24, 4), stateRight[2]);
+		BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(28, 4), stateRight[3]);
+		return result;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void ProcessBlockStatic(ReadOnlySpan<byte> block, Span<uint> stateLeft, Span<uint> stateRight) {
+		// Message word selection arrays (inlined as ReadOnlySpan for performance)
+		ReadOnlySpan<int> RL = [
+			0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+			7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8,
+			3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12,
+			1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2
+		];
+		ReadOnlySpan<int> RR = [
+			5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12,
+			6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2,
+			15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13,
+			8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14
+		];
+		ReadOnlySpan<int> SL = [
+			11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8,
+			7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12,
+			11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5,
+			11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12
+		];
+		ReadOnlySpan<int> SR = [
+			8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6,
+			9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11,
+			9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5,
+			15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8
+		];
+
+		Span<uint> x = stackalloc uint[16];
+		for (int i = 0; i < 16; i++) {
+			x[i] = BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(i * 4, 4));
+		}
+
+		uint al = stateLeft[0], bl = stateLeft[1], cl = stateLeft[2], dl = stateLeft[3];
+		uint ar = stateRight[0], br = stateRight[1], cr = stateRight[2], dr = stateRight[3];
+
+		// Round 0
+		for (int j = 0; j < 16; j++) {
+			uint tl = RotL(al + (bl ^ cl ^ dl) + x[RL[j]], SL[j]);
+			al = dl; dl = cl; cl = bl; bl = tl;
+			uint tr = RotL(ar + ((br & dr) | (cr & ~dr)) + x[RR[j]] + 0x50a28be6u, SR[j]);
+			ar = dr; dr = cr; cr = br; br = tr;
+		}
+		(al, ar) = (ar, al);
+
+		// Round 1
+		for (int j = 16; j < 32; j++) {
+			uint tl = RotL(al + ((bl & cl) | (~bl & dl)) + x[RL[j]] + 0x5a827999u, SL[j]);
+			al = dl; dl = cl; cl = bl; bl = tl;
+			uint tr = RotL(ar + ((br | ~cr) ^ dr) + x[RR[j]] + 0x5c4dd124u, SR[j]);
+			ar = dr; dr = cr; cr = br; br = tr;
+		}
+		(bl, br) = (br, bl);
+
+		// Round 2
+		for (int j = 32; j < 48; j++) {
+			uint tl = RotL(al + ((bl | ~cl) ^ dl) + x[RL[j]] + 0x6ed9eba1u, SL[j]);
+			al = dl; dl = cl; cl = bl; bl = tl;
+			uint tr = RotL(ar + ((br & cr) | (~br & dr)) + x[RR[j]] + 0x6d703ef3u, SR[j]);
+			ar = dr; dr = cr; cr = br; br = tr;
+		}
+		(cl, cr) = (cr, cl);
+
+		// Round 3
+		for (int j = 48; j < 64; j++) {
+			uint tl = RotL(al + ((bl & dl) | (cl & ~dl)) + x[RL[j]] + 0x8f1bbcdcu, SL[j]);
+			al = dl; dl = cl; cl = bl; bl = tl;
+			uint tr = RotL(ar + (br ^ cr ^ dr) + x[RR[j]], SR[j]);
+			ar = dr; dr = cr; cr = br; br = tr;
+		}
+		(dl, dr) = (dr, dl);
+
+		stateLeft[0] += al; stateLeft[1] += bl; stateLeft[2] += cl; stateLeft[3] += dl;
+		stateRight[0] += ar; stateRight[1] += br; stateRight[2] += cr; stateRight[3] += dr;
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static uint RotL(uint value, int bits) => (value << bits) | (value >> (32 - bits));
 }

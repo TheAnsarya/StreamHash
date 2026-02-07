@@ -1,4 +1,4 @@
-using StreamHash.Core;
+﻿using StreamHash.Core;
 using Xunit;
 
 namespace StreamHash.Core.Tests;

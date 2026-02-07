@@ -183,6 +183,14 @@ public class AllAlgorithmsBenchmarks {
 
 	[Benchmark]
 	[BenchmarkCategory("Crypto-Other")]
+	public byte[] Ripemd256() => HashFacade.ComputeHash(HashAlgorithm.Ripemd256, _data);
+
+	[Benchmark]
+	[BenchmarkCategory("Crypto-Other")]
+	public byte[] Ripemd320() => HashFacade.ComputeHash(HashAlgorithm.Ripemd320, _data);
+
+	[Benchmark]
+	[BenchmarkCategory("Crypto-Other")]
 	public byte[] Whirlpool() => HashFacade.ComputeHash(HashAlgorithm.Whirlpool, _data);
 
 	[Benchmark]

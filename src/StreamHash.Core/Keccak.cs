@@ -510,30 +510,22 @@ public static class NativeSha3Factory {
 
 	/// <summary>Computes SHA3-224 hash in one shot.</summary>
 	public static byte[] ComputeSha3_224(ReadOnlySpan<byte> data) {
-		using var hasher = new Sha3_224();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 224, useSha3Padding: true);
 	}
 
 	/// <summary>Computes SHA3-256 hash in one shot.</summary>
 	public static byte[] ComputeSha3_256(ReadOnlySpan<byte> data) {
-		using var hasher = new Sha3_256();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 256, useSha3Padding: true);
 	}
 
 	/// <summary>Computes SHA3-384 hash in one shot.</summary>
 	public static byte[] ComputeSha3_384(ReadOnlySpan<byte> data) {
-		using var hasher = new Sha3_384();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 384, useSha3Padding: true);
 	}
 
 	/// <summary>Computes SHA3-512 hash in one shot.</summary>
 	public static byte[] ComputeSha3_512(ReadOnlySpan<byte> data) {
-		using var hasher = new Sha3_512();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 512, useSha3Padding: true);
 	}
 
 	// ========== Original Keccak ==========
@@ -552,15 +544,160 @@ public static class NativeSha3Factory {
 
 	/// <summary>Computes Keccak-256 hash in one shot.</summary>
 	public static byte[] ComputeKeccak256(ReadOnlySpan<byte> data) {
-		using var hasher = CreateKeccak256();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 256, useSha3Padding: false);
 	}
 
 	/// <summary>Computes Keccak-512 hash in one shot.</summary>
 	public static byte[] ComputeKeccak512(ReadOnlySpan<byte> data) {
-		using var hasher = CreateKeccak512();
-		hasher.Update(data);
-		return hasher.FinalizeBytes();
+		return ComputeKeccakStatic(data, 512, useSha3Padding: false);
+	}
+
+	/// <summary>
+	/// Static optimized Keccak/SHA3 computation using stack-allocated state.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	private static byte[] ComputeKeccakStatic(ReadOnlySpan<byte> data, int hashBits, bool useSha3Padding) {
+		int hashSize = hashBits / 8;
+		int rate = (1600 - 2 * hashBits) / 8;
+		byte domainSep = useSha3Padding ? (byte)0x06 : (byte)0x01;
+
+		// Stack-allocated 1600-bit state (25 x 8 = 200 bytes)
+		Span<ulong> state = stackalloc ulong[25];
+		state.Clear();
+
+		// Absorb full blocks
+		int offset = 0;
+		int lanes = rate / 8;
+		while (offset + rate <= data.Length) {
+			for (int i = 0; i < lanes; i++) {
+				state[i] ^= BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(offset + i * 8, 8));
+			}
+			KeccakF1600Static(state);
+			offset += rate;
+		}
+
+		// Pad final block
+		Span<byte> buffer = stackalloc byte[rate];
+		buffer.Clear();
+		int remaining = data.Length - offset;
+		if (remaining > 0) {
+			data.Slice(offset).CopyTo(buffer);
+		}
+		buffer[remaining] = domainSep;
+		buffer[rate - 1] |= 0x80;
+
+		// Absorb final block
+		for (int i = 0; i < lanes; i++) {
+			state[i] ^= BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(i * 8, 8));
+		}
+		KeccakF1600Static(state);
+
+		// Squeeze output (for SHA3/Keccak, output size <= rate so single squeeze)
+		byte[] result = new byte[hashSize];
+		int fullLanes = hashSize / 8;
+		for (int i = 0; i < fullLanes; i++) {
+			BinaryPrimitives.WriteUInt64LittleEndian(result.AsSpan(i * 8, 8), state[i]);
+		}
+		int leftover = hashSize % 8;
+		if (leftover > 0) {
+			Span<byte> temp = stackalloc byte[8];
+			BinaryPrimitives.WriteUInt64LittleEndian(temp, state[fullLanes]);
+			temp.Slice(0, leftover).CopyTo(result.AsSpan(fullLanes * 8));
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// Static Keccak-f[1600] permutation - 24 rounds.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static void KeccakF1600Static(Span<ulong> state) {
+		ReadOnlySpan<ulong> RC = [
+			0x0000000000000001UL, 0x0000000000008082UL, 0x800000000000808aUL, 0x8000000080008000UL,
+			0x000000000000808bUL, 0x0000000080000001UL, 0x8000000080008081UL, 0x8000000000008009UL,
+			0x000000000000008aUL, 0x0000000000000088UL, 0x0000000080008009UL, 0x000000008000000aUL,
+			0x000000008000808bUL, 0x800000000000008bUL, 0x8000000000008089UL, 0x8000000000008003UL,
+			0x8000000000008002UL, 0x8000000000000080UL, 0x000000000000800aUL, 0x800000008000000aUL,
+			0x8000000080008081UL, 0x8000000000008080UL, 0x0000000080000001UL, 0x8000000080008008UL
+		];
+
+		Span<ulong> c = stackalloc ulong[5];
+		Span<ulong> b = stackalloc ulong[25];
+
+		for (int round = 0; round < 24; round++) {
+			// θ step
+			c[0] = state[0] ^ state[5] ^ state[10] ^ state[15] ^ state[20];
+			c[1] = state[1] ^ state[6] ^ state[11] ^ state[16] ^ state[21];
+			c[2] = state[2] ^ state[7] ^ state[12] ^ state[17] ^ state[22];
+			c[3] = state[3] ^ state[8] ^ state[13] ^ state[18] ^ state[23];
+			c[4] = state[4] ^ state[9] ^ state[14] ^ state[19] ^ state[24];
+
+			ulong d0 = c[4] ^ ((c[1] << 1) | (c[1] >> 63));
+			ulong d1 = c[0] ^ ((c[2] << 1) | (c[2] >> 63));
+			ulong d2 = c[1] ^ ((c[3] << 1) | (c[3] >> 63));
+			ulong d3 = c[2] ^ ((c[4] << 1) | (c[4] >> 63));
+			ulong d4 = c[3] ^ ((c[0] << 1) | (c[0] >> 63));
+
+			state[0] ^= d0; state[5] ^= d0; state[10] ^= d0; state[15] ^= d0; state[20] ^= d0;
+			state[1] ^= d1; state[6] ^= d1; state[11] ^= d1; state[16] ^= d1; state[21] ^= d1;
+			state[2] ^= d2; state[7] ^= d2; state[12] ^= d2; state[17] ^= d2; state[22] ^= d2;
+			state[3] ^= d3; state[8] ^= d3; state[13] ^= d3; state[18] ^= d3; state[23] ^= d3;
+			state[4] ^= d4; state[9] ^= d4; state[14] ^= d4; state[19] ^= d4; state[24] ^= d4;
+
+			// ρ and π steps combined
+			b[0] = state[0];
+			b[1] = (state[6] << 44) | (state[6] >> 20);
+			b[2] = (state[12] << 43) | (state[12] >> 21);
+			b[3] = (state[18] << 21) | (state[18] >> 43);
+			b[4] = (state[24] << 14) | (state[24] >> 50);
+			b[5] = (state[3] << 28) | (state[3] >> 36);
+			b[6] = (state[9] << 20) | (state[9] >> 44);
+			b[7] = (state[10] << 3) | (state[10] >> 61);
+			b[8] = (state[16] << 45) | (state[16] >> 19);
+			b[9] = (state[22] << 61) | (state[22] >> 3);
+			b[10] = (state[1] << 1) | (state[1] >> 63);
+			b[11] = (state[7] << 6) | (state[7] >> 58);
+			b[12] = (state[13] << 25) | (state[13] >> 39);
+			b[13] = (state[19] << 8) | (state[19] >> 56);
+			b[14] = (state[20] << 18) | (state[20] >> 46);
+			b[15] = (state[4] << 27) | (state[4] >> 37);
+			b[16] = (state[5] << 36) | (state[5] >> 28);
+			b[17] = (state[11] << 10) | (state[11] >> 54);
+			b[18] = (state[17] << 15) | (state[17] >> 49);
+			b[19] = (state[23] << 56) | (state[23] >> 8);
+			b[20] = (state[2] << 62) | (state[2] >> 2);
+			b[21] = (state[8] << 55) | (state[8] >> 9);
+			b[22] = (state[14] << 39) | (state[14] >> 25);
+			b[23] = (state[15] << 41) | (state[15] >> 23);
+			b[24] = (state[21] << 2) | (state[21] >> 62);
+
+			// χ and ι steps
+			state[0] = b[0] ^ (~b[1] & b[2]) ^ RC[round];
+			state[1] = b[1] ^ (~b[2] & b[3]);
+			state[2] = b[2] ^ (~b[3] & b[4]);
+			state[3] = b[3] ^ (~b[4] & b[0]);
+			state[4] = b[4] ^ (~b[0] & b[1]);
+			state[5] = b[5] ^ (~b[6] & b[7]);
+			state[6] = b[6] ^ (~b[7] & b[8]);
+			state[7] = b[7] ^ (~b[8] & b[9]);
+			state[8] = b[8] ^ (~b[9] & b[5]);
+			state[9] = b[9] ^ (~b[5] & b[6]);
+			state[10] = b[10] ^ (~b[11] & b[12]);
+			state[11] = b[11] ^ (~b[12] & b[13]);
+			state[12] = b[12] ^ (~b[13] & b[14]);
+			state[13] = b[13] ^ (~b[14] & b[10]);
+			state[14] = b[14] ^ (~b[10] & b[11]);
+			state[15] = b[15] ^ (~b[16] & b[17]);
+			state[16] = b[16] ^ (~b[17] & b[18]);
+			state[17] = b[17] ^ (~b[18] & b[19]);
+			state[18] = b[18] ^ (~b[19] & b[15]);
+			state[19] = b[19] ^ (~b[15] & b[16]);
+			state[20] = b[20] ^ (~b[21] & b[22]);
+			state[21] = b[21] ^ (~b[22] & b[23]);
+			state[22] = b[22] ^ (~b[23] & b[24]);
+			state[23] = b[23] ^ (~b[24] & b[20]);
+			state[24] = b[24] ^ (~b[20] & b[21]);
+		}
 	}
 }
