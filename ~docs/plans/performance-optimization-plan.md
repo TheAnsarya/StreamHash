@@ -1,4 +1,4 @@
-# StreamHash Performance Optimization Plan
+﻿# StreamHash Performance Optimization Plan
 
 ## Benchmark Summary (38MB data, Feb 2026)
 

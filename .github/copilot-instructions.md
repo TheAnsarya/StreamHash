@@ -292,3 +292,26 @@ The goal is to implement EVERYTHING we plan to implement. Complexity is not an e
 - Then create/update the issue with proper labels
 - Labels should include: `performance`, `bug`, `enhancement`, `documentation`, `investigation`, `high-priority`, `medium-priority`, `low-priority`
 
+## ⚠️ CRITICAL: Never Revert to External Libraries When Things Get Hard
+
+**Reverting to BouncyCastle or other external libraries is ALWAYS a last resort.**
+
+When implementing native algorithms and encountering bugs or difficulties:
+1. **Research first** - Study the algorithm specification, reference implementations, and papers
+2. **Debug systematically** - Use test vectors, check constants, verify byte order
+3. **Break down the problem** - Identify exactly which part is failing
+4. **Plan the fix** - Document what needs to change before making changes
+5. **Implement the fix** - Apply the fix methodically, testing each step
+6. **Create issues if blocked** - If truly stuck, create a detailed issue for later
+
+**NEVER:**
+- Give up at the first sign of difficulty
+- Immediately revert to BouncyCastle when tests fail
+- Abandon native implementations because they're "too complex"
+- Throw away working code because one part has a bug
+
+**Reverting is only acceptable when:**
+- The algorithm is fundamentally incompatible with our architecture
+- After exhaustive debugging and research (document attempts)
+- With explicit user approval
+
