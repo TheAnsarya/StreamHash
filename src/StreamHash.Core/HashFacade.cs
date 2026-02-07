@@ -1,7 +1,6 @@
 ﻿using Crc32Hash = System.IO.Hashing.Crc32;
 using System.IO.Hashing;
 using System.Security.Cryptography;
-using Org.BouncyCastle.Crypto.Digests;
 using StreamHash.Core.Abstractions;
 
 namespace StreamHash.Core;
@@ -15,9 +14,9 @@ namespace StreamHash.Core;
 /// It unifies access to:
 /// </para>
 /// <list type="bullet">
-/// <item><description>StreamHash's native streaming implementations (MurmurHash, CityHash, etc.)</description></item>
+/// <item><description>StreamHash's native streaming implementations (MurmurHash, CityHash, Skein, etc.)</description></item>
 /// <item><description>.NET built-in algorithms (CRC32, xxHash, SHA-256, etc.)</description></item>
-/// <item><description>BouncyCastle cryptographic algorithms (SHA-3, BLAKE, RIPEMD, etc.)</description></item>
+/// <item><description>Native cryptographic algorithms (SHA-3, BLAKE, RIPEMD, Whirlpool, Groestl, JH)</description></item>
 /// </list>
 /// <para>
 /// <b>Algorithm Categories:</b>
@@ -568,10 +567,10 @@ public static class HashFacade {
 			HashAlgorithm.Skein256 => SkeinOptimizedFactory.CreateSkein256(),
 			HashAlgorithm.Skein512 => SkeinOptimizedFactory.CreateSkein512(),
 			HashAlgorithm.Skein1024 => SkeinOptimizedFactory.CreateSkein1024(),
-			HashAlgorithm.Groestl256 => BouncyCastleFactory.CreateGroestl256(),
-			HashAlgorithm.Groestl512 => BouncyCastleFactory.CreateGroestl512(),
-			HashAlgorithm.Jh256 => BouncyCastleFactory.CreateJh256(),
-			HashAlgorithm.Jh512 => BouncyCastleFactory.CreateJh512(),
+			HashAlgorithm.Groestl256 => new Groestl256(),
+			HashAlgorithm.Groestl512 => new Groestl512(),
+			HashAlgorithm.Jh256 => new JH256(),
+			HashAlgorithm.Jh512 => new JH512(),
 			HashAlgorithm.Sm3 => Sm3Factory.CreateSm3(),
 
 			_ => throw new NotSupportedException($"Streaming not supported for {algorithm}.")
