@@ -147,7 +147,7 @@ public static class HashFacade {
 			HashAlgorithm.Jh256 => ComputeJh256(data),
 			HashAlgorithm.Jh512 => ComputeJh512(data),
 			HashAlgorithm.KangarooTwelve => ComputeKangarooTwelveHash(data),
-			HashAlgorithm.Sm3 => BouncyCastleFactory.ComputeHash(new SM3Digest(), data),
+			HashAlgorithm.Sm3 => Sm3Factory.ComputeSm3(data),
 
 			_ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unknown hash algorithm")
 		};
@@ -572,7 +572,7 @@ public static class HashFacade {
 			HashAlgorithm.Groestl512 => BouncyCastleFactory.CreateGroestl512(),
 			HashAlgorithm.Jh256 => BouncyCastleFactory.CreateJh256(),
 			HashAlgorithm.Jh512 => BouncyCastleFactory.CreateJh512(),
-			HashAlgorithm.Sm3 => BouncyCastleFactory.CreateSm3(),
+			HashAlgorithm.Sm3 => Sm3Factory.CreateSm3(),
 
 			_ => throw new NotSupportedException($"Streaming not supported for {algorithm}.")
 		};
