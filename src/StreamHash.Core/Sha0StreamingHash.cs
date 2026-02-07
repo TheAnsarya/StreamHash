@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// SHA-0 streaming hash implementation.
