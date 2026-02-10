@@ -5,6 +5,30 @@ All notable changes to StreamHash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-02-10
+
+### Added
+- **🎯 Basic Hashes API** - Optimized for common use case (#new)
+	- `HashFacade.CreateBasicHashesStreaming()` - Specialized method for CRC32, MD5, SHA-1, SHA-256
+	- Perfect for file verification, download validation, archive checksums
+	- ~17.5x faster than `CreateAllStreaming()` when you only need these 4 algorithms
+	- Comprehensive test coverage (3 new unit tests)
+	- Performance benchmarks comparing Basic vs All algorithms
+- **🔑 HashAlgorithmNames Constants** - Type-safe algorithm name constants
+	- 70 public constants for all algorithm names (e.g., `HashAlgorithmNames.Sha256`)
+	- Helper arrays: `BasicHashes`, `Checksums`, `FastNonCrypto`, `Cryptographic`, `All`
+	- Eliminates magic strings, enables IntelliSense, prevents typos
+	- All internal code updated to use constants
+
+### Changed
+- Batch streaming APIs now use `HashAlgorithmNames` constants internally
+- Documentation examples updated to demonstrate constant usage
+
+### Performance
+- Basic hashes streaming: 4 algorithms in ~600μs for 1MB (vs ~10.5ms for all 70)
+- Ideal for common scenarios: file integrity, legacy compatibility, corruption detection
+- Single memory pass, optimized for standard hash verification workflows
+
 ## [1.7.0] - 2026-02-05
 
 ### Added

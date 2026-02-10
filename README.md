@@ -102,6 +102,34 @@ Dictionary<string, string> results = multi.FinalizeAll();
 
 **Performance**: 34MB file with 70 algorithms: **~12 seconds** (~2.8 MB/s effective throughput)
 
+### Basic Hashes API (New in v1.10.0)
+
+For the common use case of verifying files with standard hashes (CRC32, MD5, SHA-1, SHA-256):
+
+```csharp
+using StreamHash.Core;
+
+// Hash a file with the 4 most common algorithms
+using var basicHasher = HashFacade.CreateBasicHashesStreaming();
+using var stream = File.OpenRead("download.zip");
+var buffer = new byte[16 * 1024 * 1024];  // 16MB buffer
+int bytesRead;
+while ((bytesRead = stream.Read(buffer)) > 0) {
+	basicHasher.Update(buffer.AsSpan(0, bytesRead));
+}
+
+var results = basicHasher.FinalizeAll();
+// Use constants instead of magic strings!
+Console.WriteLine($"CRC32:   {results[HashAlgorithmNames.Crc32]}");
+Console.WriteLine($"MD5:     {results[HashAlgorithmNames.Md5]}");
+Console.WriteLine($"SHA-1:   {results[HashAlgorithmNames.Sha1]}");
+Console.WriteLine($"SHA-256: {results[HashAlgorithmNames.Sha256]}");
+```
+
+**Performance**: ~17.5x faster than computing all 70 algorithms when you only need these 4.
+
+**Tip**: Use `HashAlgorithmNames` constants instead of string literals to avoid typos and enable refactoring!
+
 ### HashFacade API (Recommended)
 
 ```csharp

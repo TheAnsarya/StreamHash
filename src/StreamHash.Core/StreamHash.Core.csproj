@@ -10,20 +10,18 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-		<Version>1.9.0</Version>
-		<Authors>TheAnsarya</Authors>
-		<Company>TheAnsarya</Company>
-		<Description>High-performance streaming hash library for .NET 10. All 70 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with batch streaming support for parallel multi-algorithm processing. Comprehensive test coverage (788+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
-		<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;simd;aes-ni;avx2;fnv;djb2;sdbm;batch;parallel</PackageTags>
-		<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
-		<RepositoryType>git</RepositoryType>
-		<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Copyright>Public Domain - The Unlicense</Copyright>
-		<PackageReleaseNotes>v1.9.0: Native SHA3/Keccak implementation with O(1) allocation. Removed nebulae.dotSHA3 dependency. SHA3-256 now uses 496 B constant allocation (was 1MB per MB input). Also includes SHA-512/224 and SHA-512/256 native implementations from v1.8.x.</PackageReleaseNotes>
-
-		<!-- Enable XML documentation -->
+	<Version>1.10.0</Version>
+	<Authors>TheAnsarya</Authors>
+	<Company>TheAnsarya</Company>
+	<Description>High-performance streaming hash library for .NET 10. All 70 algorithms fully accessible including MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Features unified HashFacade API with batch streaming support for parallel multi-algorithm processing. NEW: CreateBasicHashesStreaming() for common CRC32/MD5/SHA-1/SHA-256 use case. Comprehensive test coverage (788+ tests). SIMD-optimized implementations for HighwayHash64 (AVX2), Grøstl (AES-NI), JH (SSSE3), and custom high-performance Whirlpool.</Description>
+	<PackageTags>hash;streaming;murmurhash;cityhash;spookyhash;siphash;farmhash;highwayhash;metrohash;kangarootwelve;wyhash;xxhash;crc32;adler32;sha256;sha3;blake2;keccak;ripemd;whirlpool;tiger;skein;groestl;jh;performance;incremental;simd;aes-ni;avx2;fnv;djb2;sdbm;batch;parallel;basic-hashes;file-verification</PackageTags>
+	<PackageProjectUrl>https://github.com/TheAnsarya/StreamHash</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/TheAnsarya/StreamHash.git</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<Copyright>Public Domain - The Unlicense</Copyright>
+	<PackageReleaseNotes>v1.10.0: NEW CreateBasicHashesStreaming() API for common file verification (CRC32, MD5, SHA-1, SHA-256) - 17.5x faster than all 70 algorithms. NEW HashAlgorithmNames constants class with 70 public constants to eliminate magic strings and enable IntelliSense. Perfect for download verification, archive validation, and legacy compatibility.</PackageReleaseNotes>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 

@@ -30,11 +30,82 @@ public class BatchStreamingTests {
 	[Fact]
 	public void CreateBatchStreaming_WithSpecificAlgorithms_CreatesSelectedHashers() {
 		// Arrange & Act
-		using var batchHasher = HashFacade.CreateBatchStreaming("SHA-256", "BLAKE3", "xxHash64");
+		using var batchHasher = HashFacade.CreateBatchStreaming(
+			HashAlgorithmNames.Sha256,
+			HashAlgorithmNames.Blake3,
+			HashAlgorithmNames.XxHash64);
 
 		// Assert
 		batchHasher.AlgorithmCount.Should().Be(3);
-		batchHasher.AlgorithmNames.Should().Contain(new[] { "SHA-256", "BLAKE3", "xxHash64" });
+		batchHasher.AlgorithmNames.Should().Contain(new[] {
+			HashAlgorithmNames.Sha256,
+			HashAlgorithmNames.Blake3,
+			HashAlgorithmNames.XxHash64
+		});
+	}
+
+	[Fact]
+	public void CreateBasicHashesStreaming_CreatesExactlyFourHashers() {
+		// Arrange & Act
+		using var batchHasher = HashFacade.CreateBasicHashesStreaming();
+
+		// Assert
+		batchHasher.AlgorithmCount.Should().Be(4, "basic hashes should include exactly 4 algorithms");
+		batchHasher.AlgorithmNames.Should().BeEquivalentTo(HashAlgorithmNames.BasicHashes);
+	}
+
+	[Fact]
+	public void CreateBasicHashesStreaming_ProducesCorrectHashes() {
+		// Arrange
+		var data = new byte[1024 * 1024];  // 1MB
+		new Random(42).NextBytes(data);
+
+		// Compute expected hashes individually
+		var expected = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+			[HashAlgorithmNames.Crc32] = HashFacade.ComputeHashHex(HashAlgorithm.Crc32, data),
+			[HashAlgorithmNames.Md5] = HashFacade.ComputeHashHex(HashAlgorithm.Md5, data),
+			[HashAlgorithmNames.Sha1] = HashFacade.ComputeHashHex(HashAlgorithm.Sha1, data),
+			[HashAlgorithmNames.Sha256] = HashFacade.ComputeHashHex(HashAlgorithm.Sha256, data)
+		};
+
+		// Act - Hash with basic hashes streaming
+		using var basicHasher = HashFacade.CreateBasicHashesStreaming();
+		basicHasher.Update(data);
+		var results = basicHasher.FinalizeAll();
+
+		// Assert
+		results.Should().HaveCount(4);
+		foreach (var (algo, expectedHash) in expected) {
+			results.Should().ContainKey(algo);
+			results[algo].Should().Be(expectedHash, $"{algo} hash should match individual result");
+		}
+	}
+
+	[Fact]
+	public void CreateBasicHashesStreaming_ChunkedUpdate_MatchesFullUpdate() {
+		// Arrange
+		var data = new byte[10 * 1024 * 1024];  // 10MB
+		new Random(42).NextBytes(data);
+
+		// Full update
+		using var fullHasher = HashFacade.CreateBasicHashesStreaming();
+		fullHasher.Update(data);
+		var fullResults = fullHasher.FinalizeAll();
+
+		// Chunked update (1MB chunks)
+		using var chunkHasher = HashFacade.CreateBasicHashesStreaming();
+		for (int i = 0; i < data.Length; i += 1024 * 1024) {
+			int size = Math.Min(1024 * 1024, data.Length - i);
+			chunkHasher.Update(data.AsSpan(i, size));
+		}
+		var chunkResults = chunkHasher.FinalizeAll();
+
+		// Assert
+		chunkResults.Should().HaveCount(4);
+		chunkResults[HashAlgorithmNames.Crc32].Should().Be(fullResults[HashAlgorithmNames.Crc32]);
+		chunkResults[HashAlgorithmNames.Md5].Should().Be(fullResults[HashAlgorithmNames.Md5]);
+		chunkResults[HashAlgorithmNames.Sha1].Should().Be(fullResults[HashAlgorithmNames.Sha1]);
+		chunkResults[HashAlgorithmNames.Sha256].Should().Be(fullResults[HashAlgorithmNames.Sha256]);
 	}
 
 	[Fact]

@@ -616,51 +616,28 @@ public static class HashFacade {
 
 		// Add checksums
 		if (algorithms.HasFlag(HashAlgorithmSet.Checksums)) {
-			selectedAlgorithms.AddRange(new[] {
-				"CRC32", "CRC32C", "CRC64", "CRC16-CCITT", "CRC16-MODBUS", "CRC16-USB",
-				"Adler-32", "Fletcher-16", "Fletcher-32"
-			});
+			selectedAlgorithms.AddRange(HashAlgorithmNames.Checksums);
 		}
 
 		// Add fast non-crypto
 		if (algorithms.HasFlag(HashAlgorithmSet.FastNonCrypto)) {
-			selectedAlgorithms.AddRange(new[] {
-				"xxHash32", "xxHash64", "xxHash3", "xxHash128",
-				"MurmurHash3-32", "MurmurHash3-128",
-				"CityHash64", "CityHash128",
-				"FarmHash64", "SpookyHash128", "SipHash-2-4",
-				"HighwayHash64", "MetroHash64", "MetroHash128", "wyhash64",
-				"FNV-1a-32", "FNV-1a-64", "DJB2", "DJB2a", "SDBM", "lose-lose"
-			});
+			selectedAlgorithms.AddRange(HashAlgorithmNames.FastNonCrypto);
 		}
 
 		// Add cryptographic
 		if (algorithms.HasFlag(HashAlgorithmSet.Cryptographic)) {
-			selectedAlgorithms.AddRange(new[] {
-				// MD family
-				"MD2", "MD4", "MD5",
-				// SHA-1/2 family
-				"SHA-0", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512",
-				"SHA-512/224", "SHA-512/256",
-				// SHA-3 & Keccak
-				"SHA3-224", "SHA3-256", "SHA3-384", "SHA3-512",
-				"Keccak-256", "Keccak-512",
-				// BLAKE family
-				"BLAKE-256", "BLAKE-512", "BLAKE2b", "BLAKE2s", "BLAKE3",
-				// RIPEMD family
-				"RIPEMD-128", "RIPEMD-160", "RIPEMD-256", "RIPEMD-320"
-			});
+			selectedAlgorithms.AddRange(HashAlgorithmNames.Cryptographic);
 		}
 
-		// Add experimental/other crypto
+		// Add experimental/other crypto (Note: These are included in Cryptographic array)
 		if (algorithms.HasFlag(HashAlgorithmSet.Experimental)) {
 			selectedAlgorithms.AddRange(new[] {
-				"Whirlpool", "Tiger-192", "GOST-94",
-				"Streebog-256", "Streebog-512",
-				"Skein-256", "Skein-512", "Skein-1024",
-				"Grøstl-256", "Grøstl-512",
-				"JH-256", "JH-512",
-				"KangarooTwelve", "SM3"
+				HashAlgorithmNames.Whirlpool, HashAlgorithmNames.Tiger192, HashAlgorithmNames.Gost94,
+				HashAlgorithmNames.Streebog256, HashAlgorithmNames.Streebog512,
+				HashAlgorithmNames.Skein256, HashAlgorithmNames.Skein512, HashAlgorithmNames.Skein1024,
+				HashAlgorithmNames.Groestl256, HashAlgorithmNames.Groestl512,
+				HashAlgorithmNames.Jh256, HashAlgorithmNames.Jh512,
+				HashAlgorithmNames.KangarooTwelve, HashAlgorithmNames.Sm3
 			});
 		}
 
@@ -699,37 +676,58 @@ public static class HashFacade {
 	}
 
 	/// <summary>
+	/// Creates a specialized batch streaming context for the four most common hash algorithms.
+	/// This is optimized for the common use case of verifying file integrity with standard hashes.
+	/// </summary>
+	/// <returns>A streaming context for CRC32, MD5, SHA-1, and SHA-256.</returns>
+	/// <remarks>
+	/// <para>
+	/// This method provides a convenient way to compute the four most commonly used hash algorithms
+	/// for file verification and integrity checking: CRC32, MD5, SHA-1, and SHA-256.
+	/// It's significantly faster than computing all 70 algorithms when you only need these basic hashes.
+	/// </para>
+	/// <para>
+	/// Common use cases:
+	/// <list type="bullet">
+	/// <item><description>File integrity verification (SHA-256)</description></item>
+	/// <item><description>Legacy compatibility (MD5, SHA-1)</description></item>
+	/// <item><description>Corruption detection (CRC32)</description></item>
+	/// <item><description>Download verification</description></item>
+	/// <item><description>Archive validation</description></item>
+	/// </list>
+	/// </para>
+	/// </remarks>
+	/// <example>
+	/// <code>
+	/// // Hash a file with the 4 basic algorithms
+	/// using var basicHasher = HashFacade.CreateBasicHashesStreaming();
+	/// using var stream = File.OpenRead("download.zip");
+	/// var buffer = new byte[16 * 1024 * 1024];  // 16MB buffer
+	/// int bytesRead;
+	/// while ((bytesRead = stream.Read(buffer)) > 0) {
+	///     basicHasher.Update(buffer.AsSpan(0, bytesRead));
+	/// }
+	/// var results = basicHasher.FinalizeAll();
+	/// Console.WriteLine($"CRC32:  {results["CRC32"]}");
+	/// Console.WriteLine($"MD5:    {results["MD5"]}");
+	/// Console.WriteLine($"SHA-1:  {results["SHA-1"]}");
+	/// Console.WriteLine($"SHA-256: {results["SHA-256"]}");
+	/// </code>
+	/// </example>
+	public static IMultiStreamingHashBytes CreateBasicHashesStreaming() {
+		return new Implementation.MultiStreamingHashBytes(HashAlgorithmNames.BasicHashes);
+	}
+
+	#endregion
+
+	#region Algorithm Information
+
+	/// <summary>
 	/// Gets a list of all supported algorithm names.
 	/// </summary>
-	/// <returns>Array of all 71 algorithm names.</returns>
+	/// <returns>Array of all 70 algorithm names.</returns>
 	public static string[] GetAllAlgorithmNames() {
-		return new[] {
-			// Checksums (9)
-			"CRC32", "CRC32C", "CRC64", "CRC16-CCITT", "CRC16-MODBUS", "CRC16-USB",
-			"Adler-32", "Fletcher-16", "Fletcher-32",
-			// Fast Non-Crypto (22)
-			"xxHash32", "xxHash64", "xxHash3", "xxHash128",
-			"MurmurHash3-32", "MurmurHash3-128",
-			"CityHash64", "CityHash128",
-			"FarmHash64", "SpookyHash128", "SipHash-2-4",
-			"HighwayHash64", "MetroHash64", "MetroHash128", "wyhash64",
-			"FNV-1a-32", "FNV-1a-64", "DJB2", "DJB2a", "SDBM", "lose-lose",
-			// Cryptographic (26)
-			"MD2", "MD4", "MD5",
-			"SHA-0", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512",
-			"SHA-512/224", "SHA-512/256",
-			"SHA3-224", "SHA3-256", "SHA3-384", "SHA3-512",
-			"Keccak-256", "Keccak-512",
-			"BLAKE-256", "BLAKE-512", "BLAKE2b", "BLAKE2s", "BLAKE3",
-			"RIPEMD-128", "RIPEMD-160", "RIPEMD-256", "RIPEMD-320",
-			// Other Crypto (14)
-			"Whirlpool", "Tiger-192", "GOST-94",
-			"Streebog-256", "Streebog-512",
-			"Skein-256", "Skein-512", "Skein-1024",
-			"Grøstl-256", "Grøstl-512",
-			"JH-256", "JH-512",
-			"KangarooTwelve", "SM3"
-		};
+		return HashAlgorithmNames.All;
 	}
 
 	#endregion
