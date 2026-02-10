@@ -1,4 +1,4 @@
-namespace StreamHash.Core;
+﻿namespace StreamHash.Core;
 
 /// <summary>
 /// Public constants for all 70 hash algorithm names.
@@ -7,7 +7,7 @@ namespace StreamHash.Core;
 /// <remarks>
 /// <para>
 /// These constants match the exact string identifiers used by the batch streaming API
-/// (<see cref="HashFacade.CreateBatchStreaming(string[])"/>, <see cref="IMultiStreamingHashBytes"/>).
+/// (<see cref="HashFacade.CreateBatchStreaming(string[])"/>).
 /// Using these constants instead of string literals provides compile-time safety and IntelliSense support.
 /// </para>
 /// </remarks>
