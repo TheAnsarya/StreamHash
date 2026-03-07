@@ -1,0 +1,31 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build NuGet Package",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"pack",
+				"src/StreamHash.Core/StreamHash.Core.csproj",
+				"-c",
+				"Release",
+				"-o",
+				"./nupkgs"
+			]
+		},
+		{
+			"label": "Build NuGet Package v1.10.0",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"pack",
+				"src/StreamHash.Core/StreamHash.Core.csproj",
+				"-c",
+				"Release",
+				"-o",
+				"./nupkgs"
+			]
+		}
+	]
+}

@@ -18,7 +18,7 @@
 ///     HashAlgorithmNames.Sha256,
 ///     HashAlgorithmNames.Blake3,
 ///     HashAlgorithmNames.XxHash64);
-///     
+///
 /// hasher.Update(data);
 /// var results = hasher.FinalizeAll();
 /// string sha256Hash = results[HashAlgorithmNames.Sha256];
