@@ -111,6 +111,7 @@ The following are verified hash values for the 64 KB (65,536 byte) test file:
 ## Full Reference Values
 
 For complete hash values for all file sizes, see:
+
 - [ReferenceHashValues.cs](../src/StreamHash.Core/Testing/ReferenceHashValues.cs)
 
 ## Regenerating Reference Values
@@ -126,4 +127,3 @@ This runs tests that output hash values for each file size in a format ready to 
 ## Version History
 
 - **2025-07-14**: Initial reference values generated for 64KB, 69KB, 767KB, 3MB, 38.3MB files
-

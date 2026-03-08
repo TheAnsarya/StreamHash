@@ -131,6 +131,7 @@ using var byteKeyHasher = new HighwayHash64(keyBytes);
 ### DoS Resistance
 
 With a secret key, HighwayHash provides:
+
 - **Unpredictable output** for unknown key
 - **Collision resistance** against adversarial inputs
 - **Protection** against hash-flooding attacks
@@ -138,6 +139,7 @@ With a secret key, HighwayHash provides:
 ### Limitations
 
 ⚠️ **NOT a cryptographic hash**
+
 - Not suitable for digital signatures
 - Not suitable for password hashing
 - Not suitable for message authentication (use HMAC)
@@ -155,12 +157,14 @@ This implementation provides the scalar fallback for maximum portability.
 ## When to Use HighwayHash
 
 ✅ **Good for:**
+
 - Network packet hashing (with secret key)
 - Load balancing (DoS protection)
 - High-throughput data processing
 - SipHash replacement (higher speed)
 
 ❌ **Not suitable for:**
+
 - Cryptographic purposes
 - Password storage
 - Digital signatures

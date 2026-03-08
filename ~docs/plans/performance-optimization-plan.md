@@ -3,6 +3,7 @@
 ## Benchmark Summary (38MB data, Feb 2026)
 
 ### Fast Algorithms (< 50ms for 38MB)
+
 | Algorithm | Time | Ratio vs MD5 | Status |
 |-----------|------|--------------|--------|
 | xxHash3 | 4.4 ms | 0.07x | ✅ Built-in |
@@ -18,6 +19,7 @@
 | SipHash-2-4 | 42.8 ms | 0.68x | ✅ Native streaming |
 
 ### Medium Algorithms (50-500ms for 38MB)
+
 | Algorithm | Time | Ratio vs MD5 | Status |
 |-----------|------|--------------|--------|
 | MD5 | 62.9 ms | 1.00x | ✅ Built-in |
@@ -31,6 +33,7 @@
 | Whirlpool | 427.6 ms | 6.80x | ⚠️ Custom impl |
 
 ### Slow Algorithms (> 500ms for 38MB) - Need Optimization
+
 | Algorithm | Time | Ratio vs MD5 | Status |
 |-----------|------|--------------|--------|
 | RIPEMD-160 | 621.7 ms | 9.89x | ⚠️ acryptohashnet |
@@ -60,19 +63,19 @@
 
 ### Medium Priority
 
-4. **Native Streebog** - Replace BouncyCastle
+1. **Native Streebog** - Replace BouncyCastle
    - Current: 904.8 ms (14.39x MD5)
    - Target: ~300 ms (5x MD5)
    - Approach: Optimized GOST R 34.11-2012 implementation
 
-5. **Native Skein** - Replace BouncyCastle
+2. **Native Skein** - Replace BouncyCastle
    - Current: 110.2 ms (1.75x MD5) - already decent
    - Target: ~80 ms (1.3x MD5)
    - Approach: Threefish block cipher optimization
 
 ### Low Priority (Inherently Slow)
 
-6. **GOST-94 optimization** - Limited gain possible
+1. **GOST-94 optimization** - Limited gain possible
    - Current: 4,065 ms (64.64x MD5)
    - Note: Uses 32-round block cipher per block - inherently O(n*32)
    - Max possible: ~2,000 ms with lookup table optimization
@@ -81,12 +84,14 @@
 ## Future Benchmarking
 
 ### Multi-Gigabyte File Testing (TODO)
+
 - Test with 1GB, 5GB, 10GB files
 - Measure memory pressure and GC impact
 - Verify streaming doesn't accumulate allocations
 - Test file-based streaming vs memory-based
 
 ### Real-World Scenarios
+
 - ISO file hashing (~700MB-4.7GB)
 - Video file verification (1-50GB)
 - Archive verification (variable)
@@ -95,11 +100,13 @@
 ## Memory Allocation Goals
 
 All algorithms should have:
+
 - < 1KB allocation per hash operation
 - Zero allocation growth with file size (streaming)
 - ArrayPool usage for internal buffers
 
 ### Current Status
+
 - ✅ GOST-94: 728 B (down from 1.5 MB!)
 - ✅ Native algorithms: 40-200 B
 - ⚠️ BouncyCastle: 900-1000 B (acceptable)
@@ -108,6 +115,7 @@ All algorithms should have:
 ## Test Coverage Requirements
 
 Every algorithm must have:
+
 1. Empty input test
 2. "abc" test vector (if available)
 3. Large input consistency test

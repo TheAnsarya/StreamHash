@@ -75,6 +75,27 @@ StreamHash/
 - All markdown files must have proper heading hierarchy
 - Include blank line at end of file
 
+### ⚠️ MANDATORY: Fix Markdownlint Warnings
+
+Always fix markdownlint warnings when creating or editing markdown files.
+
+Minimum rules to enforce in every markdown update:
+
+- **MD022** - Blank lines above and below headings
+- **MD031** - Blank lines around fenced code blocks
+- **MD032** - Blank lines around lists
+- **MD047** - File ends with a single newline
+
+Generate markdown content with proper spacing by default to avoid avoidable follow-up formatting edits.
+
+### ⚠️ MANDATORY: Documentation Link-Tree
+
+Every markdown or documentation file must be discoverable from `README.md` through a maintained link-tree.
+
+- Update `README.md` when adding docs
+- Update docs index pages when reorganizing docs
+- Avoid orphan markdown files
+
 **When creating or editing files:**
 1. Always use tabs for indentation
 2. Always add a blank line at the end

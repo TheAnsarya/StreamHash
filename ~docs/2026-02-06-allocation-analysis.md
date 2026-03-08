@@ -6,6 +6,7 @@
 ## 📊 Performance Summary
 
 ### Current State (v1.7.0 / v1.4.0)
+
 | Metric | 50MB File | Notes |
 |--------|-----------|-------|
 | Time | 17.5s | 3x faster than baseline |
@@ -15,6 +16,7 @@
 | Gen2 GC | 16,000 | Full GCs hurt performance |
 
 ### Target Performance
+
 | Metric | Target | Gap |
 |--------|--------|-----|
 | Time | <5s | 3.5x slower |
@@ -24,9 +26,11 @@
 ## 🔍 Algorithm Implementation Breakdown
 
 ### Native Implementations (30 algorithms)
+
 These use our custom code or .NET built-in - **minimal allocations**:
 
 #### Checksums & CRCs (9) - System.IO.Hashing + Custom
+
 | Algorithm | Implementation | Allocation Per Update |
 |-----------|---------------|----------------------|
 | CRC32 | System.IO.Hashing.Crc32 | ~16 bytes (struct) |
@@ -40,6 +44,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 | Fletcher32 | Custom Fletcher32 | ~8 bytes |
 
 #### Fast Non-Crypto (21) - Native Streaming Implementations
+
 | Algorithm | Implementation | Allocation Per Update |
 |-----------|---------------|----------------------|
 | xxHash32 | System.IO.Hashing.XxHash32 | ~16 bytes (struct) |
@@ -65,6 +70,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 **Native total state per file: ~2KB** (negligible)
 
 ### .NET Built-in Cryptographic (5) - IncrementalHash
+
 | Algorithm | Implementation | Allocation Per Update |
 |-----------|---------------|----------------------|
 | MD5 | System.Security.Cryptography | ~256 bytes |
@@ -76,6 +82,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 **.NET crypto total: ~1.8KB** (still negligible)
 
 ### Custom Crypto (6) - StreamHash Implementations
+
 | Algorithm | Implementation | Allocation Per Update |
 |-----------|---------------|----------------------|
 | SHA-0 | Sha0StreamingHash | ~256 bytes (64-byte buffer) |
@@ -89,6 +96,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 **Custom crypto total: ~11KB** (acceptable)
 
 ### ⚠️ BouncyCastle Algorithms (29) - THE PROBLEM AREA
+
 | Category | Algorithms | Count |
 |----------|-----------|-------|
 | MD Family | MD2, MD4 | 2 |
@@ -103,6 +111,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 | SM3 | SM3 | 1 |
 
 **BouncyCastle Allocation Pattern:**
+
 - Each BouncyCastle digest creates **new byte[] allocations** on every `BlockUpdate()` call
 - Internal state copies data defensively
 - No `Span<T>` optimization in many algorithms
@@ -114,6 +123,7 @@ These use our custom code or .NET built-in - **minimal allocations**:
 ### Why 25x Memory Overhead?
 
 For a 50MB file processed in 1MB chunks:
+
 ```
 File reads:           50 × 1MB = 50MB base
 Native (30 alg):      50 × ~2KB = ~0.1MB
@@ -140,6 +150,7 @@ Final: ~1,200-1,300MB (24-26x file size) ✓ MATCHES ACTUAL
 ## 🎯 Optimization Priorities
 
 ### Priority 1: Replace Slowest BouncyCastle Algorithms
+
 High-allocation algorithms that could be rewritten natively:
 
 | Algorithm | Urgency | Difficulty | Native Alternative |
@@ -155,12 +166,15 @@ High-allocation algorithms that could be rewritten natively:
 | SM3 | Low | Medium | Chinese standard |
 
 ### Priority 2: BouncyCastle Span<T> Optimization
+
 Some BouncyCastle algorithms now support Span<T>:
+
 - Check BouncyCastle 2.5.1+ for `BlockUpdate(ReadOnlySpan<byte>)` overloads
 - Update adapter to use Span overloads where available
 - Could reduce allocations by 30-50% with zero code changes
 
 ### Priority 3: Native Implementations
+
 Candidates for native implementation (ordered by impact × difficulty):
 
 1. **SHA-3 family** - Keccak permutation with SIMD (SSE2/AVX2)
@@ -186,16 +200,19 @@ Candidates for native implementation (ordered by impact × difficulty):
 ## 🔬 Research: BouncyCastle Alternatives
 
 ### Option A: Keep BouncyCastle with Optimization
+
 - **Pros:** Already works, maintained by community, comprehensive
 - **Cons:** Memory-hungry, not optimized for streaming
 - **Action:** Update to 2.6.x, use Span overloads where available
 
 ### Option B: Replace with Native Implementations
+
 - **Pros:** Full control, optimal allocations, SIMD possible
 - **Cons:** Significant work (months), maintenance burden
 - **Action:** Prioritize highest-impact algorithms (SHA-3, BLAKE2)
 
 ### Option C: Alternative Libraries
+
 | Library | Algorithms | .NET | Span Support | License |
 |---------|-----------|------|--------------|---------|
 | Blake3.NET | BLAKE3 | ✅ | ✅ | MIT |
@@ -204,18 +221,21 @@ Candidates for native implementation (ordered by impact × difficulty):
 | Geralt | BLAKE2b | ✅ | ✅ | MIT |
 | SauceControl.Blake2Fast | BLAKE2 | ✅ | ✅ | MIT |
 
-**Recommendation:** 
+**Recommendation:**
+
 - Replace BouncyCastle BLAKE3 with Blake3.NET (SIMD optimized)
 - Replace BouncyCastle BLAKE2 with SauceControl.Blake2Fast (fastest)
 - Keep BouncyCastle for obscure algorithms (GOST, SM3, Tiger)
 
 ### Option D: Hybrid Approach (Recommended)
+
 1. **Phase 1:** Replace BLAKE2/BLAKE3 with specialized libraries
 2. **Phase 2:** Implement native SHA-3/Keccak with SIMD
 3. **Phase 3:** Implement native RIPEMD (simple)
 4. **Phase 4:** Keep BouncyCastle for exotic algorithms
 
 **Expected Impact:**
+
 - Phase 1: -30% allocations (BLAKE family accounts for ~20-30%)
 - Phase 2: -20% allocations (SHA-3/Keccak)
 - Phase 3: -10% allocations (RIPEMD)
@@ -224,24 +244,28 @@ Candidates for native implementation (ordered by impact × difficulty):
 ## 📋 Action Items
 
 ### Immediate (This Week)
+
 - [x] Document allocation sources
 - [ ] Update BouncyCastle to 2.6.2 (match HashNow benchmark version)
 - [ ] Check for Span<T> support in updated BouncyCastle
 - [ ] Profile individual algorithm allocations with BenchmarkDotNet
 
 ### Short-term (This Month)
+
 - [ ] Replace BLAKE3 with Blake3.NET
 - [ ] Replace BLAKE2b/2s with SauceControl.Blake2Fast
 - [ ] Benchmark: Verify 30%+ allocation reduction
 - [ ] Update HashNow to use new StreamHash version
 
 ### Medium-term (Q2 2026)
+
 - [ ] Implement native SHA-3 with SIMD (SSE2/AVX2)
 - [ ] Implement native Keccak with SIMD
 - [ ] Implement native RIPEMD family
 - [ ] Target: <100MB allocations for 50MB file
 
 ### Long-term (Q3+ 2026)
+
 - [ ] Consider Skein native implementation
 - [ ] Evaluate removing GOST/SM3 (low usage)
 - [ ] Target: <50MB allocations (<2x file size)

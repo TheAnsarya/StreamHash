@@ -47,6 +47,7 @@ public interface IStreamingHash<TResult> : IDisposable
 ```
 
 **Rationale**:
+
 - Generic result type supports uint, ulong, UInt128, byte[]
 - `IDisposable` for ArrayPool buffer cleanup
 - `Reset()` allows hasher reuse without reallocation
@@ -55,6 +56,7 @@ public interface IStreamingHash<TResult> : IDisposable
 ### Base Class Benefits
 
 `StreamingHashBase<T>` provides:
+
 - Automatic buffer management with ArrayPool
 - Block accumulation and dispatch
 - State tracking (finalized, disposed)
@@ -198,22 +200,26 @@ Key-based initialization
 ## 📈 Performance Optimization Plan
 
 ### Phase 1: Correctness First
+
 - Implement algorithms correctly
 - Verify against test vectors
 - Ensure streaming consistency
 
 ### Phase 2: Profile and Measure
+
 - BenchmarkDotNet baseline measurements
 - Memory allocation profiling
 - Hot path identification
 
 ### Phase 3: Micro-Optimizations
+
 - Inline critical methods
 - Use `[MethodImpl(AggressiveInlining)]`
 - Optimize tail handling
 - Reduce branching in hot paths
 
 ### Phase 4: SIMD Implementation
+
 - HighwayHash SIMD (required for performance)
 - Optional SIMD for other algorithms
 - Runtime feature detection
@@ -234,9 +240,11 @@ StreamHash (meta-package)
 ## 🔗 Dependencies
 
 ### Required
+
 - None (pure .NET)
 
 ### Development
+
 - xunit (testing)
 - FluentAssertions (test assertions)
 - BenchmarkDotNet (performance)

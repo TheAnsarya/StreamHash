@@ -1,6 +1,7 @@
 ﻿# BouncyCastle Removal Plan
 
 **Goal:** Eliminate all BouncyCastle dependencies from StreamHash for:
+
 - Reduced package size (~4MB → <1MB)
 - Faster startup (no large assembly loading)
 - Better performance (native SIMD implementations)
@@ -9,6 +10,7 @@
 ## Current State (v1.8.0+)
 
 ### ✅ Already Migrated (18 algorithms)
+
 | Algorithm | Old Source | New Source | Status |
 |-----------|------------|------------|--------|
 | BLAKE2b/2s | BouncyCastle | SauceControl.Blake2Fast | ✅ Complete |
@@ -26,6 +28,7 @@
 ### ❌ Still on BouncyCastle (10 algorithms)
 
 #### GitHub Issues
+
 - **Epic #26**: Complete BouncyCastle Removal
   - **#27**: SHA-512/224, SHA-512/256 - Custom implementation
   - **#28**: RIPEMD-256, RIPEMD-320 - Custom implementation
@@ -34,6 +37,7 @@
   - **#31**: SM3 - Custom implementation
 
 #### ComputeHash (One-Shot)
+
 | Algorithm | BouncyCastle Type | Alternative |
 |-----------|-------------------|-------------|
 | MD2 | MD2Digest | acryptohashnet.MD2 |
@@ -52,6 +56,7 @@
 | SM3 | SM3Digest | Custom impl |
 
 #### CreateStreaming
+
 | Algorithm | BouncyCastle Factory | Alternative |
 |-----------|----------------------|-------------|
 | MD2 | CreateMd2() | AcryptohashnetFactory |
@@ -77,16 +82,19 @@
 ## Migration Strategy
 
 ### Phase 1: Easy Wins (acryptohashnet already has these)
+
 - [x] MD2 → acryptohashnet.MD2
 - [x] MD4 → acryptohashnet.MD4
 - These are already in acryptohashnet, just need to wire them up
 
 ### Phase 2: SHA-2 Truncated Variants
+
 - [ ] SHA-224: Compute full SHA-256, truncate to 224 bits
 - [ ] SHA-512/224: Compute SHA-512 with modified IV, truncate to 224 bits
 - [ ] SHA-512/256: Compute SHA-512 with modified IV, truncate to 256 bits
 
 Implementation approach:
+
 ```csharp
 // SHA-224 is SHA-256 with different IV and truncated output
 public static byte[] ComputeSha224(ReadOnlySpan<byte> data) {
@@ -96,21 +104,25 @@ public static byte[] ComputeSha224(ReadOnlySpan<byte> data) {
 ```
 
 ### Phase 3: RIPEMD Extended
+
 - [ ] RIPEMD-256: Needs custom implementation
 - [ ] RIPEMD-320: Needs custom implementation
 
 Reference: Original RIPEMD paper and test vectors
 
 ### Phase 4: Russian GOST Standards
+
 - [ ] GOST-94 (Gost3411): Custom implementation
 - [ ] Streebog-256 (GOST 34.11-2012): Custom implementation  
 - [ ] Streebog-512 (GOST 34.11-2012): Custom implementation
 
 These are complex algorithms with S-boxes. Consider:
+
 - Port from BouncyCastle (MIT license compatible)
 - Find existing C# implementations
 
 ### Phase 5: SHA-3 Competition Finalists
+
 - [ ] Skein-256/512/1024: Custom implementation (Threefish-based)
 - [ ] Groestl-256/512: Custom implementation (AES-like)
 - [ ] JH-256/512: Custom implementation
@@ -118,6 +130,7 @@ These are complex algorithms with S-boxes. Consider:
 These are complex but well-documented. May find existing C# ports.
 
 ### Phase 6: Chinese Standard
+
 - [ ] SM3: Custom implementation
 
 SM3 is similar to SHA-256 in structure. Reference implementations available.
@@ -125,12 +138,14 @@ SM3 is similar to SHA-256 in structure. Reference implementations available.
 ## Resources
 
 ### Existing Libraries to Evaluate
+
 - **NSec** - Has RIPEMD-256 (not 320)
 - **acryptohashnet** - Already using, has MD2/MD4/Haval/Snefru
 - **Konscious.Security.Cryptography** - Argon2 but no hashes
 - **System.Security.Cryptography** - .NET built-in (limited)
 
 ### Reference Implementations
+
 - BouncyCastle C# (MIT) - Can port algorithms
 - Crypto++ (Boost) - Reference C++ implementations
 - libsodium - Some algorithms available
@@ -138,6 +153,7 @@ SM3 is similar to SHA-256 in structure. Reference implementations available.
 ## Testing Requirements
 
 Each migrated algorithm must:
+
 1. Pass all existing test vectors
 2. Produce identical output to BouncyCastle for random data
 3. Support streaming (IStreamingHash interface)
@@ -163,4 +179,3 @@ Total: ~20-26 hours of implementation work
 - [ ] Performance benchmarks show improvement or parity
 - [ ] Package size reduced by >80%
 - [ ] Zero Gen0/Gen1/Gen2 allocations for large data
-

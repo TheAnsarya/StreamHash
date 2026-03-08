@@ -93,6 +93,7 @@ ulong result = hasher.Finalize();
 ## When to Use FarmHash
 
 ✅ **Good for:**
+
 - Hash tables and maps
 - Data partitioning/sharding
 - Content fingerprinting
@@ -100,6 +101,7 @@ ulong result = hasher.Finalize();
 - Bloom filters
 
 ❌ **Not suitable for:**
+
 - Cryptographic applications
 - DoS-resistant hashing
 - Security-sensitive contexts
@@ -109,6 +111,7 @@ ulong result = hasher.Finalize();
 ⚠️ **NOT cryptographically secure**
 
 FarmHash prioritizes speed over security:
+
 - No keying mechanism
 - Vulnerable to collision attacks
 - Predictable for adversarial inputs

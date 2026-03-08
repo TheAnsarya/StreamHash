@@ -41,6 +41,7 @@ CityHash uses multiple code paths optimized for different input lengths:
 ## Performance
 
 CityHash achieves ~10+ GB/s on modern x86-64 CPUs by:
+
 - Using 64-bit multiplications
 - Minimizing branch mispredictions
 - Optimizing for instruction-level parallelism
@@ -59,6 +60,7 @@ private ulong _w0, _w1;  // Weak hash state
 ### Initialization
 
 On the first 64-byte block:
+
 1. Initialize x, y, z from block data
 2. Compute v0, v1 using WeakHashLen32WithSeeds
 3. Compute w0, w1 for state mixing
@@ -66,6 +68,7 @@ On the first 64-byte block:
 ### Block Processing
 
 Each subsequent block:
+
 1. Mix x, y, z with block data and state
 2. Update v0, v1, w0, w1
 3. Swap z and x for next iteration
@@ -97,6 +100,7 @@ ulong result = hasher.Finalize();
 ⚠️ **NOT cryptographically secure**
 
 CityHash is designed for speed, not security:
+
 - Vulnerable to hash-flooding attacks
 - Predictable output for known inputs
 - No keying mechanism

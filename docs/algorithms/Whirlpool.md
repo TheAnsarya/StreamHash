@@ -55,6 +55,7 @@ byte[] result = whirlpool.FinalizeBytes();
 ## Test Vectors
 
 ### Empty String
+
 ```
 Input:  ""
 Output: 19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a7

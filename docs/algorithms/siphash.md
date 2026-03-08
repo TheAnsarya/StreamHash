@@ -17,12 +17,15 @@ StreamHash implements **SipHash-2-4**, the recommended default variant.
 ## Security Properties
 
 ### PRF Security
+
 When the 128-bit key is secret and uniformly random, SipHash output is computationally indistinguishable from random. This is stronger than just collision resistance.
 
 ### Hash-Flooding Resistance
+
 SipHash was specifically designed to protect hash tables against algorithmic complexity attacks (hash-flooding DoS). Without knowledge of the key, an attacker cannot craft inputs that collide.
 
 ### MAC Security
+
 SipHash can be used as a Message Authentication Code (MAC) with security level ~64 bits (birthday bound considerations).
 
 ## Algorithm Details
@@ -52,6 +55,7 @@ v2 += v1; v1 = rotl(v1, 17); v1 ^= v2; v2 = rotl(v2, 32)
 ### Block Processing
 
 For each 8-byte block m:
+
 ```
 v3 ^= m
 SipRound() × cRounds (2 for SipHash-2-4)
@@ -61,12 +65,14 @@ v0 ^= m
 ### Finalization
 
 1. Construct final block with length in high byte:
+
    ```
    b = (len mod 256) << 56
    b |= remaining bytes (1-7 bytes padded)
    ```
 
 2. Process final block:
+
    ```
    v3 ^= b
    SipRound() × cRounds
@@ -74,12 +80,14 @@ v0 ^= m
    ```
 
 3. XOR marker and final rounds:
+
    ```
    v2 ^= 0xff
    SipRound() × dRounds (4 for SipHash-2-4)
    ```
 
 4. Return result:
+
    ```
    return v0 ^ v1 ^ v2 ^ v3
    ```
@@ -87,39 +95,47 @@ v0 ^= m
 ## Properties
 
 ### Speed
+
 - ~2-4 GB/s on modern 64-bit CPUs
 - Optimized for short messages (hash table keys)
 - Competitive with non-cryptographic hashes for medium inputs
 
 ### Key Requirements
+
 - Must be 128 bits (16 bytes)
 - Should be generated with a cryptographically secure RNG
 - Same key always produces same hash for same input
 
 ### Output Distribution
+
 - Uniform distribution over 64-bit output space
 - All bits equally likely to be 0 or 1
 
 ## Use Cases
 
 ### Ideal For
+
 1. **Hash table protection**: Primary use case
+
    ```csharp
    var key = RandomNumberGenerator.GetBytes(16);
    var hasher = new SipHash24(key);
    ```
 
 2. **Network packet authentication**: Short MACs
+
    ```csharp
    ulong tag = SipHash24.Hash(packet, secretKey);
    ```
 
 3. **Cookie integrity**: Web session tokens
+
    ```csharp
    ulong cookieMAC = SipHash24.Hash(cookieData, serverKey);
    ```
 
 ### Not Ideal For
+
 - Password hashing (use Argon2, bcrypt, scrypt)
 - Long-term signatures (use HMAC-SHA256+)
 - When 128+ bit security is required
@@ -127,12 +143,15 @@ v0 ^= m
 ## Streaming Implementation Notes
 
 ### State Preservation
+
 The streaming implementation maintains:
+
 - `v0, v1, v2, v3`: Current state vectors
 - `k0, k1`: Original key for reset
 - Internal buffer for partial blocks
 
 ### Length Encoding
+
 The total message length is encoded in the final block's high byte. The streaming implementation tracks `TotalBytesProcessed` for this purpose.
 
 ## Test Vectors
@@ -151,17 +170,21 @@ From the official SipHash paper (Appendix A):
 ## Security Considerations
 
 ### Key Management
+
 - Generate keys with `RandomNumberGenerator.GetBytes(16)`
 - Don't reuse keys across different security domains
 - Rotate keys periodically in long-running applications
 
 ### Timing Attacks
+
 SipHash is designed to be constant-time. The StreamHash implementation:
+
 - Uses only data-independent branches
 - Avoids early exits based on input content
 - Uses constant-time rotations
 
 ### Known Attacks
+
 - No practical attacks against SipHash-2-4 are known
 - SipHash-1-2 (fewer rounds) has theoretical weaknesses
 - 64-bit output limits security to ~32 bits against birthday attacks

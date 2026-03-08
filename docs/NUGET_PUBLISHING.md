@@ -26,11 +26,13 @@ This guide provides step-by-step instructions for publishing the StreamHash pack
 ### Step 3: Store Your API Key Securely
 
 Store the API key in a secure location. Options:
+
 - **Windows Credential Manager**
 - **Environment variable** (for CI/CD)
 - **Encrypted file**
 
 For local use, you can set an environment variable:
+
 ```powershell
 # PowerShell - Session only
 $env:NUGET_API_KEY = "your-api-key-here"
@@ -46,17 +48,20 @@ $env:NUGET_API_KEY = "your-api-key-here"
 ### Method 1: Using dotnet CLI (Recommended)
 
 1. **Build the package** (if not already built):
+
 	```powershell
 	cd C:\Users\me\source\repos\StreamHash
 	dotnet pack src\StreamHash.Core\StreamHash.Core.csproj -c Release -o .\nupkg
 	```
 
 2. **Push to NuGet.org**:
+
 	```powershell
 	dotnet nuget push nupkg\StreamHash.1.6.1.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 	```
 
 3. **Push symbols package** (for debugging):
+
 	```powershell
 	dotnet nuget push nupkg\StreamHash.1.6.1.snupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 	```
@@ -66,6 +71,7 @@ $env:NUGET_API_KEY = "your-api-key-here"
 1. **Download nuget.exe**: [https://www.nuget.org/downloads](https://www.nuget.org/downloads)
 
 2. **Push the package**:
+
 	```powershell
 	nuget push nupkg\StreamHash.1.6.1.nupkg -ApiKey $env:NUGET_API_KEY -Source https://api.nuget.org/v3/index.json
 	```
@@ -82,11 +88,13 @@ $env:NUGET_API_KEY = "your-api-key-here"
 ## ⏳ After Publishing
 
 ### Validation Time
+
 - Package uploads are typically validated within **15-30 minutes**
 - Package will appear on NuGet.org search after validation
 - Package page: **[https://www.nuget.org/packages/StreamHash](https://www.nuget.org/packages/StreamHash)**
 
 ### Verify Installation Works
+
 ```powershell
 # Create a test project
 mkdir test-streamhash
@@ -100,12 +108,14 @@ dotnet add package StreamHash --version 1.6.1
 ## 🔄 Future Releases
 
 1. **Update version** in `StreamHash.Core.csproj`:
+
 	```xml
 	<Version>1.7.0</Version>
 	<PackageReleaseNotes>v1.7.0: Description of changes</PackageReleaseNotes>
 	```
 
 2. **Build and publish**:
+
 	```powershell
 	dotnet pack src\StreamHash.Core\StreamHash.Core.csproj -c Release -o .\nupkg
 	dotnet nuget push nupkg\StreamHash.1.7.0.nupkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
@@ -152,18 +162,22 @@ dotnet add package StreamHash --version 1.6.1
 ## 🆘 Troubleshooting
 
 ### "Package already exists"
+
 The version has already been published. Increment the version number.
 
 ### "API key is invalid"
+
 - Check the key hasn't expired
 - Verify the glob pattern matches your package name
 - Ensure the key has push permissions
 
 ### "Package validation failed"
+
 - Check the `.nuspec` metadata in the `.nupkg` file
 - Ensure README.md and LICENSE are included
 - Verify TargetFramework is valid
 
 ### Package not showing in search
+
 - Wait 15-30 minutes for indexing
 - Check package page directly: `https://www.nuget.org/packages/StreamHash`

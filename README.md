@@ -44,27 +44,35 @@ Many popular hash algorithms (MurmurHash, CityHash, SpookyHash, etc.) don't have
 The `HashFacade` class provides one-shot and streaming access to **all 70 algorithms**:
 
 #### Checksums (9)
+
 CRC32, CRC32C, CRC64, CRC-16-CCITT, CRC-16-MODBUS, CRC-16-USB, Adler-32, Fletcher-16, Fletcher-32
 
 #### Fast Non-Crypto (22)
+
 xxHash32/64/3/128, MurmurHash3-32/128, CityHash64/128, FarmHash64, SpookyHash128, SipHash-2-4, HighwayHash64, MetroHash64/128, wyhash64, FNV-1a (32/64), DJB2, DJB2a, SDBM, Lose Lose
 
 #### MD Family (3)
+
 MD2, MD4, MD5
 
 #### SHA-1/2 Family (9)
+
 SHA-0, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA-512/224, SHA-512/256
 
 #### SHA-3 & Keccak (6)
+
 SHA3-224, SHA3-256, SHA3-384, SHA3-512, Keccak-256, Keccak-512
 
 #### BLAKE Family (5)
+
 BLAKE-256, BLAKE-512, BLAKE2b, BLAKE2s, BLAKE3
 
 #### RIPEMD Family (4)
+
 RIPEMD-128, RIPEMD-160, RIPEMD-256, RIPEMD-320
 
 #### Other Cryptographic (14)
+
 Whirlpool, Tiger-192, GOST R 34.11-94, Streebog-256, Streebog-512, Skein-256, Skein-512, Skein-1024, Grøstl-256, Grøstl-512, JH-256, JH-512, KangarooTwelve, SM3
 
 ## 🚀 Quick Start
@@ -199,6 +207,7 @@ dotnet run -c Release --project benchmarks/StreamHash.Benchmarks
 Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 
 ### Fast Non-Crypto Hashes (1MB data)
+
 | Algorithm | Time | Throughput |
 |-----------|-----:|------------|
 | CRC32 | 36 µs | 27.8 GB/s |
@@ -215,6 +224,7 @@ Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 | **HighwayHash64** | **756 µs** | **1.4 GB/s** (AVX2 SIMD in v1.6.2) |
 
 ### Cryptographic Hashes (1MB data)
+
 | Algorithm | Time | Notes |
 |-----------|-----:|-------|
 | Tiger-192 | 2.19 ms | Fast crypto |
@@ -250,6 +260,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 **[Blake3](https://www.nuget.org/packages/Blake3)** - Native SIMD Rust wrapper for BLAKE3, 10-20x faster than pure C#.
 
 **Algorithms from Blake3.NET (1):**
+
 - **BLAKE3** (native SIMD via Rust bindings)
 
 ### SauceControl.Blake2Fast - BLAKE2 SIMD 🔥
@@ -257,6 +268,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 **[SauceControl.Blake2Fast](https://www.nuget.org/packages/SauceControl.Blake2Fast)** - Fastest RFC 7693 BLAKE2 implementation for .NET with SSE2-AVX512 SIMD support.
 
 **Algorithms from Blake2Fast (4):**
+
 - **BLAKE-256, BLAKE-512** (BLAKE2b variants)
 - **BLAKE2b** (512-bit)
 - **BLAKE2s** (256-bit)
@@ -266,6 +278,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 **[nebulae.dotSHA3](https://www.nuget.org/packages/nebulae.dotSHA3)** - XKCP-based native SHA-3 implementation with AVX2/NEON acceleration.
 
 **Algorithms from dotSHA3 (4):**
+
 - **SHA3-224, SHA3-256, SHA3-384, SHA3-512**
 
 ### acryptohashnet - Pure Managed C# 💎
@@ -273,6 +286,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 **[acryptohashnet](https://www.nuget.org/packages/acryptohashnet)** - Pure managed C# implementations with low memory footprint, compatible with `System.Security.Cryptography.HashAlgorithm`.
 
 **Algorithms from acryptohashnet (5):**
+
 - **Keccak-256, Keccak-512** (original Keccak, not SHA-3)
 - **RIPEMD-128, RIPEMD-160**
 - **Tiger-192**
@@ -282,6 +296,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 **[BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - Comprehensive cryptographic library (v2.6.2).
 
 **Algorithms from BouncyCastle (12):**
+
 - **MD Family:** MD2, MD4
 - **SHA Family:** SHA-224, SHA-512/224, SHA-512/256
 - **RIPEMD Family:** RIPEMD-256, RIPEMD-320
@@ -290,6 +305,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 - **Other:** SM3
 
 **Links:**
+
 - **[BouncyCastle C# GitHub](https://github.com/bcgit/bc-csharp)** - The Legion of the Bouncy Castle (C#/.NET)
 - **[BouncyCastle Java GitHub](https://github.com/bcgit/bc-java)** - The original Java implementation
 - **[NuGet: BouncyCastle.Cryptography](https://www.nuget.org/packages/BouncyCastle.Cryptography)** - v2.6.2+, MIT License
@@ -297,6 +313,7 @@ StreamHash leverages several excellent libraries for cryptographic and high-perf
 ### Native StreamHash Implementations
 
 Custom optimized implementations built into StreamHash:
+
 - **Grøstl-256/512** (AES-NI + T-tables)
 - **JH-256/512** (bit-sliced + SSSE3)
 - **Whirlpool** (custom T-tables, 3.2x faster than BouncyCastle)
@@ -314,4 +331,3 @@ Custom optimized implementations built into StreamHash:
 - [SpookyHash](http://burtleburtle.net/bob/hash/spooky.html) - Bob Jenkins' SpookyHash
 - [SipHash](https://github.com/veorq/SipHash) - Reference SipHash implementation
 - [XKCP](https://github.com/XKCP/XKCP) - Keccak/SHA-3 reference implementations
-

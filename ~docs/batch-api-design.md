@@ -23,6 +23,7 @@ foreach (var hasher in hashers.Values) {
 ```
 
 **Performance Impact:**
+
 - 70x function call overhead per chunk
 - 70x memory copies of shared buffer
 - No parallelization (sequential loop)
@@ -227,16 +228,19 @@ public void Update(ReadOnlySpan<byte> data) {
 ```
 
 **Pros:**
+
 - ✅ Simple to implement
 - ✅ Scales with CPU cores (8 cores = ~8x speedup)
 - ✅ No algorithm-specific changes needed
 
 **Cons:**
+
 - ❌ Thread overhead for small chunks
 - ❌ Less efficient on CPUs with <4 cores
 - ❌ Still 70x memory copies
 
 **Expected Performance:**
+
 - 8-core CPU: 8x faster (~7.6 MB/s → ~60 MB/s)
 - 4-core CPU: 4x faster (~7.6 MB/s → ~30 MB/s)
 - 2-core CPU: 2x faster (~7.6 MB/s → ~15 MB/s)
@@ -254,15 +258,18 @@ public void Update(ReadOnlySpan<byte> data) {
 ```
 
 **Pros:**
+
 - ✅ Better cache utilization
 - ✅ Predictable performance
 - ✅ No threading overhead
 
 **Cons:**
+
 - ❌ Doesn't scale with cores
 - ❌ Still 70x function calls
 
 **Expected Performance:**
+
 - Slightly faster than current (~1.5x) due to better cache locality
 
 ### Strategy 3: SIMD Multi-Hash (Future)
@@ -277,16 +284,19 @@ unsafe void UpdateAllSimd(ReadOnlySpan<byte> data, Span<IStreamingHashBytes> has
 ```
 
 **Pros:**
+
 - ✅ Massive speedup (16-32x possible)
 - ✅ Single memory pass
 - ✅ Maximum CPU utilization
 
 **Cons:**
+
 - ❌ Very complex to implement
 - ❌ Algorithm-specific SIMD code needed
 - ❌ Requires CPU with AVX2/AVX-512
 
 **Expected Performance:**
+
 - 16-32x faster (~15-30 MB/s → ~300-500 MB/s)
 
 ## 📊 Performance Targets
@@ -446,11 +456,13 @@ public class BatchHasherBenchmarks {
 Once StreamHash v1.7.0 is released with batch API:
 
 1. **Update HashNow dependency:**
+
    ```xml
    <PackageReference Include="StreamHash" Version="1.7.0" />
    ```
 
 2. **Simplify StreamingHasher.cs:**
+
    ```csharp
    public class StreamingHasher : IDisposable {
        private readonly IMultiStreamingHashBytes _batchHasher;

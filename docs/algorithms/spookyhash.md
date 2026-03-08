@@ -20,6 +20,7 @@ SpookyHash uses different algorithms for short and long messages:
 ### Short Messages (< 192 bytes)
 
 For messages under 192 bytes, a simpler 4-state algorithm is used:
+
 - State: 4 × 64-bit words (h0, h1, h2, h3)
 - Processes 32 bytes at a time
 - Different mixing function (ShortMix)
@@ -27,6 +28,7 @@ For messages under 192 bytes, a simpler 4-state algorithm is used:
 ### Long Messages (≥ 192 bytes)
 
 For longer messages:
+
 - State: 12 × 64-bit words (s0 through s11)
 - Processes 96 bytes per iteration
 - Full mixing function with all 12 state words
@@ -36,11 +38,13 @@ For longer messages:
 ### Initialization
 
 **Magic Constant:**
+
 ```
 SC = 0xdeadbeefdeadbeef (golden ratio)
 ```
 
 **Long Message Init:**
+
 ```
 s0 = seed1;  s1 = seed2;  s2 = SC
 s3 = seed1;  s4 = seed2;  s5 = SC
@@ -49,6 +53,7 @@ s9 = seed1;  s10 = seed2; s11 = SC
 ```
 
 **Short Message Init:**
+
 ```
 h0 = seed1; h1 = seed2
 h2 = SC;    h3 = SC
@@ -128,11 +133,14 @@ h1 ^= h0;  h0 = rotl(h0, 63);  h1 += h0
 ## Properties
 
 ### Avalanche Effect
+
 SpookyHash achieves excellent avalanche:
+
 - Every input bit affects every output bit
 - One bit change → ~50% of output bits change
 
 ### Speed Characteristics
+
 | Message Size | Throughput |
 |--------------|------------|
 | < 32 bytes | ~2 GB/s |
@@ -140,11 +148,13 @@ SpookyHash achieves excellent avalanche:
 | > 192 bytes | ~8-10 GB/s |
 
 ### Version 2 vs Version 1
+
 Version 1 had a flaw where certain bit patterns could produce the same hash. Version 2 fixes this by ensuring the message length is mixed into the final block differently.
 
 ## Use Cases
 
 ### Ideal For
+
 - Large file checksums
 - Data deduplication
 - Content-addressable storage
@@ -152,6 +162,7 @@ Version 1 had a flaw where certain bit patterns could produce the same hash. Ver
 - Bloom filters with large keys
 
 ### Not Ideal For
+
 - Very short keys (< 16 bytes) - MurmurHash is faster
 - Security-sensitive applications - use SipHash
 - Hash tables with untrusted input - use SipHash
@@ -159,16 +170,20 @@ Version 1 had a flaw where certain bit patterns could produce the same hash. Ver
 ## Streaming Implementation Notes
 
 ### Buffer Size
+
 The streaming implementation uses a 96-byte internal buffer to accumulate partial blocks. For short messages, the entire message may be buffered before the short-message path is used.
 
 ### Short vs Long Detection
+
 In streaming mode, we don't know the total length until finalization. The implementation:
+
 1. Always initializes for long messages
 2. At finalization, checks if total < 192 bytes
 3. If short, runs the short algorithm on buffered data
 4. If long, finalizes the long algorithm state
 
 ### Memory Usage
+
 - Internal buffer: 192 bytes (ArrayPool)
 - State: 96 bytes (12 × 8 bytes)
 - Total: ~300 bytes per hasher instance

@@ -13,6 +13,7 @@ MurmurHash3 is a non-cryptographic hash function created by Austin Appleby in 20
 | MurmurHash3_x64_128 | 128 bits | 16 bytes | 64-bit platforms |
 
 StreamHash implements:
+
 - `MurmurHash3_32` (x86_32 variant)
 - `MurmurHash3_128` (x64_128 variant, recommended for 64-bit)
 
@@ -21,12 +22,14 @@ StreamHash implements:
 ### MurmurHash3-32
 
 **Constants:**
+
 ```
 c1 = 0xcc9e2d51
 c2 = 0x1b873593
 ```
 
 **Block Processing:**
+
 ```
 for each 4-byte block:
     k1 = block as uint32
@@ -40,6 +43,7 @@ for each 4-byte block:
 ```
 
 **Tail Handling (1-3 bytes):**
+
 ```
 k1 = 0
 switch(len & 3):
@@ -53,6 +57,7 @@ switch(len & 3):
 ```
 
 **Finalization (fmix32):**
+
 ```
 h1 ^= len
 h1 ^= h1 >> 16
@@ -66,12 +71,14 @@ return h1
 ### MurmurHash3-128 (x64)
 
 **Constants:**
+
 ```
 c1 = 0x87c37b91114253d5
 c2 = 0x4cf5ad432745937f
 ```
 
 **Block Processing:**
+
 ```
 for each 16-byte block:
     k1 = block[0..8] as uint64
@@ -85,6 +92,7 @@ for each 16-byte block:
 ```
 
 **Finalization (fmix64):**
+
 ```
 k ^= k >> 33
 k *= 0xff51afd7ed558ccd
@@ -97,18 +105,23 @@ return k
 ## Properties
 
 ### Avalanche Effect
+
 Every bit of input affects every bit of output. The finalization mix ensures good avalanche even for inputs that differ by only one bit.
 
 ### Speed
+
 - MurmurHash3-32: ~3-5 GB/s on modern CPUs
 - MurmurHash3-128: ~5-7 GB/s on 64-bit CPUs
 
 ### Collision Resistance
+
 - 32-bit: Expected collision after ~65,536 unique inputs (birthday bound)
 - 128-bit: Practically collision-free for most applications
 
 ### NOT Cryptographically Secure
+
 MurmurHash3 is vulnerable to:
+
 - Preimage attacks
 - Collision attacks with adversarial input
 - Hash-flooding attacks (use SipHash for hash tables with untrusted keys)
@@ -116,6 +129,7 @@ MurmurHash3 is vulnerable to:
 ## Use Cases
 
 ### Good For
+
 - Hash tables and hash maps
 - Bloom filters
 - Data partitioning/sharding
@@ -124,6 +138,7 @@ MurmurHash3 is vulnerable to:
 - Checksums (non-security critical)
 
 ### Not Good For
+
 - Password hashing (use Argon2, bcrypt)
 - Digital signatures (use SHA-256+)
 - Message authentication (use HMAC or SipHash)
@@ -132,12 +147,15 @@ MurmurHash3 is vulnerable to:
 ## Streaming Implementation Notes
 
 ### State Management
+
 The streaming implementation maintains:
+
 - `_h1` (and `_h2` for 128-bit): Accumulated hash state
 - `_seed`: Original seed for reset
 - Internal buffer for partial blocks
 
 ### Consistency Guarantee
+
 ```csharp
 // These produce identical results:
 uint oneShot = MurmurHash3_32.Hash(data, seed);

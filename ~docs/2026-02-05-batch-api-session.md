@@ -1,4 +1,5 @@
 ﻿# StreamHash v1.7.0 - Batch API Implementation Session
+
 **Date:** February 5, 2026  
 **Session:** Part of HashNow & StreamHash performance optimization  
 **Issue:** #17 - Implement batch streaming API
@@ -12,6 +13,7 @@ Implement batch streaming API for parallel multi-algorithm processing to enable 
 ### New Public API
 
 #### IMultiStreamingHashBytes Interface
+
 ```csharp
 public interface IMultiStreamingHashBytes : IDisposable {
     void Update(ReadOnlySpan<byte> data);
@@ -23,6 +25,7 @@ public interface IMultiStreamingHashBytes : IDisposable {
 ```
 
 #### HashAlgorithmSet Enum
+
 ```csharp
 [Flags]
 public enum HashAlgorithmSet {
@@ -36,6 +39,7 @@ public enum HashAlgorithmSet {
 ```
 
 #### HashFacade Extensions
+
 ```csharp
 public static IMultiStreamingHashBytes CreateAllStreaming(HashAlgorithmSet algorithmSet = HashAlgorithmSet.All);
 public static IMultiStreamingHashBytes CreateBatchStreaming(params string[] algorithmNames);
@@ -45,12 +49,14 @@ public static string[] GetAllAlgorithmNames();
 ### Implementation Details
 
 #### MultiStreamingHashBytes Class
+
 - **Parallel Processing**: Uses `Parallel.ForEach` for ≥8 algorithms, sequential for <8
 - **Data Copying**: Copies `ReadOnlySpan<byte>` to array for parallel processing (avoids ref-like type in lambda)
 - **Algorithm Name Parsing**: Case-insensitive, removes dashes/slashes for robust matching
 - **Result Format**: Returns `Dictionary<string, string>` with lowercase hex values
 
 #### ParseAlgorithmName Method
+
 ```csharp
 private static HashAlgorithm ParseAlgorithmName(string name) {
     // Normalize: lowercase, remove dashes and slashes
@@ -71,6 +77,7 @@ private static HashAlgorithm ParseAlgorithmName(string name) {
 ### Test Coverage
 
 #### BatchStreamingTests.cs (10 Tests)
+
 1. **CreateAllStreaming_ReturnsAllAlgorithms** - Verifies 70 algorithms created
 2. **CreateAllStreaming_WithChecksums_ReturnsOnlyChecksums** - Category filtering
 3. **CreateAllStreaming_WithMultipleCategories_ReturnsCombined** - Multiple category flags
@@ -83,6 +90,7 @@ private static HashAlgorithm ParseAlgorithmName(string name) {
 10. **MultiStreamingHashBytes_WithEmptyData_ProducesValidHashes** - Edge case
 
 **Test Results:**
+
 - 762 total tests (752 original + 10 new)
 - 100% pass rate
 - All tests run in <5 seconds
@@ -90,17 +98,20 @@ private static HashAlgorithm ParseAlgorithmName(string name) {
 ### Files Created/Modified
 
 **New Files (3):**
+
 - `src/StreamHash.Core/Abstractions/IMultiStreamingHashBytes.cs` (50 lines)
 - `src/StreamHash.Core/HashAlgorithmSet.cs` (25 lines)
 - `src/StreamHash.Core/Implementation/MultiStreamingHashBytes.cs` (180 lines)
 - `tests/StreamHash.Core.Tests/BatchStreamingTests.cs` (310 lines)
 
 **Modified Files (3):**
+
 - `src/StreamHash.Core/HashFacade.cs` (+155 lines)
 - `src/StreamHash.Core/StreamHash.Core.csproj` (version, description, tags, release notes)
 - `CHANGELOG.md` (+30 lines)
 
 **Total Impact:**
+
 - +685 insertions
 - -5 deletions
 - 8 files changed
@@ -115,6 +126,7 @@ private static HashAlgorithm ParseAlgorithmName(string name) {
 ### Performance Characteristics
 
 #### Parallel Processing Decision
+
 ```csharp
 if (hashers.Count >= 8) {
     // Parallel: 8x speedup on 8-core, 4x on 4-core, 2x on 2-core
@@ -129,6 +141,7 @@ if (hashers.Count >= 8) {
 ```
 
 #### Expected Improvements in Consumer Apps
+
 - **8-core CPU**: 8x faster (50MB from ~52s to ~6.5s)
 - **4-core CPU**: 4x faster (50MB from ~52s to ~13s)
 - **2-core CPU**: 2x faster (50MB from ~52s to ~26s)
@@ -149,17 +162,19 @@ git push origin main
 
 **Commit Hash:** 4aff26d  
 **Branch:** main  
-**Remote:** https://github.com/TheAnsarya/StreamHash.git
+**Remote:** <https://github.com/TheAnsarya/StreamHash.git>
 
 ## 🔄 Integration Status
 
 ### HashNow v1.4.0
+
 - ✅ Integrated batch API
 - ✅ All 108 tests passing
 - ✅ Committed and pushed
 - ⏳ Benchmarks pending
 
 ### Future Integrations
+
 - Any application processing multiple hash algorithms simultaneously
 - ROM hacking tools (GameInfo)
 - File verification utilities
@@ -176,21 +191,25 @@ git push origin main
 ## 🎯 Technical Decisions
 
 ### Why Threshold at 8 Algorithms?
+
 - **Parallel Overhead**: Thread creation, context switching, data copying
 - **Benchmarks**: <8 algorithms show negligible benefit from parallelization
 - **Sweet Spot**: 8+ algorithms maximize core utilization while amortizing overhead
 
 ### Why Copy Data for Parallel Processing?
+
 - **Problem**: `ReadOnlySpan<byte>` is ref-like type, cannot be captured in lambda
 - **Solution**: Copy to `byte[]` array before `Parallel.ForEach`
 - **Trade-off**: Memory copy overhead vs. parallel processing speedup (copy is negligible)
 
 ### Why ParseAlgorithmName Instead of Direct Enum?
+
 - **Flexibility**: Consumers can use string names (e.g., from configuration)
 - **Robustness**: Case-insensitive, handles formatting variations
 - **User-Friendly**: Easier than requiring enum knowledge
 
 ### Why Dictionary<string, string> Return Type?
+
 - **Flexibility**: Easy to serialize to JSON
 - **Named Results**: Clear mapping of algorithm → hash value
 - **Consistency**: Matches existing StreamHash patterns
@@ -198,16 +217,19 @@ git push origin main
 ## 📈 Impact Analysis
 
 ### API Surface
+
 - **Non-Breaking**: All existing APIs unchanged
 - **Additive**: New interfaces and methods added
 - **Backward Compatible**: v1.6.3 consumers can upgrade without changes
 
 ### Performance
+
 - **Best Case**: 8x speedup on 8-core CPUs with 70 algorithms
 - **Worst Case**: No regression for <8 algorithms (sequential path)
 - **Memory**: Minimal overhead (single batch instance vs. dictionary of hashers)
 
 ### Test Coverage
+
 - **Before**: 752 tests
 - **After**: 762 tests (+10 batch API tests)
 - **Coverage**: 100% of new batch API code paths
@@ -225,4 +247,3 @@ git push origin main
 ---
 
 **Status:** ✅ COMPLETE - Ready for NuGet publish and HashNow integration
-
