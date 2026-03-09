@@ -185,6 +185,20 @@ Console.WriteLine($"Hash: {hasher.FinalizeHex()}");
 - [🔧 API Documentation](docs/api/README.md)
 - [📈 Performance Benchmarks](docs/benchmarks.md)
 
+## Markdown Quality Automation
+
+Use these scripts to validate and benchmark markdown structure policy checks (`MD022`, `MD031`, `MD032`, `MD047`):
+
+- `scripts/test-markdown-policy.ps1`
+- `scripts/benchmark-markdown-policy.ps1`
+
+Example:
+
+```powershell
+pwsh -File scripts/test-markdown-policy.ps1
+pwsh -File scripts/benchmark-markdown-policy.ps1 -Runs 5
+```
+
 ## 🏗️ Building
 
 ```bash
