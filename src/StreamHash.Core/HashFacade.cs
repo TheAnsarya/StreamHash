@@ -126,9 +126,9 @@ public static class HashFacade {
 			HashAlgorithm.Blake2s => Blake2Factory.ComputeBlake2s(data),
 			HashAlgorithm.Blake3 => Blake3Factory.ComputeHash(data),
 
-			// RIPEMD Family (acryptohashnet for 128/160, native for 256/320)
-			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.ComputeRipemd128(data),
-			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.ComputeRipemd160(data),
+			// RIPEMD Family (all native implementations)
+			HashAlgorithm.Ripemd128 => Ripemd128Factory.ComputeRipemd128(data),
+			HashAlgorithm.Ripemd160 => Ripemd160Factory.ComputeRipemd160(data),
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.ComputeRipemd256(data),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.ComputeRipemd320(data),
 
@@ -617,9 +617,9 @@ public static class HashFacade {
 			HashAlgorithm.Blake2s => Blake2Factory.CreateBlake2s(),
 			HashAlgorithm.Blake3 => Blake3Factory.CreateBlake3(),
 
-			// RIPEMD Family (acryptohashnet for 128/160, native for 256/320)
-			HashAlgorithm.Ripemd128 => AcryptohashnetFactory.CreateRipemd128(),
-			HashAlgorithm.Ripemd160 => AcryptohashnetFactory.CreateRipemd160(),
+			// RIPEMD Family (all native implementations)
+			HashAlgorithm.Ripemd128 => Ripemd128Factory.CreateRipemd128(),
+			HashAlgorithm.Ripemd160 => Ripemd160Factory.CreateRipemd160(),
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.CreateRipemd256(),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.CreateRipemd320(),
 
