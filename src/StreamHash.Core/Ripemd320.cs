@@ -92,17 +92,22 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 	private bool _finalized;
 	private bool _disposed;
 
+	/// <summary>Initializes a new instance of the <see cref="Ripemd320Digest"/> class.</summary>
 	public Ripemd320Digest() {
 		Reset();
 	}
 
 	// ========== IStreamingHashBytes Implementation ==========
 
+	/// <inheritdoc/>
 	public int BlockSizeBytes => BlockSize;
+	/// <inheritdoc/>
 	public int DigestSize => HashSize;
 	int IStreamingHashBytes.BlockSize => BlockSize;
+	/// <inheritdoc/>
 	public long TotalBytesProcessed => _totalBytes;
 
+	/// <inheritdoc/>
 	public void Update(ReadOnlySpan<byte> data) {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		if (_finalized) throw new InvalidOperationException("Hash already finalized. Call Reset() first.");
@@ -133,6 +138,7 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 		}
 	}
 
+	/// <inheritdoc/>
 	public byte[] FinalizeBytes() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		if (_finalized) throw new InvalidOperationException("Hash already finalized. Call Reset() first.");
@@ -173,6 +179,7 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 		return result;
 	}
 
+	/// <inheritdoc/>
 	public void Reset() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
 		Array.Copy(InitialValuesLeft, _stateLeft, 5);
@@ -183,6 +190,7 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 		_finalized = false;
 	}
 
+	/// <inheritdoc/>
 	public void Dispose() {
 		if (!_disposed) {
 			Array.Clear(_stateLeft);
