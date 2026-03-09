@@ -148,36 +148,6 @@ public static class AcryptohashnetFactory {
 	// RIPEMD Family - Pure managed C# implementation
 	// =========================================================================
 
-	/// <summary>
-	/// Creates a streaming RIPEMD-128 hasher.
-	/// </summary>
-	/// <returns>A streaming hash adapter for RIPEMD-128.</returns>
-	public static IStreamingHashBytes CreateRipemd128() =>
-		new AcryptohashnetAdapter(new acryptohashnet.RIPEMD128(), 16);
-
-	/// <summary>
-	/// Creates a streaming RIPEMD-160 hasher.
-	/// </summary>
-	/// <returns>A streaming hash adapter for RIPEMD-160.</returns>
-	public static IStreamingHashBytes CreateRipemd160() =>
-		new AcryptohashnetAdapter(new acryptohashnet.RIPEMD160(), 20);
-
-	/// <summary>
-	/// Computes RIPEMD-128 hash in one shot.
-	/// </summary>
-	/// <param name="data">The data to hash.</param>
-	/// <returns>The 16-byte RIPEMD-128 hash.</returns>
-	public static byte[] ComputeRipemd128(ReadOnlySpan<byte> data) =>
-		ComputeViaStreaming(CreateRipemd128(), data);
-
-	/// <summary>
-	/// Computes RIPEMD-160 hash in one shot.
-	/// </summary>
-	/// <param name="data">The data to hash.</param>
-	/// <returns>The 20-byte RIPEMD-160 hash.</returns>
-	public static byte[] ComputeRipemd160(ReadOnlySpan<byte> data) =>
-		ComputeViaStreaming(CreateRipemd160(), data);
-
 	// =========================================================================
 	// Keccak Family - Pure managed C# implementation
 	// =========================================================================

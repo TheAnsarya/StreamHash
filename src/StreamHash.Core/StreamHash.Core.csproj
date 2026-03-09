@@ -23,7 +23,6 @@
 	<Copyright>Public Domain - The Unlicense</Copyright>
 	<PackageReleaseNotes>v1.10.0: NEW CreateBasicHashesStreaming() API for common file verification (CRC32, MD5, SHA-1, SHA-256) - 17.5x faster than all 70 algorithms. NEW HashAlgorithmNames constants class with 70 public constants to eliminate magic strings and enable IntelliSense. Perfect for download verification, archive validation, and legacy compatibility.</PackageReleaseNotes>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<NoWarn>$(NoWarn);CS1591</NoWarn>
 
 		<!-- Source Link for debugging -->
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
