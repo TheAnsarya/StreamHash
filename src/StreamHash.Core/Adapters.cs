@@ -320,8 +320,13 @@ internal sealed class Adler32StreamingAdapter : IStreamingHashBytes {
 /// Streaming adapter for Fletcher-16 checksum.
 /// </summary>
 internal sealed class Fletcher16StreamingAdapter : IStreamingHashBytes {
-	private ushort _sum1;
-	private ushort _sum2;
+	// Max bytes before modulo is required to prevent overflow:
+	// sum1 max = 254 + 255*n, sum2 max = 254 + 254*n + 255*n*(n+1)/2
+	// With uint: safe for n=5802 before sum2 could overflow
+	private const int ChunkSize = 5802;
+
+	private uint _sum1;
+	private uint _sum2;
 	private long _totalBytes;
 	private bool _disposed;
 
@@ -331,9 +336,27 @@ internal sealed class Fletcher16StreamingAdapter : IStreamingHashBytes {
 
 	public void Update(ReadOnlySpan<byte> data) {
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		foreach (byte b in data) {
-			_sum1 = (ushort)((_sum1 + b) % 255);
-			_sum2 = (ushort)((_sum2 + _sum1) % 255);
+		int offset = 0;
+		while (offset < data.Length) {
+			int chunkLength = Math.Min(ChunkSize, data.Length - offset);
+			int i = 0;
+			for (; i <= chunkLength - 4; i += 4) {
+				_sum1 += data[offset + i];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 1];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 2];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 3];
+				_sum2 += _sum1;
+			}
+			for (; i < chunkLength; i++) {
+				_sum1 += data[offset + i];
+				_sum2 += _sum1;
+			}
+			_sum1 %= 255;
+			_sum2 %= 255;
+			offset += chunkLength;
 		}
 		_totalBytes += data.Length;
 	}
@@ -360,8 +383,12 @@ internal sealed class Fletcher16StreamingAdapter : IStreamingHashBytes {
 /// Streaming adapter for Fletcher-32 checksum.
 /// </summary>
 internal sealed class Fletcher32StreamingAdapter : IStreamingHashBytes {
-	private uint _sum1;
-	private uint _sum2;
+	// Max bytes before modulo: with ulong sums and mod 65535,
+	// safe chunk size is 5802 (same conservative bound)
+	private const int ChunkSize = 5802;
+
+	private ulong _sum1;
+	private ulong _sum2;
 	private long _totalBytes;
 	private bool _disposed;
 
@@ -371,16 +398,34 @@ internal sealed class Fletcher32StreamingAdapter : IStreamingHashBytes {
 
 	public void Update(ReadOnlySpan<byte> data) {
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		foreach (byte b in data) {
-			_sum1 = (_sum1 + b) % 65535;
-			_sum2 = (_sum2 + _sum1) % 65535;
+		int offset = 0;
+		while (offset < data.Length) {
+			int chunkLength = Math.Min(ChunkSize, data.Length - offset);
+			int i = 0;
+			for (; i <= chunkLength - 4; i += 4) {
+				_sum1 += data[offset + i];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 1];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 2];
+				_sum2 += _sum1;
+				_sum1 += data[offset + i + 3];
+				_sum2 += _sum1;
+			}
+			for (; i < chunkLength; i++) {
+				_sum1 += data[offset + i];
+				_sum2 += _sum1;
+			}
+			_sum1 %= 65535;
+			_sum2 %= 65535;
+			offset += chunkLength;
 		}
 		_totalBytes += data.Length;
 	}
 
 	public byte[] FinalizeBytes() {
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		uint result = (_sum2 << 16) | _sum1;
+		uint result = (uint)((_sum2 << 16) | _sum1);
 		return BitConverter.GetBytes(result);
 	}
 
