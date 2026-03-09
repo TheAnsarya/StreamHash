@@ -181,7 +181,8 @@ internal sealed class NonCryptoHashAdapter128 : IStreamingHashBytes {
 /// Wraps <see cref="System.Security.Cryptography.IncrementalHash"/> for streaming.
 /// </summary>
 internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
-	private readonly System.Security.Cryptography.IncrementalHash _inner;
+	private readonly System.Security.Cryptography.HashAlgorithmName _algorithmName;
+	private System.Security.Cryptography.IncrementalHash _inner;
 	private readonly int _digestSize;
 	private bool _disposed;
 	private long _totalBytes;
@@ -191,6 +192,7 @@ internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
 	/// </summary>
 	/// <param name="algorithmName">The hash algorithm name (MD5, SHA1, SHA256, SHA384, SHA512).</param>
 	public IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName algorithmName) {
+		_algorithmName = algorithmName;
 		_inner = System.Security.Cryptography.IncrementalHash.CreateHash(algorithmName);
 		_digestSize = algorithmName.Name switch {
 			"MD5" => 16,
@@ -218,10 +220,10 @@ internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
 	}
 
 	public void Reset() {
-		// IncrementalHash doesn't support reset, so we just get the current hash and discard it
-		// This is a limitation of the .NET API
+		// IncrementalHash doesn't support reset - dispose and recreate
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		_ = _inner.GetCurrentHash();
+		_inner.Dispose();
+		_inner = System.Security.Cryptography.IncrementalHash.CreateHash(_algorithmName);
 		_totalBytes = 0;
 	}
 
