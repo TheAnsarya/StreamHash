@@ -22,24 +22,46 @@ public class ChunkIndependenceTests {
 	#region Individual Algorithm Chunk Independence
 
 	[Theory]
+	[InlineData(HashAlgorithm.Md2)]
+	[InlineData(HashAlgorithm.Md4)]
+	[InlineData(HashAlgorithm.Md5)]
+	[InlineData(HashAlgorithm.Sha0)]
+	[InlineData(HashAlgorithm.Sha1)]
+	[InlineData(HashAlgorithm.Sha224)]
 	[InlineData(HashAlgorithm.Sha256)]
+	[InlineData(HashAlgorithm.Sha384)]
 	[InlineData(HashAlgorithm.Sha512)]
+	[InlineData(HashAlgorithm.Sha512_224)]
+	[InlineData(HashAlgorithm.Sha512_256)]
+	[InlineData(HashAlgorithm.Sha3_224)]
 	[InlineData(HashAlgorithm.Sha3_256)]
-	[InlineData(HashAlgorithm.Blake3)]
+	[InlineData(HashAlgorithm.Sha3_384)]
+	[InlineData(HashAlgorithm.Sha3_512)]
+	[InlineData(HashAlgorithm.Keccak256)]
+	[InlineData(HashAlgorithm.Keccak512)]
+	[InlineData(HashAlgorithm.Blake256)]
+	[InlineData(HashAlgorithm.Blake512)]
 	[InlineData(HashAlgorithm.Blake2b)]
 	[InlineData(HashAlgorithm.Blake2s)]
-	[InlineData(HashAlgorithm.Md5)]
-	[InlineData(HashAlgorithm.Sha1)]
-	[InlineData(HashAlgorithm.Whirlpool)]
-	[InlineData(HashAlgorithm.Sm3)]
+	[InlineData(HashAlgorithm.Blake3)]
+	[InlineData(HashAlgorithm.Ripemd128)]
 	[InlineData(HashAlgorithm.Ripemd160)]
-	[InlineData(HashAlgorithm.Keccak256)]
-	[InlineData(HashAlgorithm.Streebog256)]
+	[InlineData(HashAlgorithm.Ripemd256)]
+	[InlineData(HashAlgorithm.Ripemd320)]
+	[InlineData(HashAlgorithm.Whirlpool)]
 	[InlineData(HashAlgorithm.Tiger192)]
 	[InlineData(HashAlgorithm.Gost94)]
-	[InlineData(HashAlgorithm.Groestl256)]
-	[InlineData(HashAlgorithm.Jh256)]
+	[InlineData(HashAlgorithm.Streebog256)]
+	[InlineData(HashAlgorithm.Streebog512)]
 	[InlineData(HashAlgorithm.Skein256)]
+	[InlineData(HashAlgorithm.Skein512)]
+	[InlineData(HashAlgorithm.Skein1024)]
+	[InlineData(HashAlgorithm.Groestl256)]
+	[InlineData(HashAlgorithm.Groestl512)]
+	[InlineData(HashAlgorithm.Jh256)]
+	[InlineData(HashAlgorithm.Jh512)]
+	[InlineData(HashAlgorithm.KangarooTwelve)]
+	[InlineData(HashAlgorithm.Sm3)]
 	public void StreamingHash_ChunkSizeIndependent_CryptoAlgorithms(HashAlgorithm algorithm) {
 		VerifyChunkIndependence(algorithm, TestData);
 	}
@@ -48,7 +70,12 @@ public class ChunkIndependenceTests {
 	[InlineData(HashAlgorithm.Crc32)]
 	[InlineData(HashAlgorithm.Crc32C)]
 	[InlineData(HashAlgorithm.Crc64)]
+	[InlineData(HashAlgorithm.Crc16Ccitt)]
+	[InlineData(HashAlgorithm.Crc16Modbus)]
+	[InlineData(HashAlgorithm.Crc16Usb)]
 	[InlineData(HashAlgorithm.Adler32)]
+	[InlineData(HashAlgorithm.Fletcher16)]
+	[InlineData(HashAlgorithm.Fletcher32)]
 	[InlineData(HashAlgorithm.XxHash32)]
 	[InlineData(HashAlgorithm.XxHash64)]
 	[InlineData(HashAlgorithm.XxHash3)]
@@ -62,7 +89,14 @@ public class ChunkIndependenceTests {
 	[InlineData(HashAlgorithm.SipHash24)]
 	[InlineData(HashAlgorithm.HighwayHash64)]
 	[InlineData(HashAlgorithm.MetroHash64)]
+	[InlineData(HashAlgorithm.MetroHash128)]
 	[InlineData(HashAlgorithm.Wyhash64)]
+	[InlineData(HashAlgorithm.Fnv1a32)]
+	[InlineData(HashAlgorithm.Fnv1a64)]
+	[InlineData(HashAlgorithm.Djb2)]
+	[InlineData(HashAlgorithm.Djb2a)]
+	[InlineData(HashAlgorithm.Sdbm)]
+	[InlineData(HashAlgorithm.LoseLose)]
 	public void StreamingHash_ChunkSizeIndependent_NonCryptoAlgorithms(HashAlgorithm algorithm) {
 		VerifyChunkIndependence(algorithm, TestData);
 	}
@@ -76,6 +110,14 @@ public class ChunkIndependenceTests {
 	[InlineData(HashAlgorithm.Blake3)]
 	[InlineData(HashAlgorithm.XxHash64)]
 	[InlineData(HashAlgorithm.MurmurHash3_128)]
+	[InlineData(HashAlgorithm.Crc32)]
+	[InlineData(HashAlgorithm.Fletcher16)]
+	[InlineData(HashAlgorithm.Adler32)]
+	[InlineData(HashAlgorithm.Sha3_512)]
+	[InlineData(HashAlgorithm.Whirlpool)]
+	[InlineData(HashAlgorithm.Gost94)]
+	[InlineData(HashAlgorithm.SipHash24)]
+	[InlineData(HashAlgorithm.Fnv1a64)]
 	public void StreamingHash_SingleByteChunks_MatchesOneShot(HashAlgorithm algorithm) {
 		// Feed data one byte at a time - most extreme case
 		var oneShotResult = Convert.ToHexStringLower(HashFacade.ComputeHash(algorithm, SmallData));
@@ -94,6 +136,12 @@ public class ChunkIndependenceTests {
 	[InlineData(HashAlgorithm.Blake3)]
 	[InlineData(HashAlgorithm.Md5)]
 	[InlineData(HashAlgorithm.CityHash128)]
+	[InlineData(HashAlgorithm.Fletcher32)]
+	[InlineData(HashAlgorithm.Crc64)]
+	[InlineData(HashAlgorithm.Streebog512)]
+	[InlineData(HashAlgorithm.Skein1024)]
+	[InlineData(HashAlgorithm.HighwayHash64)]
+	[InlineData(HashAlgorithm.Djb2)]
 	public void StreamingHash_WholeInputAsOneChunk_MatchesOneShot(HashAlgorithm algorithm) {
 		var oneShotResult = Convert.ToHexStringLower(HashFacade.ComputeHash(algorithm, TestData));
 
@@ -149,6 +197,19 @@ public class ChunkIndependenceTests {
 	[Theory]
 	[InlineData(HashAlgorithm.Blake3)]
 	[InlineData(HashAlgorithm.XxHash64)]
+	[InlineData(HashAlgorithm.Sha256)]
+	[InlineData(HashAlgorithm.Md5)]
+	[InlineData(HashAlgorithm.Sha384)]
+	[InlineData(HashAlgorithm.Sha512)]
+	[InlineData(HashAlgorithm.Sha1)]
+	[InlineData(HashAlgorithm.Crc32)]
+	[InlineData(HashAlgorithm.Fletcher16)]
+	[InlineData(HashAlgorithm.Adler32)]
+	[InlineData(HashAlgorithm.MurmurHash3_128)]
+	[InlineData(HashAlgorithm.CityHash64)]
+	[InlineData(HashAlgorithm.Gost94)]
+	[InlineData(HashAlgorithm.Whirlpool)]
+	[InlineData(HashAlgorithm.Fnv1a32)]
 	public void StreamingHash_Reset_ProducesSameResultAgain(HashAlgorithm algorithm) {
 		using var hasher = HashFacade.CreateStreaming(algorithm);
 
@@ -161,6 +222,45 @@ public class ChunkIndependenceTests {
 		var secondResult = Convert.ToHexStringLower(hasher.FinalizeBytes());
 
 		secondResult.Should().Be(firstResult, $"{algorithm} should produce same result after Reset()");
+	}
+
+	#endregion
+
+	#region Alternating Chunk Sizes
+
+	[Theory]
+	[InlineData(HashAlgorithm.Sha256)]
+	[InlineData(HashAlgorithm.Blake3)]
+	[InlineData(HashAlgorithm.Md5)]
+	[InlineData(HashAlgorithm.Crc32)]
+	[InlineData(HashAlgorithm.XxHash64)]
+	[InlineData(HashAlgorithm.MurmurHash3_128)]
+	[InlineData(HashAlgorithm.Fletcher16)]
+	[InlineData(HashAlgorithm.SipHash24)]
+	[InlineData(HashAlgorithm.Gost94)]
+	[InlineData(HashAlgorithm.Groestl256)]
+	[InlineData(HashAlgorithm.Fnv1a64)]
+	[InlineData(HashAlgorithm.Adler32)]
+	public void StreamingHash_AlternatingChunkSizes_MatchesOneShot(HashAlgorithm algorithm) {
+		var oneShotResult = Convert.ToHexStringLower(HashFacade.ComputeHash(algorithm, TestData));
+
+		// Alternate between small and large chunk sizes
+		int[] chunkPattern = [1, 1024, 7, 256, 63, 512, 3, 128];
+
+		using var hasher = HashFacade.CreateStreaming(algorithm);
+		int offset = 0;
+		int patternIndex = 0;
+		while (offset < TestData.Length) {
+			int chunkSize = chunkPattern[patternIndex % chunkPattern.Length];
+			int len = Math.Min(chunkSize, TestData.Length - offset);
+			hasher.Update(TestData.AsSpan(offset, len));
+			offset += len;
+			patternIndex++;
+		}
+
+		var streamingResult = Convert.ToHexStringLower(hasher.FinalizeBytes());
+		streamingResult.Should().Be(oneShotResult,
+			$"{algorithm} with alternating chunk sizes should match one-shot result");
 	}
 
 	#endregion
