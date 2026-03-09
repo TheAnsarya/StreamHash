@@ -270,6 +270,31 @@ Candidates for native implementation (ordered by impact × difficulty):
 - [ ] Evaluate removing GOST/SM3 (low usage)
 - [ ] Target: <50MB allocations (<2x file size)
 
+## Addendum - Fletcher Loop Optimization (2026-03-09)
+
+### Change Summary
+
+- Switched Fletcher16/Fletcher32 to chunked reduction plus 4-byte loop unrolling in `HashFacade`.
+- Kept checksum outputs reference-equivalent with dedicated test vectors.
+
+### Validation Commands
+
+```powershell
+dotnet test tests/StreamHash.Core.Tests/StreamHash.Core.Tests.csproj -c Release --filter "ComputeFletcher16_MatchesReferenceImplementation|ComputeFletcher32_MatchesReferenceImplementation"
+dotnet run --project benchmarks/StreamHash.Benchmarks/StreamHash.Benchmarks.csproj -c Release -- --filter "*HashFacadeBenchmarks*Facade_Fletcher*" --job short
+```
+
+### Benchmark Snapshot
+
+| Method | Data Size | Mean | Allocated |
+|---|---:|---:|---:|
+| Facade_Fletcher16 | 1024 | 452.3 ns | 32 B |
+| Facade_Fletcher32 | 1024 | 417.7 ns | 32 B |
+| Facade_Fletcher16 | 65536 | 28,103.7 ns | 32 B |
+| Facade_Fletcher32 | 65536 | 25,637.5 ns | 32 B |
+| Facade_Fletcher16 | 1048576 | 434,241.2 ns | 32 B |
+| Facade_Fletcher32 | 1048576 | 412,142.4 ns | 32 B |
+
 ## 📝 Related Issues
 
 - **StreamHash #19:** Local build 4x slower than NuGet

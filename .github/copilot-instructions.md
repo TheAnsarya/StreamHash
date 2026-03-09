@@ -290,6 +290,13 @@ public interface IStreamingHash<TResult> : IDisposable {
 4. No new warnings in build output
 5. Test vectors still match reference implementations
 
+#### Focused Validation Commands (Fletcher)
+
+- Reference-equivalence tests:
+	- `dotnet test tests/StreamHash.Core.Tests/StreamHash.Core.Tests.csproj -c Release --filter "ComputeFletcher16_MatchesReferenceImplementation|ComputeFletcher32_MatchesReferenceImplementation"`
+- Fletcher benchmark coverage:
+	- `dotnet run --project benchmarks/StreamHash.Benchmarks/StreamHash.Benchmarks.csproj -c Release -- --filter "*HashFacadeBenchmarks*Facade_Fletcher*" --job short`
+
 #### Types of Safe Performance Changes:
 
 - **Buffer size tuning** — different ArrayPool sizes for different file ranges

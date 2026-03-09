@@ -231,7 +231,19 @@ public static class HashFacade {
 
 		while (offset < data.Length) {
 			var chunkLength = Math.Min(chunkSize, data.Length - offset);
-			for (var i = 0; i < chunkLength; i++) {
+			var i = 0;
+			for (; i <= chunkLength - 4; i += 4) {
+				sum1 += data[offset + i];
+				sum2 += sum1;
+				sum1 += data[offset + i + 1];
+				sum2 += sum1;
+				sum1 += data[offset + i + 2];
+				sum2 += sum1;
+				sum1 += data[offset + i + 3];
+				sum2 += sum1;
+			}
+
+			for (; i < chunkLength; i++) {
 				sum1 += data[offset + i];
 				sum2 += sum1;
 			}
@@ -255,7 +267,19 @@ public static class HashFacade {
 
 		while (offset < data.Length) {
 			var chunkLength = Math.Min(chunkSize, data.Length - offset);
-			for (var i = 0; i < chunkLength; i++) {
+			var i = 0;
+			for (; i <= chunkLength - 4; i += 4) {
+				sum1 += data[offset + i];
+				sum2 += sum1;
+				sum1 += data[offset + i + 1];
+				sum2 += sum1;
+				sum1 += data[offset + i + 2];
+				sum2 += sum1;
+				sum1 += data[offset + i + 3];
+				sum2 += sum1;
+			}
+
+			for (; i < chunkLength; i++) {
 				sum1 += data[offset + i];
 				sum2 += sum1;
 			}
