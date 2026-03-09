@@ -388,5 +388,32 @@ public class HashFacadeTests {
 		hex.Should().MatchRegex(@"^[0-9a-f]+$");
 	}
 
+	[Fact]
+	public void ComputeAdler32_MatchesReferenceImplementation() {
+		var random = new Random(12345);
+		for (var size = 0; size <= 8192; size += 257) {
+			var data = new byte[size];
+			random.NextBytes(data);
+
+			var actual = BitConverter.ToUInt32(HashFacade.ComputeAdler32(data));
+			var expected = ComputeAdler32Reference(data);
+
+			actual.Should().Be(expected, $"because Adler32 must match the reference calculation for payload size {size}");
+		}
+	}
+
+	private static uint ComputeAdler32Reference(ReadOnlySpan<byte> data) {
+		const uint mod = 65521;
+		uint a = 1;
+		uint b = 0;
+
+		foreach (var value in data) {
+			a = (a + value) % mod;
+			b = (b + a) % mod;
+		}
+
+		return (b << 16) | a;
+	}
+
 	#endregion
 }

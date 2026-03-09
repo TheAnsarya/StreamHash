@@ -198,12 +198,25 @@ public static class HashFacade {
 
 	/// <summary>Computes Adler-32 checksum.</summary>
 	public static byte[] ComputeAdler32(ReadOnlySpan<byte> data) {
-		uint a = 1, b = 0;
-		const uint MOD = 65521;
-		foreach (byte bt in data) {
-			a = (a + bt) % MOD;
-			b = (b + a) % MOD;
+		const uint Mod = 65521;
+		const int ChunkSize = 5552;
+
+		uint a = 1;
+		uint b = 0;
+		var offset = 0;
+
+		while (offset < data.Length) {
+			var chunkLength = Math.Min(ChunkSize, data.Length - offset);
+			for (var i = 0; i < chunkLength; i++) {
+				a += data[offset + i];
+				b += a;
+			}
+
+			a %= Mod;
+			b %= Mod;
+			offset += chunkLength;
 		}
+
 		return BitConverter.GetBytes((b << 16) | a);
 	}
 
