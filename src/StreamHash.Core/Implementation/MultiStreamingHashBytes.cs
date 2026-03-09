@@ -21,7 +21,7 @@ internal sealed class MultiStreamingHashBytes : IMultiStreamingHashBytes {
 	private bool _disposed;
 	private bool _finalized;
 
-	private const int InitialBufferSize = 16 * 1024 * 1024; // 16MB buffer for optimal throughput
+	private const int InitialBufferSize = 2 * 1024 * 1024; // 2MB buffer - grows dynamically if needed
 	private const int ParallelThreshold = 8;
 
 	/// <summary>

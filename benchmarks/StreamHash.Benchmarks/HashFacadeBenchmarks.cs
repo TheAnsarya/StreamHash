@@ -104,6 +104,16 @@ public class HashFacadeBenchmarks {
 		return HashFacade.ComputeAdler32(_data);
 	}
 
+	[Benchmark]
+	public byte[] Facade_Fletcher16() {
+		return HashFacade.ComputeFletcher16(_data);
+	}
+
+	[Benchmark]
+	public byte[] Facade_Fletcher32() {
+		return HashFacade.ComputeFletcher32(_data);
+	}
+
 	#endregion
 
 	#region Streaming Comparison

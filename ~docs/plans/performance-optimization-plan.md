@@ -1,5 +1,13 @@
 ﻿# StreamHash Performance Optimization Plan
 
+**Updated:** March 2026
+
+## Memory Allocation Optimization (Completed March 2026)
+
+- Reduced `MultiStreamingHashBytes` initial buffer from 16MB to 2MB (grows dynamically if needed)
+- Typical callers send 1MB chunks, so 16MB was 16x over-allocated
+- Buffer still grows via ArrayPool if a larger chunk is ever sent
+
 ## Benchmark Summary (38MB data, Feb 2026)
 
 ### Fast Algorithms (< 50ms for 38MB)

@@ -222,21 +222,49 @@ public static class HashFacade {
 
 	/// <summary>Computes Fletcher-16 checksum.</summary>
 	public static byte[] ComputeFletcher16(ReadOnlySpan<byte> data) {
-		ushort sum1 = 0, sum2 = 0;
-		foreach (byte b in data) {
-			sum1 = (ushort)((sum1 + b) % 255);
-			sum2 = (ushort)((sum2 + sum1) % 255);
+		const uint mod = 255;
+		const int chunkSize = 5802;
+
+		uint sum1 = 0;
+		uint sum2 = 0;
+		var offset = 0;
+
+		while (offset < data.Length) {
+			var chunkLength = Math.Min(chunkSize, data.Length - offset);
+			for (var i = 0; i < chunkLength; i++) {
+				sum1 += data[offset + i];
+				sum2 += sum1;
+			}
+
+			sum1 %= mod;
+			sum2 %= mod;
+			offset += chunkLength;
 		}
+
 		return BitConverter.GetBytes((ushort)((sum2 << 8) | sum1));
 	}
 
 	/// <summary>Computes Fletcher-32 checksum.</summary>
 	public static byte[] ComputeFletcher32(ReadOnlySpan<byte> data) {
-		uint sum1 = 0, sum2 = 0;
-		foreach (byte b in data) {
-			sum1 = (sum1 + b) % 65535;
-			sum2 = (sum2 + sum1) % 65535;
+		const uint mod = 65535;
+		const int chunkSize = 5802;
+
+		uint sum1 = 0;
+		uint sum2 = 0;
+		var offset = 0;
+
+		while (offset < data.Length) {
+			var chunkLength = Math.Min(chunkSize, data.Length - offset);
+			for (var i = 0; i < chunkLength; i++) {
+				sum1 += data[offset + i];
+				sum2 += sum1;
+			}
+
+			sum1 %= mod;
+			sum2 %= mod;
+			offset += chunkLength;
 		}
+
 		return BitConverter.GetBytes((sum2 << 16) | sum1);
 	}
 

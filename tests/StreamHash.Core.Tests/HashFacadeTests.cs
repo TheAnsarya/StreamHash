@@ -296,12 +296,40 @@ public class HashFacadeTests {
 	}
 
 	[Fact]
+	public void ComputeFletcher16_MatchesReferenceImplementation() {
+		var random = new Random(24680);
+		for (var size = 0; size <= 65536; size += 1021) {
+			var data = new byte[size];
+			random.NextBytes(data);
+
+			var actual = BitConverter.ToUInt16(HashFacade.ComputeFletcher16(data));
+			var expected = ComputeFletcher16Reference(data);
+
+			actual.Should().Be(expected, $"because Fletcher16 must match the reference calculation for payload size {size}");
+		}
+	}
+
+	[Fact]
 	public void ComputeFletcher32_ReturnsValidResult() {
 		byte[] data = "abcdefgh"u8.ToArray();
 
 		byte[] hash = HashFacade.ComputeFletcher32(data);
 
 		hash.Should().HaveCount(4);
+	}
+
+	[Fact]
+	public void ComputeFletcher32_MatchesReferenceImplementation() {
+		var random = new Random(97531);
+		for (var size = 0; size <= 65536; size += 1019) {
+			var data = new byte[size];
+			random.NextBytes(data);
+
+			var actual = BitConverter.ToUInt32(HashFacade.ComputeFletcher32(data));
+			var expected = ComputeFletcher32Reference(data);
+
+			actual.Should().Be(expected, $"because Fletcher32 must match the reference calculation for payload size {size}");
+		}
 	}
 
 	#endregion
@@ -413,6 +441,30 @@ public class HashFacadeTests {
 		}
 
 		return (b << 16) | a;
+	}
+
+	private static ushort ComputeFletcher16Reference(ReadOnlySpan<byte> data) {
+		ushort sum1 = 0;
+		ushort sum2 = 0;
+
+		foreach (var value in data) {
+			sum1 = (ushort)((sum1 + value) % 255);
+			sum2 = (ushort)((sum2 + sum1) % 255);
+		}
+
+		return (ushort)((sum2 << 8) | sum1);
+	}
+
+	private static uint ComputeFletcher32Reference(ReadOnlySpan<byte> data) {
+		uint sum1 = 0;
+		uint sum2 = 0;
+
+		foreach (var value in data) {
+			sum1 = (sum1 + value) % 65535;
+			sum2 = (sum2 + sum1) % 65535;
+		}
+
+		return (sum2 << 16) | sum1;
 	}
 
 	#endregion
