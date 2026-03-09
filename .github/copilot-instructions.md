@@ -15,6 +15,66 @@
 - **Visual Studio 2026** (if applicable)
 - **Latest NuGet packages** - Always check for and use newest stable versions
 
+## GitHub Issue Management
+
+### ⚠️ CRITICAL: Always Create Issues on GitHub Directly
+
+**NEVER just document issues in markdown files.** Always create actual GitHub issues using the `gh` CLI:
+
+```powershell
+# Create an issue
+gh issue create --repo TheAnsarya/StreamHash --title "Issue Title" --body "Description" --label "label1,label2"
+
+# Add labels
+gh issue edit <number> --repo TheAnsarya/StreamHash --add-label "label"
+
+# Close issue
+gh issue close <number> --repo TheAnsarya/StreamHash --comment "Completed in commit abc123"
+```
+
+### Required Labels
+
+- `performance` - Performance related
+- `bug` - Bug fixes
+- `enhancement` - New features
+- `documentation` - Documentation updates
+- `investigation` - Research/analysis tasks
+- `high-priority`, `medium-priority`, `low-priority` - Priority levels
+- `testing` - Test improvements
+- `accuracy` - Hash accuracy related
+
+### ⚠️ MANDATORY: Issue-First Workflow
+
+**Always create GitHub issues BEFORE starting implementation work.** This is non-negotiable.
+
+1. **Before Implementation:**
+	- Create a GitHub issue describing the planned work
+	- Include scope, approach, and acceptance criteria
+	- Add appropriate labels
+
+2. **During Implementation:**
+	- Reference issue number in commits: `git commit -m "Fix streaming hash - #42"`
+	- Update issue with progress comments if work spans multiple sessions
+	- Add sub-issues for discovered work
+
+3. **After Implementation:**
+	- Close issue with completion comment including commit hash
+	- Link related issues if applicable
+
+### ⚠️ MANDATORY: Prompt Tracking for AI-Created Issues
+
+When creating GitHub issues from AI prompts, **IMMEDIATELY** add the original user prompt as the **FIRST comment** right after creating the issue:
+
+```powershell
+# Create issue
+$issueUrl = gh issue create --repo TheAnsarya/StreamHash --title "Description" --body "Details" --label "label"
+$issueNum = ($issueUrl -split '/')[-1]
+
+# IMMEDIATELY add prompt as first comment (before any other work)
+gh issue comment $issueNum --repo TheAnsarya/StreamHash --body "Prompt for work:
+<original user prompt that triggered this work>"
+```
+
 ## Core Mission
 
 Convert non-streaming hash algorithms to streaming implementations:
@@ -212,6 +272,59 @@ public interface IStreamingHash<TResult> : IDisposable {
 - Use `System.Runtime.Intrinsics` for SIMD operations
 - Provide scalar fallbacks for all SIMD code
 - Document which instruction sets are used (SSE2, AVX2, etc.)
+
+### ⚠️ ABSOLUTE RULE: Hash Accuracy is Sacred
+
+**NEVER sacrifice hash correctness for performance.** This is the #1 non-negotiable rule.
+
+- **Every performance optimization MUST be correctness-preserving** — if a change could alter hash output in any way, it is rejected
+- **Run ALL tests after every change** — all xUnit tests must pass before any commit
+- **Benchmark BEFORE and AFTER** — prove the improvement with data, not just theory
+- **When in doubt, don't optimize** — a slower correct hasher is infinitely better than a faster broken one
+
+#### Verification Checklist (for EVERY performance change):
+
+1. All xUnit tests pass (`dotnet test`)
+2. Benchmark shows measurable improvement (BenchmarkDotNet)
+3. Change is semantics-preserving (same hash outputs)
+4. No new warnings in build output
+5. Test vectors still match reference implementations
+
+#### Types of Safe Performance Changes:
+
+- **Buffer size tuning** — different ArrayPool sizes for different file ranges
+- **Avoiding copies** — use `Span<T>` instead of array copies
+- **Eliminating allocations** — pool or reuse objects in hot paths
+- **SIMD optimization** — vectorized implementations with scalar fallbacks
+- **Inlining** — moving small hot-path methods for JIT optimization
+
+#### Types of DANGEROUS Changes (require extra scrutiny):
+
+- Anything touching hash algorithm core logic
+- Buffer management changes that affect data fed to hash algorithms
+- Reordering or parallelizing in ways that could skip bytes
+- Byte order or endianness changes
+
+## Problem-Solving Philosophy
+
+### ⚠️ NEVER GIVE UP on Hard Problems
+
+When a task is complex or seems difficult:
+
+1. **NEVER declare something "too hard" or "not worth it"** and close the issue
+2. **Break it down** — Create multiple smaller sub-issues for research, prototyping, and incremental progress
+3. **Research first** — Create research issues to investigate approaches, alternatives, and prior art
+4. **Document everything** — Create docs, code-plans, and analysis documents in `~docs/`
+5. **Prototype** — Create spike/prototype branches to test approaches before committing
+6. **Incremental progress** — Even partial progress is valuable
+7. **Create issues for future work** — If something can't be done now, create well-documented issues with clear context for later
+
+### What "Closing Too Soon" Looks Like
+
+- "This is deeply integrated, keeping as-is" — Instead: break it into phases
+- "Migration cost-prohibitive" — Instead: create research issues and prototype
+- "High regression risk" — Instead: create test plan and incremental migration
+- Close only when the work is **actually complete** or **truly impossible** (not just hard)
 
 ## Git Workflow
 
