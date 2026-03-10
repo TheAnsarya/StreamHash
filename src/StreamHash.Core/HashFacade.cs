@@ -96,15 +96,15 @@ public static class HashFacade {
 			HashAlgorithm.Sdbm => ComputeSdbm(data),
 			HashAlgorithm.LoseLose => ComputeLoseLose(data),
 
-			// MD Family (acryptohashnet for MD2/MD4, .NET for MD5)
-			HashAlgorithm.Md2 => AcryptohashnetFactory.ComputeMd2(data),
-			HashAlgorithm.Md4 => AcryptohashnetFactory.ComputeMd4(data),
+			// MD Family (native for MD2/MD4, .NET for MD5)
+			HashAlgorithm.Md2 => Md2Factory.ComputeMd2(data),
+			HashAlgorithm.Md4 => Md4Factory.ComputeMd4(data),
 			HashAlgorithm.Md5 => MD5.HashData(data),
 
-			// SHA-1/2 Family (acryptohashnet for SHA-0/224, .NET for rest)
-			HashAlgorithm.Sha0 => AcryptohashnetFactory.ComputeSha0(data),
+			// SHA-1/2 Family (native for SHA-0/224, .NET for rest)
+			HashAlgorithm.Sha0 => Sha0Factory.ComputeSha0(data),
 			HashAlgorithm.Sha1 => SHA1.HashData(data),
-			HashAlgorithm.Sha224 => AcryptohashnetFactory.ComputeSha224(data),
+			HashAlgorithm.Sha224 => Sha224Factory.ComputeSha224(data),
 			HashAlgorithm.Sha256 => SHA256.HashData(data),
 			HashAlgorithm.Sha384 => SHA384.HashData(data),
 			HashAlgorithm.Sha512 => SHA512.HashData(data),
@@ -119,12 +119,12 @@ public static class HashFacade {
 			HashAlgorithm.Keccak256 => NativeSha3Factory.ComputeKeccak256(data),
 			HashAlgorithm.Keccak512 => NativeSha3Factory.ComputeKeccak512(data),
 
-			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
-			HashAlgorithm.Blake256 => Blake2Factory.ComputeBlake256(data),
-			HashAlgorithm.Blake512 => Blake2Factory.ComputeBlake512(data),
-			HashAlgorithm.Blake2b => Blake2Factory.ComputeBlake2b(data),
-			HashAlgorithm.Blake2s => Blake2Factory.ComputeBlake2s(data),
-			HashAlgorithm.Blake3 => Blake3Factory.ComputeHash(data),
+			// BLAKE Family (native implementations)
+			HashAlgorithm.Blake256 => NativeBlake2Factory.ComputeBlake256(data),
+			HashAlgorithm.Blake512 => NativeBlake2Factory.ComputeBlake512(data),
+			HashAlgorithm.Blake2b => NativeBlake2Factory.ComputeBlake2b(data),
+			HashAlgorithm.Blake2s => NativeBlake2Factory.ComputeBlake2s(data),
+			HashAlgorithm.Blake3 => NativeBlake3Factory.ComputeHash(data),
 
 			// RIPEMD Family (all native implementations)
 			HashAlgorithm.Ripemd128 => Ripemd128Factory.ComputeRipemd128(data),
@@ -132,9 +132,9 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.ComputeRipemd256(data),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.ComputeRipemd320(data),
 
-			// Other Crypto (acryptohashnet for Tiger192, native for GOST-94, Streebog, Skein)
+			// Other Crypto (native for all)
 			HashAlgorithm.Whirlpool => ComputeWhirlpool(data),
-			HashAlgorithm.Tiger192 => AcryptohashnetFactory.ComputeTiger192(data),
+			HashAlgorithm.Tiger192 => TigerFactory.ComputeTiger192(data),
 			HashAlgorithm.Gost94 => Gost94Factory.ComputeGost94(data),
 			HashAlgorithm.Streebog256 => StreebogFactory.ComputeStreebog256(data),
 			HashAlgorithm.Streebog512 => StreebogFactory.ComputeStreebog512(data),
@@ -587,15 +587,15 @@ public static class HashFacade {
 			HashAlgorithm.Sdbm => new StreamingHashBytesAdapter<uint>(new SdbmStreaming()),
 			HashAlgorithm.LoseLose => new StreamingHashBytesAdapter<uint>(new LoseLoseStreaming()),
 
-			// MD Family (acryptohashnet for MD2/MD4, .NET for MD5)
-			HashAlgorithm.Md2 => AcryptohashnetFactory.CreateMd2(),
-			HashAlgorithm.Md4 => AcryptohashnetFactory.CreateMd4(),
+			// MD Family (native for MD2/MD4, .NET for MD5)
+			HashAlgorithm.Md2 => Md2Factory.CreateMd2(),
+			HashAlgorithm.Md4 => Md4Factory.CreateMd4(),
 			HashAlgorithm.Md5 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.MD5),
 
-			// SHA-1/2 Family (acryptohashnet for SHA-0/224, .NET for rest)
-			HashAlgorithm.Sha0 => AcryptohashnetFactory.CreateSha0(),
+			// SHA-1/2 Family (native for SHA-0/224, .NET for rest)
+			HashAlgorithm.Sha0 => Sha0Factory.CreateSha0(),
 			HashAlgorithm.Sha1 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA1),
-			HashAlgorithm.Sha224 => AcryptohashnetFactory.CreateSha224(),
+			HashAlgorithm.Sha224 => Sha224Factory.CreateSha224(),
 			HashAlgorithm.Sha256 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA256),
 			HashAlgorithm.Sha384 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA384),
 			HashAlgorithm.Sha512 => new IncrementalHashAdapter(System.Security.Cryptography.HashAlgorithmName.SHA512),
@@ -610,12 +610,12 @@ public static class HashFacade {
 			HashAlgorithm.Keccak256 => NativeSha3Factory.CreateKeccak256(),
 			HashAlgorithm.Keccak512 => NativeSha3Factory.CreateKeccak512(),
 
-			// BLAKE Family (Blake2Fast for BLAKE2, Blake3.NET for BLAKE3)
-			HashAlgorithm.Blake256 => Blake2Factory.CreateBlake256(),
-			HashAlgorithm.Blake512 => Blake2Factory.CreateBlake512(),
-			HashAlgorithm.Blake2b => Blake2Factory.CreateBlake2b(),
-			HashAlgorithm.Blake2s => Blake2Factory.CreateBlake2s(),
-			HashAlgorithm.Blake3 => Blake3Factory.CreateBlake3(),
+			// BLAKE Family (native implementations)
+			HashAlgorithm.Blake256 => NativeBlake2Factory.CreateBlake256(),
+			HashAlgorithm.Blake512 => NativeBlake2Factory.CreateBlake512(),
+			HashAlgorithm.Blake2b => NativeBlake2Factory.CreateBlake2b(),
+			HashAlgorithm.Blake2s => NativeBlake2Factory.CreateBlake2s(),
+			HashAlgorithm.Blake3 => NativeBlake3Factory.CreateBlake3(),
 
 			// RIPEMD Family (all native implementations)
 			HashAlgorithm.Ripemd128 => Ripemd128Factory.CreateRipemd128(),
@@ -623,9 +623,9 @@ public static class HashFacade {
 			HashAlgorithm.Ripemd256 => Ripemd256Factory.CreateRipemd256(),
 			HashAlgorithm.Ripemd320 => Ripemd320Factory.CreateRipemd320(),
 
-			// Other Crypto (native for GOST-94, Streebog, Skein)
+			// Other Crypto (native for all)
 			HashAlgorithm.Whirlpool => new WhirlpoolDigest(),
-			HashAlgorithm.Tiger192 => AcryptohashnetFactory.CreateTiger192(),
+			HashAlgorithm.Tiger192 => TigerFactory.CreateTiger192(),
 			HashAlgorithm.Gost94 => new NativeGost94(),
 			HashAlgorithm.Streebog256 => StreebogFactory.CreateStreebog256(),
 			HashAlgorithm.Streebog512 => StreebogFactory.CreateStreebog512(),
