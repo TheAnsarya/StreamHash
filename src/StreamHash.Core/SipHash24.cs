@@ -216,34 +216,34 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// <remarks>
 	/// <para>
 	/// Processes an 8-byte block through the SipHash-2-4 compression function.
-	/// </para>
-	/// <para>
-	/// <b>Algorithm Steps:</b>
-	/// <list type="number">
-	/// <item>Read 8 bytes as little-endian uint64 (message block m)</item>
-	/// <item>XOR m into v3</item>
-	/// <item>Apply 2 compression rounds (SipRound)</item>
-	/// <item>XOR m into v0</item>
-	/// </list>
-	/// </para>
-	/// <para>
-	/// The XOR-rounds-XOR pattern ensures the message block affects all state
-	/// variables while providing cryptographic security.
+	/// Uses local variables to keep state in registers during SipRound operations.
 	/// </para>
 	/// </remarks>
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
-		// Read 8-byte message block as little-endian uint64
 		ulong m = BinaryPrimitives.ReadUInt64LittleEndian(block);
 
-		// XOR message into v3 before compression
-		_v3 ^= m;
+		// Load state into locals to keep in registers
+		ulong v0 = _v0, v1 = _v1, v2 = _v2, v3 = _v3;
 
-		// Apply 2 compression rounds (the "2" in SipHash-2-4)
-		SipRound();
-		SipRound();
+		v3 ^= m;
 
-		// XOR message into v0 after compression
-		_v0 ^= m;
+		// SipRound 1 (inlined)
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		// SipRound 2 (inlined)
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 ^= m;
+
+		// Write state back
+		_v0 = v0; _v1 = v1; _v2 = v2; _v3 = v3;
 	}
 
 	/// <inheritdoc/>
@@ -265,13 +265,9 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// </para>
 	/// </remarks>
 	protected override ulong ComputeFinal(ReadOnlySpan<byte> remaining) {
-		// ═══════════════════════════════════════════════════════════════════════
-		// Construct Final Block
-		// ═══════════════════════════════════════════════════════════════════════
-		// High byte contains (length mod 256), low bytes contain remaining data
+		// Construct final block: high byte = (length mod 256), low bytes = remaining data
 		ulong b = (ulong)TotalBytesProcessed << 56;
 
-		// Fill remaining bytes using fall-through switch
 		switch (remaining.Length) {
 			case 7: b |= (ulong)remaining[6] << 48; goto case 6;
 			case 6: b |= (ulong)remaining[5] << 40; goto case 5;
@@ -282,83 +278,53 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 			case 1: b |= remaining[0]; break;
 		}
 
-		// ═══════════════════════════════════════════════════════════════════════
-		// Process Final Block (same as regular block)
-		// ═══════════════════════════════════════════════════════════════════════
-		_v3 ^= b;
+		// Load state into locals for all remaining SipRounds
+		ulong v0 = _v0, v1 = _v1, v2 = _v2, v3 = _v3;
 
-		// 2 compression rounds
-		SipRound();
-		SipRound();
+		// Process final block (2 compression rounds)
+		v3 ^= b;
 
-		_v0 ^= b;
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
 
-		// ═══════════════════════════════════════════════════════════════════════
-		// Finalization Rounds
-		// ═══════════════════════════════════════════════════════════════════════
-		// XOR 0xff into v2 to mark finalization phase
-		_v2 ^= 0xff;
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
 
-		// Apply 4 finalization rounds (the "4" in SipHash-2-4)
-		SipRound();
-		SipRound();
-		SipRound();
-		SipRound();
+		v0 ^= b;
 
-		// XOR all state variables for the final hash
-		return _v0 ^ _v1 ^ _v2 ^ _v3;
+		// Finalization: XOR 0xff into v2, apply 4 finalization rounds
+		v2 ^= 0xff;
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		return v0 ^ v1 ^ v2 ^ v3;
 	}
 
 	/// <inheritdoc/>
 	protected override void ResetCore() {
 		Initialize();
-	}
-
-	// ═══════════════════════════════════════════════════════════════════════════
-	// Helper Functions
-	// ═══════════════════════════════════════════════════════════════════════════
-
-	/// <summary>
-	/// One round of SipHash ARX (Add-Rotate-XOR) mixing.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Each SipRound performs 4 half-rounds of ARX operations:
-	/// <list type="number">
-	/// <item>v0 += v1; v1 = rotl(v1,13); v1 ^= v0; v0 = rotl(v0,32)</item>
-	/// <item>v2 += v3; v3 = rotl(v3,16); v3 ^= v2</item>
-	/// <item>v0 += v3; v3 = rotl(v3,21); v3 ^= v0</item>
-	/// <item>v2 += v1; v1 = rotl(v1,17); v1 ^= v2; v2 = rotl(v2,32)</item>
-	/// </list>
-	/// </para>
-	/// <para>
-	/// The rotation amounts (13, 16, 21, 17, 32) were chosen to provide
-	/// optimal diffusion while remaining efficient on 64-bit processors.
-	/// </para>
-	/// </remarks>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private void SipRound() {
-		// Half-round 1: Mix v0 and v1
-		_v0 += _v1;
-		_v1 = BitOperations.RotateLeft(_v1, 13);
-		_v1 ^= _v0;
-		_v0 = BitOperations.RotateLeft(_v0, 32);  // 32-bit rotation swaps halves
-
-		// Half-round 2: Mix v2 and v3
-		_v2 += _v3;
-		_v3 = BitOperations.RotateLeft(_v3, 16);
-		_v3 ^= _v2;
-
-		// Half-round 3: Cross-mix v0 with v3
-		_v0 += _v3;
-		_v3 = BitOperations.RotateLeft(_v3, 21);
-		_v3 ^= _v0;
-
-		// Half-round 4: Cross-mix v2 with v1
-		_v2 += _v1;
-		_v1 = BitOperations.RotateLeft(_v1, 17);
-		_v1 ^= _v2;
-		_v2 = BitOperations.RotateLeft(_v2, 32);  // 32-bit rotation swaps halves
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════════

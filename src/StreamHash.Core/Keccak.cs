@@ -278,94 +278,114 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 
 	/// <summary>
 	/// The Keccak-f[1600] permutation - 24 rounds of θ, ρ, π, χ, ι.
+	/// Uses 25 local variables to eliminate array/span bounds checking.
 	/// </summary>
 	private void KeccakF1600() {
-		Span<ulong> state = _state;
-		Span<ulong> c = stackalloc ulong[5];
-		Span<ulong> d = stackalloc ulong[5];
-		Span<ulong> b = stackalloc ulong[25];
+		// Load state into 25 local variables (eliminates span bounds checking in hot loop)
+		ulong a00 = _state[0], a01 = _state[1], a02 = _state[2], a03 = _state[3], a04 = _state[4];
+		ulong a05 = _state[5], a06 = _state[6], a07 = _state[7], a08 = _state[8], a09 = _state[9];
+		ulong a10 = _state[10], a11 = _state[11], a12 = _state[12], a13 = _state[13], a14 = _state[14];
+		ulong a15 = _state[15], a16 = _state[16], a17 = _state[17], a18 = _state[18], a19 = _state[19];
+		ulong a20 = _state[20], a21 = _state[21], a22 = _state[22], a23 = _state[23], a24 = _state[24];
 
 		for (int round = 0; round < NumRounds; round++) {
 			// θ (theta) step - Column parity mixing
-			c[0] = state[0] ^ state[5] ^ state[10] ^ state[15] ^ state[20];
-			c[1] = state[1] ^ state[6] ^ state[11] ^ state[16] ^ state[21];
-			c[2] = state[2] ^ state[7] ^ state[12] ^ state[17] ^ state[22];
-			c[3] = state[3] ^ state[8] ^ state[13] ^ state[18] ^ state[23];
-			c[4] = state[4] ^ state[9] ^ state[14] ^ state[19] ^ state[24];
+			ulong c0 = a00 ^ a05 ^ a10 ^ a15 ^ a20;
+			ulong c1 = a01 ^ a06 ^ a11 ^ a16 ^ a21;
+			ulong c2 = a02 ^ a07 ^ a12 ^ a17 ^ a22;
+			ulong c3 = a03 ^ a08 ^ a13 ^ a18 ^ a23;
+			ulong c4 = a04 ^ a09 ^ a14 ^ a19 ^ a24;
 
-			d[0] = c[4] ^ RotateLeft64(c[1], 1);
-			d[1] = c[0] ^ RotateLeft64(c[2], 1);
-			d[2] = c[1] ^ RotateLeft64(c[3], 1);
-			d[3] = c[2] ^ RotateLeft64(c[4], 1);
-			d[4] = c[3] ^ RotateLeft64(c[0], 1);
+			ulong d1 = RotateLeft64(c1, 1) ^ c4;
+			ulong d2 = RotateLeft64(c2, 1) ^ c0;
+			ulong d3 = RotateLeft64(c3, 1) ^ c1;
+			ulong d4 = RotateLeft64(c4, 1) ^ c2;
+			ulong d0 = RotateLeft64(c0, 1) ^ c3;
 
-			state[0] ^= d[0]; state[5] ^= d[0]; state[10] ^= d[0]; state[15] ^= d[0]; state[20] ^= d[0];
-			state[1] ^= d[1]; state[6] ^= d[1]; state[11] ^= d[1]; state[16] ^= d[1]; state[21] ^= d[1];
-			state[2] ^= d[2]; state[7] ^= d[2]; state[12] ^= d[2]; state[17] ^= d[2]; state[22] ^= d[2];
-			state[3] ^= d[3]; state[8] ^= d[3]; state[13] ^= d[3]; state[18] ^= d[3]; state[23] ^= d[3];
-			state[4] ^= d[4]; state[9] ^= d[4]; state[14] ^= d[4]; state[19] ^= d[4]; state[24] ^= d[4];
+			a00 ^= d1; a05 ^= d1; a10 ^= d1; a15 ^= d1; a20 ^= d1;
+			a01 ^= d2; a06 ^= d2; a11 ^= d2; a16 ^= d2; a21 ^= d2;
+			a02 ^= d3; a07 ^= d3; a12 ^= d3; a17 ^= d3; a22 ^= d3;
+			a03 ^= d4; a08 ^= d4; a13 ^= d4; a18 ^= d4; a23 ^= d4;
+			a04 ^= d0; a09 ^= d0; a14 ^= d0; a19 ^= d0; a24 ^= d0;
 
-			// ρ (rho) and π (pi) steps combined - Lane rotation and permutation
-			b[0] = state[0];
-			b[1] = RotateLeft64(state[6], 44);
-			b[2] = RotateLeft64(state[12], 43);
-			b[3] = RotateLeft64(state[18], 21);
-			b[4] = RotateLeft64(state[24], 14);
-			b[5] = RotateLeft64(state[3], 28);
-			b[6] = RotateLeft64(state[9], 20);
-			b[7] = RotateLeft64(state[10], 3);
-			b[8] = RotateLeft64(state[16], 45);
-			b[9] = RotateLeft64(state[22], 61);
-			b[10] = RotateLeft64(state[1], 1);
-			b[11] = RotateLeft64(state[7], 6);
-			b[12] = RotateLeft64(state[13], 25);
-			b[13] = RotateLeft64(state[19], 8);
-			b[14] = RotateLeft64(state[20], 18);
-			b[15] = RotateLeft64(state[4], 27);
-			b[16] = RotateLeft64(state[5], 36);
-			b[17] = RotateLeft64(state[11], 10);
-			b[18] = RotateLeft64(state[17], 15);
-			b[19] = RotateLeft64(state[23], 56);
-			b[20] = RotateLeft64(state[2], 62);
-			b[21] = RotateLeft64(state[8], 55);
-			b[22] = RotateLeft64(state[14], 39);
-			b[23] = RotateLeft64(state[15], 41);
-			b[24] = RotateLeft64(state[21], 2);
+			// ρ (rho) and π (pi) steps combined - in-place using local variable chain
+			c1 = RotateLeft64(a01, 1);
+			a01 = RotateLeft64(a06, 44);
+			a06 = RotateLeft64(a09, 20);
+			a09 = RotateLeft64(a22, 61);
+			a22 = RotateLeft64(a14, 39);
+			a14 = RotateLeft64(a20, 18);
+			a20 = RotateLeft64(a02, 62);
+			a02 = RotateLeft64(a12, 43);
+			a12 = RotateLeft64(a13, 25);
+			a13 = RotateLeft64(a19, 8);
+			a19 = RotateLeft64(a23, 56);
+			a23 = RotateLeft64(a15, 41);
+			a15 = RotateLeft64(a04, 27);
+			a04 = RotateLeft64(a24, 14);
+			a24 = RotateLeft64(a21, 2);
+			a21 = RotateLeft64(a08, 55);
+			a08 = RotateLeft64(a16, 45);
+			a16 = RotateLeft64(a05, 36);
+			a05 = RotateLeft64(a03, 28);
+			a03 = RotateLeft64(a18, 21);
+			a18 = RotateLeft64(a17, 15);
+			a17 = RotateLeft64(a11, 10);
+			a11 = RotateLeft64(a07, 6);
+			a07 = RotateLeft64(a10, 3);
+			a10 = c1;
 
-			// χ (chi) step - Non-linear mixing
-			state[0] = b[0] ^ (~b[1] & b[2]);
-			state[1] = b[1] ^ (~b[2] & b[3]);
-			state[2] = b[2] ^ (~b[3] & b[4]);
-			state[3] = b[3] ^ (~b[4] & b[0]);
-			state[4] = b[4] ^ (~b[0] & b[1]);
+			// χ (chi) step - Non-linear mixing using only 2 temporaries per row
+			c0 = a00 ^ (~a01 & a02);
+			c1 = a01 ^ (~a02 & a03);
+			a02 ^= ~a03 & a04;
+			a03 ^= ~a04 & a00;
+			a04 ^= ~a00 & a01;
+			a00 = c0;
+			a01 = c1;
 
-			state[5] = b[5] ^ (~b[6] & b[7]);
-			state[6] = b[6] ^ (~b[7] & b[8]);
-			state[7] = b[7] ^ (~b[8] & b[9]);
-			state[8] = b[8] ^ (~b[9] & b[5]);
-			state[9] = b[9] ^ (~b[5] & b[6]);
+			c0 = a05 ^ (~a06 & a07);
+			c1 = a06 ^ (~a07 & a08);
+			a07 ^= ~a08 & a09;
+			a08 ^= ~a09 & a05;
+			a09 ^= ~a05 & a06;
+			a05 = c0;
+			a06 = c1;
 
-			state[10] = b[10] ^ (~b[11] & b[12]);
-			state[11] = b[11] ^ (~b[12] & b[13]);
-			state[12] = b[12] ^ (~b[13] & b[14]);
-			state[13] = b[13] ^ (~b[14] & b[10]);
-			state[14] = b[14] ^ (~b[10] & b[11]);
+			c0 = a10 ^ (~a11 & a12);
+			c1 = a11 ^ (~a12 & a13);
+			a12 ^= ~a13 & a14;
+			a13 ^= ~a14 & a10;
+			a14 ^= ~a10 & a11;
+			a10 = c0;
+			a11 = c1;
 
-			state[15] = b[15] ^ (~b[16] & b[17]);
-			state[16] = b[16] ^ (~b[17] & b[18]);
-			state[17] = b[17] ^ (~b[18] & b[19]);
-			state[18] = b[18] ^ (~b[19] & b[15]);
-			state[19] = b[19] ^ (~b[15] & b[16]);
+			c0 = a15 ^ (~a16 & a17);
+			c1 = a16 ^ (~a17 & a18);
+			a17 ^= ~a18 & a19;
+			a18 ^= ~a19 & a15;
+			a19 ^= ~a15 & a16;
+			a15 = c0;
+			a16 = c1;
 
-			state[20] = b[20] ^ (~b[21] & b[22]);
-			state[21] = b[21] ^ (~b[22] & b[23]);
-			state[22] = b[22] ^ (~b[23] & b[24]);
-			state[23] = b[23] ^ (~b[24] & b[20]);
-			state[24] = b[24] ^ (~b[20] & b[21]);
+			c0 = a20 ^ (~a21 & a22);
+			c1 = a21 ^ (~a22 & a23);
+			a22 ^= ~a23 & a24;
+			a23 ^= ~a24 & a20;
+			a24 ^= ~a20 & a21;
+			a20 = c0;
+			a21 = c1;
 
 			// ι (iota) step - Round constant addition
-			state[0] ^= RoundConstants[round];
+			a00 ^= RoundConstants[round];
 		}
+
+		// Write state back
+		_state[0] = a00; _state[1] = a01; _state[2] = a02; _state[3] = a03; _state[4] = a04;
+		_state[5] = a05; _state[6] = a06; _state[7] = a07; _state[8] = a08; _state[9] = a09;
+		_state[10] = a10; _state[11] = a11; _state[12] = a12; _state[13] = a13; _state[14] = a14;
+		_state[15] = a15; _state[16] = a16; _state[17] = a17; _state[18] = a18; _state[19] = a19;
+		_state[20] = a20; _state[21] = a21; _state[22] = a22; _state[23] = a23; _state[24] = a24;
 	}
 
 	/// <summary>

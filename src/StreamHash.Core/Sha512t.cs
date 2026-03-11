@@ -1,5 +1,7 @@
 ﻿using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace StreamHash.Core;
@@ -189,6 +191,7 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 		Array.Clear(_buffer);
 	}
 
+	[SkipLocalsInit]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		Span<ulong> w = stackalloc ulong[80];
 
@@ -197,10 +200,12 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 			w[i] = BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8));
 		}
 
-		// Expand message schedule
+		// Expand message schedule — cache repeated reads to reduce indexing
 		for (int i = 16; i < 80; i++) {
-			ulong s0 = RotateRight(w[i - 15], 1) ^ RotateRight(w[i - 15], 8) ^ (w[i - 15] >> 7);
-			ulong s1 = RotateRight(w[i - 2], 19) ^ RotateRight(w[i - 2], 61) ^ (w[i - 2] >> 6);
+			ulong w15 = w[i - 15];
+			ulong w2 = w[i - 2];
+			ulong s0 = BitOperations.RotateRight(w15, 1) ^ BitOperations.RotateRight(w15, 8) ^ (w15 >> 7);
+			ulong s1 = BitOperations.RotateRight(w2, 19) ^ BitOperations.RotateRight(w2, 61) ^ (w2 >> 6);
 			w[i] = w[i - 16] + s0 + w[i - 7] + s1;
 		}
 
@@ -209,10 +214,10 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 
 		// Main compression loop
 		for (int i = 0; i < 80; i++) {
-			ulong S1 = RotateRight(e, 14) ^ RotateRight(e, 18) ^ RotateRight(e, 41);
+			ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
 			ulong ch = (e & f) ^ (~e & g);
 			ulong temp1 = h + S1 + ch + K[i] + w[i];
-			ulong S0 = RotateRight(a, 28) ^ RotateRight(a, 34) ^ RotateRight(a, 39);
+			ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
 			ulong maj = (a & b) ^ (a & c) ^ (b & c);
 			ulong temp2 = S0 + maj;
 
@@ -223,8 +228,6 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 		_h0 += a; _h1 += b; _h2 += c; _h3 += d;
 		_h4 += e; _h5 += f; _h6 += g; _h7 += h;
 	}
-
-	private static ulong RotateRight(ulong x, int n) => (x >> n) | (x << (64 - n));
 
 	/// <summary>
 	/// Generates the initialization vector for SHA-512/t per FIPS 180-4.
@@ -320,7 +323,8 @@ internal static class Sha512tFactory {
 	/// <summary>
 	/// Static optimized SHA-512/t computation using stack-allocated state.
 	/// </summary>
-	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+	[SkipLocalsInit]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static byte[] ComputeSha512tStatic(ReadOnlySpan<byte> data, int t) {
 		const int BlockSize = 128;
 		int digestSize = t / 8;
@@ -386,7 +390,8 @@ internal static class Sha512tFactory {
 		return result;
 	}
 
-	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+	[SkipLocalsInit]
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static void ProcessBlockStatic(ReadOnlySpan<byte> block,
 		ref ulong h0, ref ulong h1, ref ulong h2, ref ulong h3,
 		ref ulong h4, ref ulong h5, ref ulong h6, ref ulong h7,
@@ -397,10 +402,12 @@ internal static class Sha512tFactory {
 			w[i] = BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8));
 		}
 
-		// Expand message schedule
+		// Expand message schedule — cache repeated reads
 		for (int i = 16; i < 80; i++) {
-			ulong s0 = RotR(w[i - 15], 1) ^ RotR(w[i - 15], 8) ^ (w[i - 15] >> 7);
-			ulong s1 = RotR(w[i - 2], 19) ^ RotR(w[i - 2], 61) ^ (w[i - 2] >> 6);
+			ulong w15 = w[i - 15];
+			ulong w2 = w[i - 2];
+			ulong s0 = BitOperations.RotateRight(w15, 1) ^ BitOperations.RotateRight(w15, 8) ^ (w15 >> 7);
+			ulong s1 = BitOperations.RotateRight(w2, 19) ^ BitOperations.RotateRight(w2, 61) ^ (w2 >> 6);
 			w[i] = w[i - 16] + s0 + w[i - 7] + s1;
 		}
 
@@ -409,10 +416,10 @@ internal static class Sha512tFactory {
 
 		// Main compression loop
 		for (int i = 0; i < 80; i++) {
-			ulong S1 = RotR(e, 14) ^ RotR(e, 18) ^ RotR(e, 41);
+			ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
 			ulong ch = (e & f) ^ (~e & g);
 			ulong temp1 = h + S1 + ch + K[i] + w[i];
-			ulong S0 = RotR(a, 28) ^ RotR(a, 34) ^ RotR(a, 39);
+			ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
 			ulong maj = (a & b) ^ (a & c) ^ (b & c);
 			ulong temp2 = S0 + maj;
 
@@ -423,7 +430,4 @@ internal static class Sha512tFactory {
 		h0 += a; h1 += b; h2 += c; h3 += d;
 		h4 += e; h5 += f; h6 += g; h7 += h;
 	}
-
-	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-	private static ulong RotR(ulong x, int n) => (x >> n) | (x << (64 - n));
 }

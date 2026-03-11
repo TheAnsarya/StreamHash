@@ -756,13 +756,28 @@ internal sealed class Skein512Optimized : SkeinOptimized {
 /// Optimized Skein-1024 with zero-allocation Threefish-1024.
 /// </summary>
 internal sealed class Skein1024Optimized : SkeinOptimized {
-	// Pre-allocated arrays for Threefish-1024 (16 words)
-	private readonly ulong[] _ks;
-	private readonly ulong[] _v;
+	/// <summary>Pre-computed modulo-17 lookup for key schedule injection (indices 0..20).</summary>
+	private static ReadOnlySpan<int> Mod17 => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 1, 2, 3];
+
+	/// <summary>Pre-computed modulo-3 lookup for tweak injection (indices 0..20).</summary>
+	private static ReadOnlySpan<int> Mod3 => [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
+
+	/// <summary>
+	/// Flat rotation constants for Threefish-1024: 8 sets × 8 columns.
+	/// Indexed as RotConsts[setIndex * 8 + column].
+	/// </summary>
+	private static ReadOnlySpan<byte> RotConsts => [
+		24, 13,  8, 47,  8, 17, 22, 37,  // R0
+		38, 19, 10, 55, 49, 18, 23, 52,  // R1
+		33,  4, 51, 13, 34, 41, 59, 17,  // R2
+		 5, 20, 48, 41, 47, 28, 16, 25,  // R3
+		41,  9, 37, 31, 12, 47, 44, 30,  // R4
+		16, 34, 56, 51,  4, 53, 42, 41,  // R5
+		31, 44, 47, 46, 19, 42, 44, 25,  // R6
+		 9, 48, 35, 52, 23, 31, 37, 20   // R7
+	];
 
 	public Skein1024Optimized(int outputBits = 1024) : base(1024, outputBits) {
-		_ks = new ulong[17];
-		_v = new ulong[16];
 		Reset();
 	}
 
@@ -795,110 +810,106 @@ internal sealed class Skein1024Optimized : SkeinOptimized {
 	}
 
 	/// <summary>
-	/// Threefish-1024: 80 rounds, 16 words. Uses pre-allocated arrays.
+	/// Threefish-1024: 80 rounds, 16 words.
+	/// Uses local variables instead of arrays to eliminate bounds checking.
+	/// Extended key schedule (33 entries) eliminates modulo in key injection.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	protected override void ThreefishEncrypt() {
-		ulong parity = C240;
+		// Build extended key schedule: 17 keys + 16 repeated = 33 total for modulo-free lookup
+		Span<ulong> kw = stackalloc ulong[33];
+		ulong knw = C240;
 		for (int i = 0; i < 16; i++) {
-			_ks[i] = _state[i];
-			parity ^= _state[i];
-			_v[i] = _work[i] + _state[i];
+			kw[i] = _state[i];
+			knw ^= _state[i];
 		}
-		_ks[16] = parity;
+		kw[16] = knw;
+		for (int i = 0; i < 16; i++) {
+			kw[17 + i] = kw[i];
+		}
 
+		// Extended tweak: 5 entries for modulo-free lookup
 		ulong t0 = _t0, t1 = _t1, t2 = t0 ^ t1;
-		_v[13] += t0;
-		_v[14] += t1;
+		Span<ulong> ts = stackalloc ulong[5];
+		ts[0] = t0; ts[1] = t1; ts[2] = t2; ts[3] = t0; ts[4] = t1;
 
-		// Rotation constants for Threefish-1024 (static readonly)
-		ReadOnlySpan<int> r0 = [24, 13, 8, 47, 8, 17, 22, 37];
-		ReadOnlySpan<int> r1 = [38, 19, 10, 55, 49, 18, 23, 52];
-		ReadOnlySpan<int> r2 = [33, 4, 51, 13, 34, 41, 59, 17];
-		ReadOnlySpan<int> r3 = [5, 20, 48, 41, 47, 28, 16, 25];
-		ReadOnlySpan<int> r4 = [41, 9, 37, 31, 12, 47, 44, 30];
-		ReadOnlySpan<int> r5 = [16, 34, 56, 51, 4, 53, 42, 41];
-		ReadOnlySpan<int> r6 = [31, 44, 47, 46, 19, 42, 44, 25];
-		ReadOnlySpan<int> r7 = [9, 48, 35, 52, 23, 31, 37, 20];
+		// Load plaintext into 16 local variables (CRITICAL: eliminates array bounds checking)
+		ulong b0 = _work[0], b1 = _work[1], b2 = _work[2], b3 = _work[3];
+		ulong b4 = _work[4], b5 = _work[5], b6 = _work[6], b7 = _work[7];
+		ulong b8 = _work[8], b9 = _work[9], b10 = _work[10], b11 = _work[11];
+		ulong b12 = _work[12], b13 = _work[13], b14 = _work[14], b15 = _work[15];
 
-		// 80 rounds (20 iterations of 4 rounds each)
+		// First subkey injection (subkey 0)
+		b0 += kw[0]; b1 += kw[1]; b2 += kw[2]; b3 += kw[3];
+		b4 += kw[4]; b5 += kw[5]; b6 += kw[6]; b7 += kw[7];
+		b8 += kw[8]; b9 += kw[9]; b10 += kw[10]; b11 += kw[11];
+		b12 += kw[12]; b13 += kw[13] + t0; b14 += kw[14] + t1; b15 += kw[15];
+
+		// 20 iterations of 4 rounds each (80 rounds total)
 		for (int d = 0; d < 20; d++) {
-			var rot = (d % 8) switch {
-				0 => r0,
-				1 => r1,
-				2 => r2,
-				3 => r3,
-				4 => r4,
-				5 => r5,
-				6 => r6,
-				_ => r7
-			};
+			// Compute rotation constant base offsets for 4 rounds
+			int ri0 = (d & 7) << 3;
+			int ri1 = ((d + 1) & 7) << 3;
+			int ri2 = ((d + 2) & 7) << 3;
+			int ri3 = ((d + 3) & 7) << 3;
 
-			// Round 0: Mix pairs (0,1), (2,3), (4,5), (6,7), (8,9), (10,11), (12,13), (14,15)
-			_v[0] += _v[1]; _v[1] = RotL(_v[1], rot[0]) ^ _v[0];
-			_v[2] += _v[3]; _v[3] = RotL(_v[3], rot[1]) ^ _v[2];
-			_v[4] += _v[5]; _v[5] = RotL(_v[5], rot[2]) ^ _v[4];
-			_v[6] += _v[7]; _v[7] = RotL(_v[7], rot[3]) ^ _v[6];
-			_v[8] += _v[9]; _v[9] = RotL(_v[9], rot[4]) ^ _v[8];
-			_v[10] += _v[11]; _v[11] = RotL(_v[11], rot[5]) ^ _v[10];
-			_v[12] += _v[13]; _v[13] = RotL(_v[13], rot[6]) ^ _v[12];
-			_v[14] += _v[15]; _v[15] = RotL(_v[15], rot[7]) ^ _v[14];
+			// Round 0: identity permutation — pairs (0,1), (2,3), (4,5), (6,7), (8,9), (10,11), (12,13), (14,15)
+			b0 += b1; b1 = RotL(b1, RotConsts[ri0]) ^ b0;
+			b2 += b3; b3 = RotL(b3, RotConsts[ri0 + 1]) ^ b2;
+			b4 += b5; b5 = RotL(b5, RotConsts[ri0 + 2]) ^ b4;
+			b6 += b7; b7 = RotL(b7, RotConsts[ri0 + 3]) ^ b6;
+			b8 += b9; b9 = RotL(b9, RotConsts[ri0 + 4]) ^ b8;
+			b10 += b11; b11 = RotL(b11, RotConsts[ri0 + 5]) ^ b10;
+			b12 += b13; b13 = RotL(b13, RotConsts[ri0 + 6]) ^ b12;
+			b14 += b15; b15 = RotL(b15, RotConsts[ri0 + 7]) ^ b14;
 
-			rot = ((d + 1) % 8) switch {
-				0 => r0, 1 => r1, 2 => r2, 3 => r3, 4 => r4, 5 => r5, 6 => r6, _ => r7
-			};
+			// Round 1: permutation — pairs (0,9), (2,13), (6,11), (4,15), (10,7), (12,3), (14,5), (8,1)
+			b0 += b9; b9 = RotL(b9, RotConsts[ri1]) ^ b0;
+			b2 += b13; b13 = RotL(b13, RotConsts[ri1 + 1]) ^ b2;
+			b6 += b11; b11 = RotL(b11, RotConsts[ri1 + 2]) ^ b6;
+			b4 += b15; b15 = RotL(b15, RotConsts[ri1 + 3]) ^ b4;
+			b10 += b7; b7 = RotL(b7, RotConsts[ri1 + 4]) ^ b10;
+			b12 += b3; b3 = RotL(b3, RotConsts[ri1 + 5]) ^ b12;
+			b14 += b5; b5 = RotL(b5, RotConsts[ri1 + 6]) ^ b14;
+			b8 += b1; b1 = RotL(b1, RotConsts[ri1 + 7]) ^ b8;
 
-			// Round 1: Permute and mix
-			_v[0] += _v[9]; _v[9] = RotL(_v[9], rot[0]) ^ _v[0];
-			_v[2] += _v[13]; _v[13] = RotL(_v[13], rot[1]) ^ _v[2];
-			_v[6] += _v[11]; _v[11] = RotL(_v[11], rot[2]) ^ _v[6];
-			_v[4] += _v[15]; _v[15] = RotL(_v[15], rot[3]) ^ _v[4];
-			_v[10] += _v[7]; _v[7] = RotL(_v[7], rot[4]) ^ _v[10];
-			_v[12] += _v[3]; _v[3] = RotL(_v[3], rot[5]) ^ _v[12];
-			_v[14] += _v[5]; _v[5] = RotL(_v[5], rot[6]) ^ _v[14];
-			_v[8] += _v[1]; _v[1] = RotL(_v[1], rot[7]) ^ _v[8];
+			// Round 2: permutation — pairs (0,7), (2,5), (4,3), (6,1), (12,15), (14,13), (8,11), (10,9)
+			b0 += b7; b7 = RotL(b7, RotConsts[ri2]) ^ b0;
+			b2 += b5; b5 = RotL(b5, RotConsts[ri2 + 1]) ^ b2;
+			b4 += b3; b3 = RotL(b3, RotConsts[ri2 + 2]) ^ b4;
+			b6 += b1; b1 = RotL(b1, RotConsts[ri2 + 3]) ^ b6;
+			b12 += b15; b15 = RotL(b15, RotConsts[ri2 + 4]) ^ b12;
+			b14 += b13; b13 = RotL(b13, RotConsts[ri2 + 5]) ^ b14;
+			b8 += b11; b11 = RotL(b11, RotConsts[ri2 + 6]) ^ b8;
+			b10 += b9; b9 = RotL(b9, RotConsts[ri2 + 7]) ^ b10;
 
-			rot = ((d + 2) % 8) switch {
-				0 => r0, 1 => r1, 2 => r2, 3 => r3, 4 => r4, 5 => r5, 6 => r6, _ => r7
-			};
+			// Round 3: permutation — pairs (0,15), (2,11), (6,13), (4,9), (14,1), (8,5), (10,3), (12,7)
+			b0 += b15; b15 = RotL(b15, RotConsts[ri3]) ^ b0;
+			b2 += b11; b11 = RotL(b11, RotConsts[ri3 + 1]) ^ b2;
+			b6 += b13; b13 = RotL(b13, RotConsts[ri3 + 2]) ^ b6;
+			b4 += b9; b9 = RotL(b9, RotConsts[ri3 + 3]) ^ b4;
+			b14 += b1; b1 = RotL(b1, RotConsts[ri3 + 4]) ^ b14;
+			b8 += b5; b5 = RotL(b5, RotConsts[ri3 + 5]) ^ b8;
+			b10 += b3; b3 = RotL(b3, RotConsts[ri3 + 6]) ^ b10;
+			b12 += b7; b7 = RotL(b7, RotConsts[ri3 + 7]) ^ b12;
 
-			// Round 2
-			_v[0] += _v[7]; _v[7] = RotL(_v[7], rot[0]) ^ _v[0];
-			_v[2] += _v[5]; _v[5] = RotL(_v[5], rot[1]) ^ _v[2];
-			_v[4] += _v[3]; _v[3] = RotL(_v[3], rot[2]) ^ _v[4];
-			_v[6] += _v[1]; _v[1] = RotL(_v[1], rot[3]) ^ _v[6];
-			_v[12] += _v[15]; _v[15] = RotL(_v[15], rot[4]) ^ _v[12];
-			_v[14] += _v[13]; _v[13] = RotL(_v[13], rot[5]) ^ _v[14];
-			_v[8] += _v[11]; _v[11] = RotL(_v[11], rot[6]) ^ _v[8];
-			_v[10] += _v[9]; _v[9] = RotL(_v[9], rot[7]) ^ _v[10];
-
-			rot = ((d + 3) % 8) switch {
-				0 => r0, 1 => r1, 2 => r2, 3 => r3, 4 => r4, 5 => r5, 6 => r6, _ => r7
-			};
-
-			// Round 3
-			_v[0] += _v[15]; _v[15] = RotL(_v[15], rot[0]) ^ _v[0];
-			_v[2] += _v[11]; _v[11] = RotL(_v[11], rot[1]) ^ _v[2];
-			_v[6] += _v[13]; _v[13] = RotL(_v[13], rot[2]) ^ _v[6];
-			_v[4] += _v[9]; _v[9] = RotL(_v[9], rot[3]) ^ _v[4];
-			_v[14] += _v[1]; _v[1] = RotL(_v[1], rot[4]) ^ _v[14];
-			_v[8] += _v[5]; _v[5] = RotL(_v[5], rot[5]) ^ _v[8];
-			_v[10] += _v[3]; _v[3] = RotL(_v[3], rot[6]) ^ _v[10];
-			_v[12] += _v[7]; _v[7] = RotL(_v[7], rot[7]) ^ _v[12];
-
-			// Key injection
-			int dm = d + 1;
-			for (int i = 0; i < 16; i++) {
-				_v[i] += _ks[(dm + i) % 17];
-			}
-			_v[13] += (dm % 3) switch { 0 => t0, 1 => t1, _ => t2 };
-			_v[14] += ((dm + 1) % 3) switch { 0 => t0, 1 => t1, _ => t2 };
-			_v[15] += (ulong)dm;
+			// Key injection using extended key schedule (no modulo)
+			int dm17 = Mod17[d + 1];
+			int dm3 = Mod3[d + 1];
+			b0 += kw[dm17]; b1 += kw[dm17 + 1]; b2 += kw[dm17 + 2]; b3 += kw[dm17 + 3];
+			b4 += kw[dm17 + 4]; b5 += kw[dm17 + 5]; b6 += kw[dm17 + 6]; b7 += kw[dm17 + 7];
+			b8 += kw[dm17 + 8]; b9 += kw[dm17 + 9]; b10 += kw[dm17 + 10]; b11 += kw[dm17 + 11];
+			b12 += kw[dm17 + 12];
+			b13 += kw[dm17 + 13] + ts[dm3];
+			b14 += kw[dm17 + 14] + ts[dm3 + 1];
+			b15 += kw[dm17 + 15] + (ulong)(d + 1);
 		}
 
-		for (int i = 0; i < 16; i++) {
-			_work[i] = _v[i];
-		}
+		// Store results back
+		_work[0] = b0; _work[1] = b1; _work[2] = b2; _work[3] = b3;
+		_work[4] = b4; _work[5] = b5; _work[6] = b6; _work[7] = b7;
+		_work[8] = b8; _work[9] = b9; _work[10] = b10; _work[11] = b11;
+		_work[12] = b12; _work[13] = b13; _work[14] = b14; _work[15] = b15;
 	}
 }
 
