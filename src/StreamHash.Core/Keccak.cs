@@ -1,8 +1,7 @@
 ﻿using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace StreamHash.Core;
 
@@ -47,6 +46,7 @@ namespace StreamHash.Core;
 /// </list>
 /// </para>
 /// </remarks>
+[SkipLocalsInit]
 public sealed class NativeKeccak : IStreamingHashBytes {
 	// ========== Constants ==========
 
@@ -249,9 +249,11 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private void AbsorbBlock(ReadOnlySpan<byte> block) {
 		// XOR block into state (rate bytes only)
-		int lanes = _rate / 8;
+		// Use MemoryMarshal.Cast for zero-copy ulong access on little-endian
+		int lanes = _rate >> 3;
+		ReadOnlySpan<ulong> inputLanes = MemoryMarshal.Cast<byte, ulong>(block);
 		for (int i = 0; i < lanes; i++) {
-			_state[i] ^= BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(i * 8, 8));
+			_state[i] ^= inputLanes[i];
 		}
 
 		KeccakF1600();
@@ -262,18 +264,9 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private void ExtractBytes(Span<byte> output) {
-		int fullLanes = output.Length / 8;
-		int remaining = output.Length % 8;
-
-		for (int i = 0; i < fullLanes; i++) {
-			BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(i * 8, 8), _state[i]);
-		}
-
-		if (remaining > 0) {
-			Span<byte> temp = stackalloc byte[8];
-			BinaryPrimitives.WriteUInt64LittleEndian(temp, _state[fullLanes]);
-			temp.Slice(0, remaining).CopyTo(output.Slice(fullLanes * 8));
-		}
+		// Use MemoryMarshal.AsBytes for zero-copy extraction on little-endian
+		ReadOnlySpan<byte> stateBytes = MemoryMarshal.AsBytes(_state.AsSpan());
+		stateBytes.Slice(0, output.Length).CopyTo(output);
 	}
 
 	/// <summary>
@@ -296,11 +289,11 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 			ulong c3 = a03 ^ a08 ^ a13 ^ a18 ^ a23;
 			ulong c4 = a04 ^ a09 ^ a14 ^ a19 ^ a24;
 
-			ulong d1 = RotateLeft64(c1, 1) ^ c4;
-			ulong d2 = RotateLeft64(c2, 1) ^ c0;
-			ulong d3 = RotateLeft64(c3, 1) ^ c1;
-			ulong d4 = RotateLeft64(c4, 1) ^ c2;
-			ulong d0 = RotateLeft64(c0, 1) ^ c3;
+			ulong d1 = BitOperations.RotateLeft(c1, 1) ^ c4;
+			ulong d2 = BitOperations.RotateLeft(c2, 1) ^ c0;
+			ulong d3 = BitOperations.RotateLeft(c3, 1) ^ c1;
+			ulong d4 = BitOperations.RotateLeft(c4, 1) ^ c2;
+			ulong d0 = BitOperations.RotateLeft(c0, 1) ^ c3;
 
 			a00 ^= d1; a05 ^= d1; a10 ^= d1; a15 ^= d1; a20 ^= d1;
 			a01 ^= d2; a06 ^= d2; a11 ^= d2; a16 ^= d2; a21 ^= d2;
@@ -309,30 +302,30 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 			a04 ^= d0; a09 ^= d0; a14 ^= d0; a19 ^= d0; a24 ^= d0;
 
 			// ρ (rho) and π (pi) steps combined - in-place using local variable chain
-			c1 = RotateLeft64(a01, 1);
-			a01 = RotateLeft64(a06, 44);
-			a06 = RotateLeft64(a09, 20);
-			a09 = RotateLeft64(a22, 61);
-			a22 = RotateLeft64(a14, 39);
-			a14 = RotateLeft64(a20, 18);
-			a20 = RotateLeft64(a02, 62);
-			a02 = RotateLeft64(a12, 43);
-			a12 = RotateLeft64(a13, 25);
-			a13 = RotateLeft64(a19, 8);
-			a19 = RotateLeft64(a23, 56);
-			a23 = RotateLeft64(a15, 41);
-			a15 = RotateLeft64(a04, 27);
-			a04 = RotateLeft64(a24, 14);
-			a24 = RotateLeft64(a21, 2);
-			a21 = RotateLeft64(a08, 55);
-			a08 = RotateLeft64(a16, 45);
-			a16 = RotateLeft64(a05, 36);
-			a05 = RotateLeft64(a03, 28);
-			a03 = RotateLeft64(a18, 21);
-			a18 = RotateLeft64(a17, 15);
-			a17 = RotateLeft64(a11, 10);
-			a11 = RotateLeft64(a07, 6);
-			a07 = RotateLeft64(a10, 3);
+			c1 = BitOperations.RotateLeft(a01, 1);
+			a01 = BitOperations.RotateLeft(a06, 44);
+			a06 = BitOperations.RotateLeft(a09, 20);
+			a09 = BitOperations.RotateLeft(a22, 61);
+			a22 = BitOperations.RotateLeft(a14, 39);
+			a14 = BitOperations.RotateLeft(a20, 18);
+			a20 = BitOperations.RotateLeft(a02, 62);
+			a02 = BitOperations.RotateLeft(a12, 43);
+			a12 = BitOperations.RotateLeft(a13, 25);
+			a13 = BitOperations.RotateLeft(a19, 8);
+			a19 = BitOperations.RotateLeft(a23, 56);
+			a23 = BitOperations.RotateLeft(a15, 41);
+			a15 = BitOperations.RotateLeft(a04, 27);
+			a04 = BitOperations.RotateLeft(a24, 14);
+			a24 = BitOperations.RotateLeft(a21, 2);
+			a21 = BitOperations.RotateLeft(a08, 55);
+			a08 = BitOperations.RotateLeft(a16, 45);
+			a16 = BitOperations.RotateLeft(a05, 36);
+			a05 = BitOperations.RotateLeft(a03, 28);
+			a03 = BitOperations.RotateLeft(a18, 21);
+			a18 = BitOperations.RotateLeft(a17, 15);
+			a17 = BitOperations.RotateLeft(a11, 10);
+			a11 = BitOperations.RotateLeft(a07, 6);
+			a07 = BitOperations.RotateLeft(a10, 3);
 			a10 = c1;
 
 			// χ (chi) step - Non-linear mixing using only 2 temporaries per row
@@ -388,12 +381,7 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 		_state[20] = a20; _state[21] = a21; _state[22] = a22; _state[23] = a23; _state[24] = a24;
 	}
 
-	/// <summary>
-	/// 64-bit rotate left.
-	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static ulong RotateLeft64(ulong value, int offset) =>
-		(value << offset) | (value >> (64 - offset));
+
 }
 
 // ========== Concrete SHA-3 Implementations ==========
@@ -587,10 +575,11 @@ public static class NativeSha3Factory {
 
 		// Absorb full blocks
 		int offset = 0;
-		int lanes = rate / 8;
+		int lanes = rate >> 3;
 		while (offset + rate <= data.Length) {
+			ReadOnlySpan<ulong> inputLanes = MemoryMarshal.Cast<byte, ulong>(data.Slice(offset, rate));
 			for (int i = 0; i < lanes; i++) {
-				state[i] ^= BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(offset + i * 8, 8));
+				state[i] ^= inputLanes[i];
 			}
 			KeccakF1600Static(state);
 			offset += rate;
@@ -607,8 +596,9 @@ public static class NativeSha3Factory {
 		buffer[rate - 1] |= 0x80;
 
 		// Absorb final block
+		ReadOnlySpan<ulong> finalLanes = MemoryMarshal.Cast<byte, ulong>(buffer);
 		for (int i = 0; i < lanes; i++) {
-			state[i] ^= BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(i * 8, 8));
+			state[i] ^= finalLanes[i];
 		}
 		KeccakF1600Static(state);
 
@@ -629,95 +619,126 @@ public static class NativeSha3Factory {
 	}
 
 	/// <summary>
-	/// Static Keccak-f[1600] permutation - 24 rounds.
+	/// Round constants (RC) for the ι (iota) step.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static void KeccakF1600Static(Span<ulong> state) {
-		ReadOnlySpan<ulong> RC = [
-			0x0000000000000001UL, 0x0000000000008082UL, 0x800000000000808aUL, 0x8000000080008000UL,
-			0x000000000000808bUL, 0x0000000080000001UL, 0x8000000080008081UL, 0x8000000000008009UL,
-			0x000000000000008aUL, 0x0000000000000088UL, 0x0000000080008009UL, 0x000000008000000aUL,
-			0x000000008000808bUL, 0x800000000000008bUL, 0x8000000000008089UL, 0x8000000000008003UL,
-			0x8000000000008002UL, 0x8000000000000080UL, 0x000000000000800aUL, 0x800000008000000aUL,
-			0x8000000080008081UL, 0x8000000000008080UL, 0x0000000080000001UL, 0x8000000080008008UL
-		];
+	private static readonly ulong[] KeccakRoundConstants = [
+		0x0000000000000001UL, 0x0000000000008082UL, 0x800000000000808aUL, 0x8000000080008000UL,
+		0x000000000000808bUL, 0x0000000080000001UL, 0x8000000080008081UL, 0x8000000000008009UL,
+		0x000000000000008aUL, 0x0000000000000088UL, 0x0000000080008009UL, 0x000000008000000aUL,
+		0x000000008000808bUL, 0x800000000000008bUL, 0x8000000000008089UL, 0x8000000000008003UL,
+		0x8000000000008002UL, 0x8000000000000080UL, 0x000000000000800aUL, 0x800000008000000aUL,
+		0x8000000080008081UL, 0x8000000000008080UL, 0x0000000080000001UL, 0x8000000080008008UL
+	];
 
-		Span<ulong> c = stackalloc ulong[5];
-		Span<ulong> b = stackalloc ulong[25];
+	/// <summary>
+	/// Static Keccak-f[1600] permutation - 24 rounds using 25 local variables.
+	/// </summary>
+	[SkipLocalsInit]
+	private static void KeccakF1600Static(Span<ulong> state) {
+		// Load state into 25 local variables (eliminates span bounds checking in hot loop)
+		ulong a00 = state[0], a01 = state[1], a02 = state[2], a03 = state[3], a04 = state[4];
+		ulong a05 = state[5], a06 = state[6], a07 = state[7], a08 = state[8], a09 = state[9];
+		ulong a10 = state[10], a11 = state[11], a12 = state[12], a13 = state[13], a14 = state[14];
+		ulong a15 = state[15], a16 = state[16], a17 = state[17], a18 = state[18], a19 = state[19];
+		ulong a20 = state[20], a21 = state[21], a22 = state[22], a23 = state[23], a24 = state[24];
 
 		for (int round = 0; round < 24; round++) {
-			// θ step
-			c[0] = state[0] ^ state[5] ^ state[10] ^ state[15] ^ state[20];
-			c[1] = state[1] ^ state[6] ^ state[11] ^ state[16] ^ state[21];
-			c[2] = state[2] ^ state[7] ^ state[12] ^ state[17] ^ state[22];
-			c[3] = state[3] ^ state[8] ^ state[13] ^ state[18] ^ state[23];
-			c[4] = state[4] ^ state[9] ^ state[14] ^ state[19] ^ state[24];
+			// θ (theta) step - Column parity mixing
+			ulong c0 = a00 ^ a05 ^ a10 ^ a15 ^ a20;
+			ulong c1 = a01 ^ a06 ^ a11 ^ a16 ^ a21;
+			ulong c2 = a02 ^ a07 ^ a12 ^ a17 ^ a22;
+			ulong c3 = a03 ^ a08 ^ a13 ^ a18 ^ a23;
+			ulong c4 = a04 ^ a09 ^ a14 ^ a19 ^ a24;
 
-			ulong d0 = c[4] ^ ((c[1] << 1) | (c[1] >> 63));
-			ulong d1 = c[0] ^ ((c[2] << 1) | (c[2] >> 63));
-			ulong d2 = c[1] ^ ((c[3] << 1) | (c[3] >> 63));
-			ulong d3 = c[2] ^ ((c[4] << 1) | (c[4] >> 63));
-			ulong d4 = c[3] ^ ((c[0] << 1) | (c[0] >> 63));
+			ulong d1 = BitOperations.RotateLeft(c1, 1) ^ c4;
+			ulong d2 = BitOperations.RotateLeft(c2, 1) ^ c0;
+			ulong d3 = BitOperations.RotateLeft(c3, 1) ^ c1;
+			ulong d4 = BitOperations.RotateLeft(c4, 1) ^ c2;
+			ulong d0 = BitOperations.RotateLeft(c0, 1) ^ c3;
 
-			state[0] ^= d0; state[5] ^= d0; state[10] ^= d0; state[15] ^= d0; state[20] ^= d0;
-			state[1] ^= d1; state[6] ^= d1; state[11] ^= d1; state[16] ^= d1; state[21] ^= d1;
-			state[2] ^= d2; state[7] ^= d2; state[12] ^= d2; state[17] ^= d2; state[22] ^= d2;
-			state[3] ^= d3; state[8] ^= d3; state[13] ^= d3; state[18] ^= d3; state[23] ^= d3;
-			state[4] ^= d4; state[9] ^= d4; state[14] ^= d4; state[19] ^= d4; state[24] ^= d4;
+			a00 ^= d1; a05 ^= d1; a10 ^= d1; a15 ^= d1; a20 ^= d1;
+			a01 ^= d2; a06 ^= d2; a11 ^= d2; a16 ^= d2; a21 ^= d2;
+			a02 ^= d3; a07 ^= d3; a12 ^= d3; a17 ^= d3; a22 ^= d3;
+			a03 ^= d4; a08 ^= d4; a13 ^= d4; a18 ^= d4; a23 ^= d4;
+			a04 ^= d0; a09 ^= d0; a14 ^= d0; a19 ^= d0; a24 ^= d0;
 
-			// ρ and π steps combined
-			b[0] = state[0];
-			b[1] = (state[6] << 44) | (state[6] >> 20);
-			b[2] = (state[12] << 43) | (state[12] >> 21);
-			b[3] = (state[18] << 21) | (state[18] >> 43);
-			b[4] = (state[24] << 14) | (state[24] >> 50);
-			b[5] = (state[3] << 28) | (state[3] >> 36);
-			b[6] = (state[9] << 20) | (state[9] >> 44);
-			b[7] = (state[10] << 3) | (state[10] >> 61);
-			b[8] = (state[16] << 45) | (state[16] >> 19);
-			b[9] = (state[22] << 61) | (state[22] >> 3);
-			b[10] = (state[1] << 1) | (state[1] >> 63);
-			b[11] = (state[7] << 6) | (state[7] >> 58);
-			b[12] = (state[13] << 25) | (state[13] >> 39);
-			b[13] = (state[19] << 8) | (state[19] >> 56);
-			b[14] = (state[20] << 18) | (state[20] >> 46);
-			b[15] = (state[4] << 27) | (state[4] >> 37);
-			b[16] = (state[5] << 36) | (state[5] >> 28);
-			b[17] = (state[11] << 10) | (state[11] >> 54);
-			b[18] = (state[17] << 15) | (state[17] >> 49);
-			b[19] = (state[23] << 56) | (state[23] >> 8);
-			b[20] = (state[2] << 62) | (state[2] >> 2);
-			b[21] = (state[8] << 55) | (state[8] >> 9);
-			b[22] = (state[14] << 39) | (state[14] >> 25);
-			b[23] = (state[15] << 41) | (state[15] >> 23);
-			b[24] = (state[21] << 2) | (state[21] >> 62);
+			// ρ (rho) and π (pi) steps combined - in-place using local variable chain
+			c1 = BitOperations.RotateLeft(a01, 1);
+			a01 = BitOperations.RotateLeft(a06, 44);
+			a06 = BitOperations.RotateLeft(a09, 20);
+			a09 = BitOperations.RotateLeft(a22, 61);
+			a22 = BitOperations.RotateLeft(a14, 39);
+			a14 = BitOperations.RotateLeft(a20, 18);
+			a20 = BitOperations.RotateLeft(a02, 62);
+			a02 = BitOperations.RotateLeft(a12, 43);
+			a12 = BitOperations.RotateLeft(a13, 25);
+			a13 = BitOperations.RotateLeft(a19, 8);
+			a19 = BitOperations.RotateLeft(a23, 56);
+			a23 = BitOperations.RotateLeft(a15, 41);
+			a15 = BitOperations.RotateLeft(a04, 27);
+			a04 = BitOperations.RotateLeft(a24, 14);
+			a24 = BitOperations.RotateLeft(a21, 2);
+			a21 = BitOperations.RotateLeft(a08, 55);
+			a08 = BitOperations.RotateLeft(a16, 45);
+			a16 = BitOperations.RotateLeft(a05, 36);
+			a05 = BitOperations.RotateLeft(a03, 28);
+			a03 = BitOperations.RotateLeft(a18, 21);
+			a18 = BitOperations.RotateLeft(a17, 15);
+			a17 = BitOperations.RotateLeft(a11, 10);
+			a11 = BitOperations.RotateLeft(a07, 6);
+			a07 = BitOperations.RotateLeft(a10, 3);
+			a10 = c1;
 
-			// χ and ι steps
-			state[0] = b[0] ^ (~b[1] & b[2]) ^ RC[round];
-			state[1] = b[1] ^ (~b[2] & b[3]);
-			state[2] = b[2] ^ (~b[3] & b[4]);
-			state[3] = b[3] ^ (~b[4] & b[0]);
-			state[4] = b[4] ^ (~b[0] & b[1]);
-			state[5] = b[5] ^ (~b[6] & b[7]);
-			state[6] = b[6] ^ (~b[7] & b[8]);
-			state[7] = b[7] ^ (~b[8] & b[9]);
-			state[8] = b[8] ^ (~b[9] & b[5]);
-			state[9] = b[9] ^ (~b[5] & b[6]);
-			state[10] = b[10] ^ (~b[11] & b[12]);
-			state[11] = b[11] ^ (~b[12] & b[13]);
-			state[12] = b[12] ^ (~b[13] & b[14]);
-			state[13] = b[13] ^ (~b[14] & b[10]);
-			state[14] = b[14] ^ (~b[10] & b[11]);
-			state[15] = b[15] ^ (~b[16] & b[17]);
-			state[16] = b[16] ^ (~b[17] & b[18]);
-			state[17] = b[17] ^ (~b[18] & b[19]);
-			state[18] = b[18] ^ (~b[19] & b[15]);
-			state[19] = b[19] ^ (~b[15] & b[16]);
-			state[20] = b[20] ^ (~b[21] & b[22]);
-			state[21] = b[21] ^ (~b[22] & b[23]);
-			state[22] = b[22] ^ (~b[23] & b[24]);
-			state[23] = b[23] ^ (~b[24] & b[20]);
-			state[24] = b[24] ^ (~b[20] & b[21]);
+			// χ (chi) step - Non-linear mixing
+			c0 = a00 ^ (~a01 & a02);
+			c1 = a01 ^ (~a02 & a03);
+			a02 ^= ~a03 & a04;
+			a03 ^= ~a04 & a00;
+			a04 ^= ~a00 & a01;
+			a00 = c0;
+			a01 = c1;
+
+			c0 = a05 ^ (~a06 & a07);
+			c1 = a06 ^ (~a07 & a08);
+			a07 ^= ~a08 & a09;
+			a08 ^= ~a09 & a05;
+			a09 ^= ~a05 & a06;
+			a05 = c0;
+			a06 = c1;
+
+			c0 = a10 ^ (~a11 & a12);
+			c1 = a11 ^ (~a12 & a13);
+			a12 ^= ~a13 & a14;
+			a13 ^= ~a14 & a10;
+			a14 ^= ~a10 & a11;
+			a10 = c0;
+			a11 = c1;
+
+			c0 = a15 ^ (~a16 & a17);
+			c1 = a16 ^ (~a17 & a18);
+			a17 ^= ~a18 & a19;
+			a18 ^= ~a19 & a15;
+			a19 ^= ~a15 & a16;
+			a15 = c0;
+			a16 = c1;
+
+			c0 = a20 ^ (~a21 & a22);
+			c1 = a21 ^ (~a22 & a23);
+			a22 ^= ~a23 & a24;
+			a23 ^= ~a24 & a20;
+			a24 ^= ~a20 & a21;
+			a20 = c0;
+			a21 = c1;
+
+			// ι (iota) step
+			a00 ^= KeccakRoundConstants[round];
 		}
+
+		// Write state back
+		state[0] = a00; state[1] = a01; state[2] = a02; state[3] = a03; state[4] = a04;
+		state[5] = a05; state[6] = a06; state[7] = a07; state[8] = a08; state[9] = a09;
+		state[10] = a10; state[11] = a11; state[12] = a12; state[13] = a13; state[14] = a14;
+		state[15] = a15; state[16] = a16; state[17] = a17; state[18] = a18; state[19] = a19;
+		state[20] = a20; state[21] = a21; state[22] = a22; state[23] = a23; state[24] = a24;
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -296,7 +297,7 @@ internal abstract class SkeinOptimized : IStreamingHashBytes {
 
 	/// <summary>Rotate left helper.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	protected static ulong RotL(ulong v, int n) => (v << n) | (v >> (64 - n));
+	protected static ulong RotL(ulong v, int n) => BitOperations.RotateLeft(v, n);
 }
 
 /// <summary>
@@ -756,27 +757,6 @@ internal sealed class Skein512Optimized : SkeinOptimized {
 /// Optimized Skein-1024 with zero-allocation Threefish-1024.
 /// </summary>
 internal sealed class Skein1024Optimized : SkeinOptimized {
-	/// <summary>Pre-computed modulo-17 lookup for key schedule injection (indices 0..20).</summary>
-	private static ReadOnlySpan<int> Mod17 => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 1, 2, 3];
-
-	/// <summary>Pre-computed modulo-3 lookup for tweak injection (indices 0..20).</summary>
-	private static ReadOnlySpan<int> Mod3 => [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2];
-
-	/// <summary>
-	/// Flat rotation constants for Threefish-1024: 8 sets × 8 columns.
-	/// Indexed as RotConsts[setIndex * 8 + column].
-	/// </summary>
-	private static ReadOnlySpan<byte> RotConsts => [
-		24, 13,  8, 47,  8, 17, 22, 37,  // R0
-		38, 19, 10, 55, 49, 18, 23, 52,  // R1
-		33,  4, 51, 13, 34, 41, 59, 17,  // R2
-		 5, 20, 48, 41, 47, 28, 16, 25,  // R3
-		41,  9, 37, 31, 12, 47, 44, 30,  // R4
-		16, 34, 56, 51,  4, 53, 42, 41,  // R5
-		31, 44, 47, 46, 19, 42, 44, 25,  // R6
-		 9, 48, 35, 52, 23, 31, 37, 20   // R7
-	];
-
 	public Skein1024Optimized(int outputBits = 1024) : base(1024, outputBits) {
 		Reset();
 	}
@@ -845,65 +825,269 @@ internal sealed class Skein1024Optimized : SkeinOptimized {
 		b8 += kw[8]; b9 += kw[9]; b10 += kw[10]; b11 += kw[11];
 		b12 += kw[12]; b13 += kw[13] + t0; b14 += kw[14] + t1; b15 += kw[15];
 
-		// 20 iterations of 4 rounds each (80 rounds total)
-		for (int d = 0; d < 20; d++) {
-			// Compute rotation constant base offsets for 4 rounds
-			int ri0 = (d & 7) << 3;
-			int ri1 = ((d + 1) & 7) << 3;
-			int ri2 = ((d + 2) & 7) << 3;
-			int ri3 = ((d + 3) & 7) << 3;
+		// 20 iterations of 4 rounds each (80 rounds total) — fully unrolled with literal rotation constants
+		// Eliminates ReadOnlySpan<byte> RotConsts memory loads + variable-count rotates per mix operation
+		// Each RotL call now has a compile-time constant rotation amount → JIT emits immediate-operand ROL
 
-			// Round 0: identity permutation — pairs (0,1), (2,3), (4,5), (6,7), (8,9), (10,11), (12,13), (14,15)
-			b0 += b1; b1 = RotL(b1, RotConsts[ri0]) ^ b0;
-			b2 += b3; b3 = RotL(b3, RotConsts[ri0 + 1]) ^ b2;
-			b4 += b5; b5 = RotL(b5, RotConsts[ri0 + 2]) ^ b4;
-			b6 += b7; b7 = RotL(b7, RotConsts[ri0 + 3]) ^ b6;
-			b8 += b9; b9 = RotL(b9, RotConsts[ri0 + 4]) ^ b8;
-			b10 += b11; b11 = RotL(b11, RotConsts[ri0 + 5]) ^ b10;
-			b12 += b13; b13 = RotL(b13, RotConsts[ri0 + 6]) ^ b12;
-			b14 += b15; b15 = RotL(b15, RotConsts[ri0 + 7]) ^ b14;
+		// ===== Iteration d=0 =====
+		b0 += b1; b1 = RotL(b1, 24) ^ b0; b2 += b3; b3 = RotL(b3, 13) ^ b2; b4 += b5; b5 = RotL(b5, 8) ^ b4; b6 += b7; b7 = RotL(b7, 47) ^ b6; b8 += b9; b9 = RotL(b9, 8) ^ b8; b10 += b11; b11 = RotL(b11, 17) ^ b10; b12 += b13; b13 = RotL(b13, 22) ^ b12; b14 += b15; b15 = RotL(b15, 37) ^ b14;
+		b0 += b9; b9 = RotL(b9, 38) ^ b0; b2 += b13; b13 = RotL(b13, 19) ^ b2; b6 += b11; b11 = RotL(b11, 10) ^ b6; b4 += b15; b15 = RotL(b15, 55) ^ b4; b10 += b7; b7 = RotL(b7, 49) ^ b10; b12 += b3; b3 = RotL(b3, 18) ^ b12; b14 += b5; b5 = RotL(b5, 23) ^ b14; b8 += b1; b1 = RotL(b1, 52) ^ b8;
+		b0 += b7; b7 = RotL(b7, 33) ^ b0; b2 += b5; b5 = RotL(b5, 4) ^ b2; b4 += b3; b3 = RotL(b3, 51) ^ b4; b6 += b1; b1 = RotL(b1, 13) ^ b6; b12 += b15; b15 = RotL(b15, 34) ^ b12; b14 += b13; b13 = RotL(b13, 41) ^ b14; b8 += b11; b11 = RotL(b11, 59) ^ b8; b10 += b9; b9 = RotL(b9, 17) ^ b10;
+		b0 += b15; b15 = RotL(b15, 5) ^ b0; b2 += b11; b11 = RotL(b11, 20) ^ b2; b6 += b13; b13 = RotL(b13, 48) ^ b6; b4 += b9; b9 = RotL(b9, 41) ^ b4; b14 += b1; b1 = RotL(b1, 47) ^ b14; b8 += b5; b5 = RotL(b5, 28) ^ b8; b10 += b3; b3 = RotL(b3, 16) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[1]; b1 += kw[2]; b2 += kw[3]; b3 += kw[4];
+		b4 += kw[5]; b5 += kw[6]; b6 += kw[7]; b7 += kw[8];
+		b8 += kw[9]; b9 += kw[10]; b10 += kw[11]; b11 += kw[12];
+		b12 += kw[13];
+		b13 += kw[14] + ts[1];
+		b14 += kw[15] + ts[2];
+		b15 += kw[16] + (ulong)1;
 
-			// Round 1: permutation — pairs (0,9), (2,13), (6,11), (4,15), (10,7), (12,3), (14,5), (8,1)
-			b0 += b9; b9 = RotL(b9, RotConsts[ri1]) ^ b0;
-			b2 += b13; b13 = RotL(b13, RotConsts[ri1 + 1]) ^ b2;
-			b6 += b11; b11 = RotL(b11, RotConsts[ri1 + 2]) ^ b6;
-			b4 += b15; b15 = RotL(b15, RotConsts[ri1 + 3]) ^ b4;
-			b10 += b7; b7 = RotL(b7, RotConsts[ri1 + 4]) ^ b10;
-			b12 += b3; b3 = RotL(b3, RotConsts[ri1 + 5]) ^ b12;
-			b14 += b5; b5 = RotL(b5, RotConsts[ri1 + 6]) ^ b14;
-			b8 += b1; b1 = RotL(b1, RotConsts[ri1 + 7]) ^ b8;
+		// ===== Iteration d=1 =====
+		b0 += b1; b1 = RotL(b1, 38) ^ b0; b2 += b3; b3 = RotL(b3, 19) ^ b2; b4 += b5; b5 = RotL(b5, 10) ^ b4; b6 += b7; b7 = RotL(b7, 55) ^ b6; b8 += b9; b9 = RotL(b9, 49) ^ b8; b10 += b11; b11 = RotL(b11, 18) ^ b10; b12 += b13; b13 = RotL(b13, 23) ^ b12; b14 += b15; b15 = RotL(b15, 52) ^ b14;
+		b0 += b9; b9 = RotL(b9, 33) ^ b0; b2 += b13; b13 = RotL(b13, 4) ^ b2; b6 += b11; b11 = RotL(b11, 51) ^ b6; b4 += b15; b15 = RotL(b15, 13) ^ b4; b10 += b7; b7 = RotL(b7, 34) ^ b10; b12 += b3; b3 = RotL(b3, 41) ^ b12; b14 += b5; b5 = RotL(b5, 59) ^ b14; b8 += b1; b1 = RotL(b1, 17) ^ b8;
+		b0 += b7; b7 = RotL(b7, 5) ^ b0; b2 += b5; b5 = RotL(b5, 20) ^ b2; b4 += b3; b3 = RotL(b3, 48) ^ b4; b6 += b1; b1 = RotL(b1, 41) ^ b6; b12 += b15; b15 = RotL(b15, 47) ^ b12; b14 += b13; b13 = RotL(b13, 28) ^ b14; b8 += b11; b11 = RotL(b11, 16) ^ b8; b10 += b9; b9 = RotL(b9, 25) ^ b10;
+		b0 += b15; b15 = RotL(b15, 41) ^ b0; b2 += b11; b11 = RotL(b11, 9) ^ b2; b6 += b13; b13 = RotL(b13, 37) ^ b6; b4 += b9; b9 = RotL(b9, 31) ^ b4; b14 += b1; b1 = RotL(b1, 12) ^ b14; b8 += b5; b5 = RotL(b5, 47) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 30) ^ b12;
+		b0 += kw[2]; b1 += kw[3]; b2 += kw[4]; b3 += kw[5];
+		b4 += kw[6]; b5 += kw[7]; b6 += kw[8]; b7 += kw[9];
+		b8 += kw[10]; b9 += kw[11]; b10 += kw[12]; b11 += kw[13];
+		b12 += kw[14];
+		b13 += kw[15] + ts[2];
+		b14 += kw[16] + ts[3];
+		b15 += kw[17] + (ulong)2;
 
-			// Round 2: permutation — pairs (0,7), (2,5), (4,3), (6,1), (12,15), (14,13), (8,11), (10,9)
-			b0 += b7; b7 = RotL(b7, RotConsts[ri2]) ^ b0;
-			b2 += b5; b5 = RotL(b5, RotConsts[ri2 + 1]) ^ b2;
-			b4 += b3; b3 = RotL(b3, RotConsts[ri2 + 2]) ^ b4;
-			b6 += b1; b1 = RotL(b1, RotConsts[ri2 + 3]) ^ b6;
-			b12 += b15; b15 = RotL(b15, RotConsts[ri2 + 4]) ^ b12;
-			b14 += b13; b13 = RotL(b13, RotConsts[ri2 + 5]) ^ b14;
-			b8 += b11; b11 = RotL(b11, RotConsts[ri2 + 6]) ^ b8;
-			b10 += b9; b9 = RotL(b9, RotConsts[ri2 + 7]) ^ b10;
+		// ===== Iteration d=2 =====
+		b0 += b1; b1 = RotL(b1, 33) ^ b0; b2 += b3; b3 = RotL(b3, 4) ^ b2; b4 += b5; b5 = RotL(b5, 51) ^ b4; b6 += b7; b7 = RotL(b7, 13) ^ b6; b8 += b9; b9 = RotL(b9, 34) ^ b8; b10 += b11; b11 = RotL(b11, 41) ^ b10; b12 += b13; b13 = RotL(b13, 59) ^ b12; b14 += b15; b15 = RotL(b15, 17) ^ b14;
+		b0 += b9; b9 = RotL(b9, 5) ^ b0; b2 += b13; b13 = RotL(b13, 20) ^ b2; b6 += b11; b11 = RotL(b11, 48) ^ b6; b4 += b15; b15 = RotL(b15, 41) ^ b4; b10 += b7; b7 = RotL(b7, 47) ^ b10; b12 += b3; b3 = RotL(b3, 28) ^ b12; b14 += b5; b5 = RotL(b5, 16) ^ b14; b8 += b1; b1 = RotL(b1, 25) ^ b8;
+		b0 += b7; b7 = RotL(b7, 41) ^ b0; b2 += b5; b5 = RotL(b5, 9) ^ b2; b4 += b3; b3 = RotL(b3, 37) ^ b4; b6 += b1; b1 = RotL(b1, 31) ^ b6; b12 += b15; b15 = RotL(b15, 12) ^ b12; b14 += b13; b13 = RotL(b13, 47) ^ b14; b8 += b11; b11 = RotL(b11, 44) ^ b8; b10 += b9; b9 = RotL(b9, 30) ^ b10;
+		b0 += b15; b15 = RotL(b15, 16) ^ b0; b2 += b11; b11 = RotL(b11, 34) ^ b2; b6 += b13; b13 = RotL(b13, 56) ^ b6; b4 += b9; b9 = RotL(b9, 51) ^ b4; b14 += b1; b1 = RotL(b1, 4) ^ b14; b8 += b5; b5 = RotL(b5, 53) ^ b8; b10 += b3; b3 = RotL(b3, 42) ^ b10; b12 += b7; b7 = RotL(b7, 41) ^ b12;
+		b0 += kw[3]; b1 += kw[4]; b2 += kw[5]; b3 += kw[6];
+		b4 += kw[7]; b5 += kw[8]; b6 += kw[9]; b7 += kw[10];
+		b8 += kw[11]; b9 += kw[12]; b10 += kw[13]; b11 += kw[14];
+		b12 += kw[15];
+		b13 += kw[16] + ts[0];
+		b14 += kw[17] + ts[1];
+		b15 += kw[18] + (ulong)3;
 
-			// Round 3: permutation — pairs (0,15), (2,11), (6,13), (4,9), (14,1), (8,5), (10,3), (12,7)
-			b0 += b15; b15 = RotL(b15, RotConsts[ri3]) ^ b0;
-			b2 += b11; b11 = RotL(b11, RotConsts[ri3 + 1]) ^ b2;
-			b6 += b13; b13 = RotL(b13, RotConsts[ri3 + 2]) ^ b6;
-			b4 += b9; b9 = RotL(b9, RotConsts[ri3 + 3]) ^ b4;
-			b14 += b1; b1 = RotL(b1, RotConsts[ri3 + 4]) ^ b14;
-			b8 += b5; b5 = RotL(b5, RotConsts[ri3 + 5]) ^ b8;
-			b10 += b3; b3 = RotL(b3, RotConsts[ri3 + 6]) ^ b10;
-			b12 += b7; b7 = RotL(b7, RotConsts[ri3 + 7]) ^ b12;
+		// ===== Iteration d=3 =====
+		b0 += b1; b1 = RotL(b1, 5) ^ b0; b2 += b3; b3 = RotL(b3, 20) ^ b2; b4 += b5; b5 = RotL(b5, 48) ^ b4; b6 += b7; b7 = RotL(b7, 41) ^ b6; b8 += b9; b9 = RotL(b9, 47) ^ b8; b10 += b11; b11 = RotL(b11, 28) ^ b10; b12 += b13; b13 = RotL(b13, 16) ^ b12; b14 += b15; b15 = RotL(b15, 25) ^ b14;
+		b0 += b9; b9 = RotL(b9, 41) ^ b0; b2 += b13; b13 = RotL(b13, 9) ^ b2; b6 += b11; b11 = RotL(b11, 37) ^ b6; b4 += b15; b15 = RotL(b15, 31) ^ b4; b10 += b7; b7 = RotL(b7, 12) ^ b10; b12 += b3; b3 = RotL(b3, 47) ^ b12; b14 += b5; b5 = RotL(b5, 44) ^ b14; b8 += b1; b1 = RotL(b1, 30) ^ b8;
+		b0 += b7; b7 = RotL(b7, 16) ^ b0; b2 += b5; b5 = RotL(b5, 34) ^ b2; b4 += b3; b3 = RotL(b3, 56) ^ b4; b6 += b1; b1 = RotL(b1, 51) ^ b6; b12 += b15; b15 = RotL(b15, 4) ^ b12; b14 += b13; b13 = RotL(b13, 53) ^ b14; b8 += b11; b11 = RotL(b11, 42) ^ b8; b10 += b9; b9 = RotL(b9, 41) ^ b10;
+		b0 += b15; b15 = RotL(b15, 31) ^ b0; b2 += b11; b11 = RotL(b11, 44) ^ b2; b6 += b13; b13 = RotL(b13, 47) ^ b6; b4 += b9; b9 = RotL(b9, 46) ^ b4; b14 += b1; b1 = RotL(b1, 19) ^ b14; b8 += b5; b5 = RotL(b5, 42) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[4]; b1 += kw[5]; b2 += kw[6]; b3 += kw[7];
+		b4 += kw[8]; b5 += kw[9]; b6 += kw[10]; b7 += kw[11];
+		b8 += kw[12]; b9 += kw[13]; b10 += kw[14]; b11 += kw[15];
+		b12 += kw[16];
+		b13 += kw[17] + ts[1];
+		b14 += kw[18] + ts[2];
+		b15 += kw[19] + (ulong)4;
 
-			// Key injection using extended key schedule (no modulo)
-			int dm17 = Mod17[d + 1];
-			int dm3 = Mod3[d + 1];
-			b0 += kw[dm17]; b1 += kw[dm17 + 1]; b2 += kw[dm17 + 2]; b3 += kw[dm17 + 3];
-			b4 += kw[dm17 + 4]; b5 += kw[dm17 + 5]; b6 += kw[dm17 + 6]; b7 += kw[dm17 + 7];
-			b8 += kw[dm17 + 8]; b9 += kw[dm17 + 9]; b10 += kw[dm17 + 10]; b11 += kw[dm17 + 11];
-			b12 += kw[dm17 + 12];
-			b13 += kw[dm17 + 13] + ts[dm3];
-			b14 += kw[dm17 + 14] + ts[dm3 + 1];
-			b15 += kw[dm17 + 15] + (ulong)(d + 1);
-		}
+		// ===== Iteration d=4 =====
+		b0 += b1; b1 = RotL(b1, 41) ^ b0; b2 += b3; b3 = RotL(b3, 9) ^ b2; b4 += b5; b5 = RotL(b5, 37) ^ b4; b6 += b7; b7 = RotL(b7, 31) ^ b6; b8 += b9; b9 = RotL(b9, 12) ^ b8; b10 += b11; b11 = RotL(b11, 47) ^ b10; b12 += b13; b13 = RotL(b13, 44) ^ b12; b14 += b15; b15 = RotL(b15, 30) ^ b14;
+		b0 += b9; b9 = RotL(b9, 16) ^ b0; b2 += b13; b13 = RotL(b13, 34) ^ b2; b6 += b11; b11 = RotL(b11, 56) ^ b6; b4 += b15; b15 = RotL(b15, 51) ^ b4; b10 += b7; b7 = RotL(b7, 4) ^ b10; b12 += b3; b3 = RotL(b3, 53) ^ b12; b14 += b5; b5 = RotL(b5, 42) ^ b14; b8 += b1; b1 = RotL(b1, 41) ^ b8;
+		b0 += b7; b7 = RotL(b7, 31) ^ b0; b2 += b5; b5 = RotL(b5, 44) ^ b2; b4 += b3; b3 = RotL(b3, 47) ^ b4; b6 += b1; b1 = RotL(b1, 46) ^ b6; b12 += b15; b15 = RotL(b15, 19) ^ b12; b14 += b13; b13 = RotL(b13, 42) ^ b14; b8 += b11; b11 = RotL(b11, 44) ^ b8; b10 += b9; b9 = RotL(b9, 25) ^ b10;
+		b0 += b15; b15 = RotL(b15, 9) ^ b0; b2 += b11; b11 = RotL(b11, 48) ^ b2; b6 += b13; b13 = RotL(b13, 35) ^ b6; b4 += b9; b9 = RotL(b9, 52) ^ b4; b14 += b1; b1 = RotL(b1, 23) ^ b14; b8 += b5; b5 = RotL(b5, 31) ^ b8; b10 += b3; b3 = RotL(b3, 37) ^ b10; b12 += b7; b7 = RotL(b7, 20) ^ b12;
+		b0 += kw[5]; b1 += kw[6]; b2 += kw[7]; b3 += kw[8];
+		b4 += kw[9]; b5 += kw[10]; b6 += kw[11]; b7 += kw[12];
+		b8 += kw[13]; b9 += kw[14]; b10 += kw[15]; b11 += kw[16];
+		b12 += kw[17];
+		b13 += kw[18] + ts[2];
+		b14 += kw[19] + ts[3];
+		b15 += kw[20] + (ulong)5;
+
+		// ===== Iteration d=5 =====
+		b0 += b1; b1 = RotL(b1, 16) ^ b0; b2 += b3; b3 = RotL(b3, 34) ^ b2; b4 += b5; b5 = RotL(b5, 56) ^ b4; b6 += b7; b7 = RotL(b7, 51) ^ b6; b8 += b9; b9 = RotL(b9, 4) ^ b8; b10 += b11; b11 = RotL(b11, 53) ^ b10; b12 += b13; b13 = RotL(b13, 42) ^ b12; b14 += b15; b15 = RotL(b15, 41) ^ b14;
+		b0 += b9; b9 = RotL(b9, 31) ^ b0; b2 += b13; b13 = RotL(b13, 44) ^ b2; b6 += b11; b11 = RotL(b11, 47) ^ b6; b4 += b15; b15 = RotL(b15, 46) ^ b4; b10 += b7; b7 = RotL(b7, 19) ^ b10; b12 += b3; b3 = RotL(b3, 42) ^ b12; b14 += b5; b5 = RotL(b5, 44) ^ b14; b8 += b1; b1 = RotL(b1, 25) ^ b8;
+		b0 += b7; b7 = RotL(b7, 9) ^ b0; b2 += b5; b5 = RotL(b5, 48) ^ b2; b4 += b3; b3 = RotL(b3, 35) ^ b4; b6 += b1; b1 = RotL(b1, 52) ^ b6; b12 += b15; b15 = RotL(b15, 23) ^ b12; b14 += b13; b13 = RotL(b13, 31) ^ b14; b8 += b11; b11 = RotL(b11, 37) ^ b8; b10 += b9; b9 = RotL(b9, 20) ^ b10;
+		b0 += b15; b15 = RotL(b15, 24) ^ b0; b2 += b11; b11 = RotL(b11, 13) ^ b2; b6 += b13; b13 = RotL(b13, 8) ^ b6; b4 += b9; b9 = RotL(b9, 47) ^ b4; b14 += b1; b1 = RotL(b1, 8) ^ b14; b8 += b5; b5 = RotL(b5, 17) ^ b8; b10 += b3; b3 = RotL(b3, 22) ^ b10; b12 += b7; b7 = RotL(b7, 37) ^ b12;
+		b0 += kw[6]; b1 += kw[7]; b2 += kw[8]; b3 += kw[9];
+		b4 += kw[10]; b5 += kw[11]; b6 += kw[12]; b7 += kw[13];
+		b8 += kw[14]; b9 += kw[15]; b10 += kw[16]; b11 += kw[17];
+		b12 += kw[18];
+		b13 += kw[19] + ts[0];
+		b14 += kw[20] + ts[1];
+		b15 += kw[21] + (ulong)6;
+
+		// ===== Iteration d=6 =====
+		b0 += b1; b1 = RotL(b1, 31) ^ b0; b2 += b3; b3 = RotL(b3, 44) ^ b2; b4 += b5; b5 = RotL(b5, 47) ^ b4; b6 += b7; b7 = RotL(b7, 46) ^ b6; b8 += b9; b9 = RotL(b9, 19) ^ b8; b10 += b11; b11 = RotL(b11, 42) ^ b10; b12 += b13; b13 = RotL(b13, 44) ^ b12; b14 += b15; b15 = RotL(b15, 25) ^ b14;
+		b0 += b9; b9 = RotL(b9, 9) ^ b0; b2 += b13; b13 = RotL(b13, 48) ^ b2; b6 += b11; b11 = RotL(b11, 35) ^ b6; b4 += b15; b15 = RotL(b15, 52) ^ b4; b10 += b7; b7 = RotL(b7, 23) ^ b10; b12 += b3; b3 = RotL(b3, 31) ^ b12; b14 += b5; b5 = RotL(b5, 37) ^ b14; b8 += b1; b1 = RotL(b1, 20) ^ b8;
+		b0 += b7; b7 = RotL(b7, 24) ^ b0; b2 += b5; b5 = RotL(b5, 13) ^ b2; b4 += b3; b3 = RotL(b3, 8) ^ b4; b6 += b1; b1 = RotL(b1, 47) ^ b6; b12 += b15; b15 = RotL(b15, 8) ^ b12; b14 += b13; b13 = RotL(b13, 17) ^ b14; b8 += b11; b11 = RotL(b11, 22) ^ b8; b10 += b9; b9 = RotL(b9, 37) ^ b10;
+		b0 += b15; b15 = RotL(b15, 38) ^ b0; b2 += b11; b11 = RotL(b11, 19) ^ b2; b6 += b13; b13 = RotL(b13, 10) ^ b6; b4 += b9; b9 = RotL(b9, 55) ^ b4; b14 += b1; b1 = RotL(b1, 49) ^ b14; b8 += b5; b5 = RotL(b5, 18) ^ b8; b10 += b3; b3 = RotL(b3, 23) ^ b10; b12 += b7; b7 = RotL(b7, 52) ^ b12;
+		b0 += kw[7]; b1 += kw[8]; b2 += kw[9]; b3 += kw[10];
+		b4 += kw[11]; b5 += kw[12]; b6 += kw[13]; b7 += kw[14];
+		b8 += kw[15]; b9 += kw[16]; b10 += kw[17]; b11 += kw[18];
+		b12 += kw[19];
+		b13 += kw[20] + ts[1];
+		b14 += kw[21] + ts[2];
+		b15 += kw[22] + (ulong)7;
+
+		// ===== Iteration d=7 =====
+		b0 += b1; b1 = RotL(b1, 9) ^ b0; b2 += b3; b3 = RotL(b3, 48) ^ b2; b4 += b5; b5 = RotL(b5, 35) ^ b4; b6 += b7; b7 = RotL(b7, 52) ^ b6; b8 += b9; b9 = RotL(b9, 23) ^ b8; b10 += b11; b11 = RotL(b11, 31) ^ b10; b12 += b13; b13 = RotL(b13, 37) ^ b12; b14 += b15; b15 = RotL(b15, 20) ^ b14;
+		b0 += b9; b9 = RotL(b9, 24) ^ b0; b2 += b13; b13 = RotL(b13, 13) ^ b2; b6 += b11; b11 = RotL(b11, 8) ^ b6; b4 += b15; b15 = RotL(b15, 47) ^ b4; b10 += b7; b7 = RotL(b7, 8) ^ b10; b12 += b3; b3 = RotL(b3, 17) ^ b12; b14 += b5; b5 = RotL(b5, 22) ^ b14; b8 += b1; b1 = RotL(b1, 37) ^ b8;
+		b0 += b7; b7 = RotL(b7, 38) ^ b0; b2 += b5; b5 = RotL(b5, 19) ^ b2; b4 += b3; b3 = RotL(b3, 10) ^ b4; b6 += b1; b1 = RotL(b1, 55) ^ b6; b12 += b15; b15 = RotL(b15, 49) ^ b12; b14 += b13; b13 = RotL(b13, 18) ^ b14; b8 += b11; b11 = RotL(b11, 23) ^ b8; b10 += b9; b9 = RotL(b9, 52) ^ b10;
+		b0 += b15; b15 = RotL(b15, 33) ^ b0; b2 += b11; b11 = RotL(b11, 4) ^ b2; b6 += b13; b13 = RotL(b13, 51) ^ b6; b4 += b9; b9 = RotL(b9, 13) ^ b4; b14 += b1; b1 = RotL(b1, 34) ^ b14; b8 += b5; b5 = RotL(b5, 41) ^ b8; b10 += b3; b3 = RotL(b3, 59) ^ b10; b12 += b7; b7 = RotL(b7, 17) ^ b12;
+		b0 += kw[8]; b1 += kw[9]; b2 += kw[10]; b3 += kw[11];
+		b4 += kw[12]; b5 += kw[13]; b6 += kw[14]; b7 += kw[15];
+		b8 += kw[16]; b9 += kw[17]; b10 += kw[18]; b11 += kw[19];
+		b12 += kw[20];
+		b13 += kw[21] + ts[2];
+		b14 += kw[22] + ts[3];
+		b15 += kw[23] + (ulong)8;
+
+		// ===== Iteration d=8 =====
+		b0 += b1; b1 = RotL(b1, 24) ^ b0; b2 += b3; b3 = RotL(b3, 13) ^ b2; b4 += b5; b5 = RotL(b5, 8) ^ b4; b6 += b7; b7 = RotL(b7, 47) ^ b6; b8 += b9; b9 = RotL(b9, 8) ^ b8; b10 += b11; b11 = RotL(b11, 17) ^ b10; b12 += b13; b13 = RotL(b13, 22) ^ b12; b14 += b15; b15 = RotL(b15, 37) ^ b14;
+		b0 += b9; b9 = RotL(b9, 38) ^ b0; b2 += b13; b13 = RotL(b13, 19) ^ b2; b6 += b11; b11 = RotL(b11, 10) ^ b6; b4 += b15; b15 = RotL(b15, 55) ^ b4; b10 += b7; b7 = RotL(b7, 49) ^ b10; b12 += b3; b3 = RotL(b3, 18) ^ b12; b14 += b5; b5 = RotL(b5, 23) ^ b14; b8 += b1; b1 = RotL(b1, 52) ^ b8;
+		b0 += b7; b7 = RotL(b7, 33) ^ b0; b2 += b5; b5 = RotL(b5, 4) ^ b2; b4 += b3; b3 = RotL(b3, 51) ^ b4; b6 += b1; b1 = RotL(b1, 13) ^ b6; b12 += b15; b15 = RotL(b15, 34) ^ b12; b14 += b13; b13 = RotL(b13, 41) ^ b14; b8 += b11; b11 = RotL(b11, 59) ^ b8; b10 += b9; b9 = RotL(b9, 17) ^ b10;
+		b0 += b15; b15 = RotL(b15, 5) ^ b0; b2 += b11; b11 = RotL(b11, 20) ^ b2; b6 += b13; b13 = RotL(b13, 48) ^ b6; b4 += b9; b9 = RotL(b9, 41) ^ b4; b14 += b1; b1 = RotL(b1, 47) ^ b14; b8 += b5; b5 = RotL(b5, 28) ^ b8; b10 += b3; b3 = RotL(b3, 16) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[9]; b1 += kw[10]; b2 += kw[11]; b3 += kw[12];
+		b4 += kw[13]; b5 += kw[14]; b6 += kw[15]; b7 += kw[16];
+		b8 += kw[17]; b9 += kw[18]; b10 += kw[19]; b11 += kw[20];
+		b12 += kw[21];
+		b13 += kw[22] + ts[0];
+		b14 += kw[23] + ts[1];
+		b15 += kw[24] + (ulong)9;
+
+		// ===== Iteration d=9 =====
+		b0 += b1; b1 = RotL(b1, 38) ^ b0; b2 += b3; b3 = RotL(b3, 19) ^ b2; b4 += b5; b5 = RotL(b5, 10) ^ b4; b6 += b7; b7 = RotL(b7, 55) ^ b6; b8 += b9; b9 = RotL(b9, 49) ^ b8; b10 += b11; b11 = RotL(b11, 18) ^ b10; b12 += b13; b13 = RotL(b13, 23) ^ b12; b14 += b15; b15 = RotL(b15, 52) ^ b14;
+		b0 += b9; b9 = RotL(b9, 33) ^ b0; b2 += b13; b13 = RotL(b13, 4) ^ b2; b6 += b11; b11 = RotL(b11, 51) ^ b6; b4 += b15; b15 = RotL(b15, 13) ^ b4; b10 += b7; b7 = RotL(b7, 34) ^ b10; b12 += b3; b3 = RotL(b3, 41) ^ b12; b14 += b5; b5 = RotL(b5, 59) ^ b14; b8 += b1; b1 = RotL(b1, 17) ^ b8;
+		b0 += b7; b7 = RotL(b7, 5) ^ b0; b2 += b5; b5 = RotL(b5, 20) ^ b2; b4 += b3; b3 = RotL(b3, 48) ^ b4; b6 += b1; b1 = RotL(b1, 41) ^ b6; b12 += b15; b15 = RotL(b15, 47) ^ b12; b14 += b13; b13 = RotL(b13, 28) ^ b14; b8 += b11; b11 = RotL(b11, 16) ^ b8; b10 += b9; b9 = RotL(b9, 25) ^ b10;
+		b0 += b15; b15 = RotL(b15, 41) ^ b0; b2 += b11; b11 = RotL(b11, 9) ^ b2; b6 += b13; b13 = RotL(b13, 37) ^ b6; b4 += b9; b9 = RotL(b9, 31) ^ b4; b14 += b1; b1 = RotL(b1, 12) ^ b14; b8 += b5; b5 = RotL(b5, 47) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 30) ^ b12;
+		b0 += kw[10]; b1 += kw[11]; b2 += kw[12]; b3 += kw[13];
+		b4 += kw[14]; b5 += kw[15]; b6 += kw[16]; b7 += kw[17];
+		b8 += kw[18]; b9 += kw[19]; b10 += kw[20]; b11 += kw[21];
+		b12 += kw[22];
+		b13 += kw[23] + ts[1];
+		b14 += kw[24] + ts[2];
+		b15 += kw[25] + (ulong)10;
+
+		// ===== Iteration d=10 =====
+		b0 += b1; b1 = RotL(b1, 33) ^ b0; b2 += b3; b3 = RotL(b3, 4) ^ b2; b4 += b5; b5 = RotL(b5, 51) ^ b4; b6 += b7; b7 = RotL(b7, 13) ^ b6; b8 += b9; b9 = RotL(b9, 34) ^ b8; b10 += b11; b11 = RotL(b11, 41) ^ b10; b12 += b13; b13 = RotL(b13, 59) ^ b12; b14 += b15; b15 = RotL(b15, 17) ^ b14;
+		b0 += b9; b9 = RotL(b9, 5) ^ b0; b2 += b13; b13 = RotL(b13, 20) ^ b2; b6 += b11; b11 = RotL(b11, 48) ^ b6; b4 += b15; b15 = RotL(b15, 41) ^ b4; b10 += b7; b7 = RotL(b7, 47) ^ b10; b12 += b3; b3 = RotL(b3, 28) ^ b12; b14 += b5; b5 = RotL(b5, 16) ^ b14; b8 += b1; b1 = RotL(b1, 25) ^ b8;
+		b0 += b7; b7 = RotL(b7, 41) ^ b0; b2 += b5; b5 = RotL(b5, 9) ^ b2; b4 += b3; b3 = RotL(b3, 37) ^ b4; b6 += b1; b1 = RotL(b1, 31) ^ b6; b12 += b15; b15 = RotL(b15, 12) ^ b12; b14 += b13; b13 = RotL(b13, 47) ^ b14; b8 += b11; b11 = RotL(b11, 44) ^ b8; b10 += b9; b9 = RotL(b9, 30) ^ b10;
+		b0 += b15; b15 = RotL(b15, 16) ^ b0; b2 += b11; b11 = RotL(b11, 34) ^ b2; b6 += b13; b13 = RotL(b13, 56) ^ b6; b4 += b9; b9 = RotL(b9, 51) ^ b4; b14 += b1; b1 = RotL(b1, 4) ^ b14; b8 += b5; b5 = RotL(b5, 53) ^ b8; b10 += b3; b3 = RotL(b3, 42) ^ b10; b12 += b7; b7 = RotL(b7, 41) ^ b12;
+		b0 += kw[11]; b1 += kw[12]; b2 += kw[13]; b3 += kw[14];
+		b4 += kw[15]; b5 += kw[16]; b6 += kw[17]; b7 += kw[18];
+		b8 += kw[19]; b9 += kw[20]; b10 += kw[21]; b11 += kw[22];
+		b12 += kw[23];
+		b13 += kw[24] + ts[2];
+		b14 += kw[25] + ts[3];
+		b15 += kw[26] + (ulong)11;
+
+		// ===== Iteration d=11 =====
+		b0 += b1; b1 = RotL(b1, 5) ^ b0; b2 += b3; b3 = RotL(b3, 20) ^ b2; b4 += b5; b5 = RotL(b5, 48) ^ b4; b6 += b7; b7 = RotL(b7, 41) ^ b6; b8 += b9; b9 = RotL(b9, 47) ^ b8; b10 += b11; b11 = RotL(b11, 28) ^ b10; b12 += b13; b13 = RotL(b13, 16) ^ b12; b14 += b15; b15 = RotL(b15, 25) ^ b14;
+		b0 += b9; b9 = RotL(b9, 41) ^ b0; b2 += b13; b13 = RotL(b13, 9) ^ b2; b6 += b11; b11 = RotL(b11, 37) ^ b6; b4 += b15; b15 = RotL(b15, 31) ^ b4; b10 += b7; b7 = RotL(b7, 12) ^ b10; b12 += b3; b3 = RotL(b3, 47) ^ b12; b14 += b5; b5 = RotL(b5, 44) ^ b14; b8 += b1; b1 = RotL(b1, 30) ^ b8;
+		b0 += b7; b7 = RotL(b7, 16) ^ b0; b2 += b5; b5 = RotL(b5, 34) ^ b2; b4 += b3; b3 = RotL(b3, 56) ^ b4; b6 += b1; b1 = RotL(b1, 51) ^ b6; b12 += b15; b15 = RotL(b15, 4) ^ b12; b14 += b13; b13 = RotL(b13, 53) ^ b14; b8 += b11; b11 = RotL(b11, 42) ^ b8; b10 += b9; b9 = RotL(b9, 41) ^ b10;
+		b0 += b15; b15 = RotL(b15, 31) ^ b0; b2 += b11; b11 = RotL(b11, 44) ^ b2; b6 += b13; b13 = RotL(b13, 47) ^ b6; b4 += b9; b9 = RotL(b9, 46) ^ b4; b14 += b1; b1 = RotL(b1, 19) ^ b14; b8 += b5; b5 = RotL(b5, 42) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[12]; b1 += kw[13]; b2 += kw[14]; b3 += kw[15];
+		b4 += kw[16]; b5 += kw[17]; b6 += kw[18]; b7 += kw[19];
+		b8 += kw[20]; b9 += kw[21]; b10 += kw[22]; b11 += kw[23];
+		b12 += kw[24];
+		b13 += kw[25] + ts[0];
+		b14 += kw[26] + ts[1];
+		b15 += kw[27] + (ulong)12;
+
+		// ===== Iteration d=12 =====
+		b0 += b1; b1 = RotL(b1, 41) ^ b0; b2 += b3; b3 = RotL(b3, 9) ^ b2; b4 += b5; b5 = RotL(b5, 37) ^ b4; b6 += b7; b7 = RotL(b7, 31) ^ b6; b8 += b9; b9 = RotL(b9, 12) ^ b8; b10 += b11; b11 = RotL(b11, 47) ^ b10; b12 += b13; b13 = RotL(b13, 44) ^ b12; b14 += b15; b15 = RotL(b15, 30) ^ b14;
+		b0 += b9; b9 = RotL(b9, 16) ^ b0; b2 += b13; b13 = RotL(b13, 34) ^ b2; b6 += b11; b11 = RotL(b11, 56) ^ b6; b4 += b15; b15 = RotL(b15, 51) ^ b4; b10 += b7; b7 = RotL(b7, 4) ^ b10; b12 += b3; b3 = RotL(b3, 53) ^ b12; b14 += b5; b5 = RotL(b5, 42) ^ b14; b8 += b1; b1 = RotL(b1, 41) ^ b8;
+		b0 += b7; b7 = RotL(b7, 31) ^ b0; b2 += b5; b5 = RotL(b5, 44) ^ b2; b4 += b3; b3 = RotL(b3, 47) ^ b4; b6 += b1; b1 = RotL(b1, 46) ^ b6; b12 += b15; b15 = RotL(b15, 19) ^ b12; b14 += b13; b13 = RotL(b13, 42) ^ b14; b8 += b11; b11 = RotL(b11, 44) ^ b8; b10 += b9; b9 = RotL(b9, 25) ^ b10;
+		b0 += b15; b15 = RotL(b15, 9) ^ b0; b2 += b11; b11 = RotL(b11, 48) ^ b2; b6 += b13; b13 = RotL(b13, 35) ^ b6; b4 += b9; b9 = RotL(b9, 52) ^ b4; b14 += b1; b1 = RotL(b1, 23) ^ b14; b8 += b5; b5 = RotL(b5, 31) ^ b8; b10 += b3; b3 = RotL(b3, 37) ^ b10; b12 += b7; b7 = RotL(b7, 20) ^ b12;
+		b0 += kw[13]; b1 += kw[14]; b2 += kw[15]; b3 += kw[16];
+		b4 += kw[17]; b5 += kw[18]; b6 += kw[19]; b7 += kw[20];
+		b8 += kw[21]; b9 += kw[22]; b10 += kw[23]; b11 += kw[24];
+		b12 += kw[25];
+		b13 += kw[26] + ts[1];
+		b14 += kw[27] + ts[2];
+		b15 += kw[28] + (ulong)13;
+
+		// ===== Iteration d=13 =====
+		b0 += b1; b1 = RotL(b1, 16) ^ b0; b2 += b3; b3 = RotL(b3, 34) ^ b2; b4 += b5; b5 = RotL(b5, 56) ^ b4; b6 += b7; b7 = RotL(b7, 51) ^ b6; b8 += b9; b9 = RotL(b9, 4) ^ b8; b10 += b11; b11 = RotL(b11, 53) ^ b10; b12 += b13; b13 = RotL(b13, 42) ^ b12; b14 += b15; b15 = RotL(b15, 41) ^ b14;
+		b0 += b9; b9 = RotL(b9, 31) ^ b0; b2 += b13; b13 = RotL(b13, 44) ^ b2; b6 += b11; b11 = RotL(b11, 47) ^ b6; b4 += b15; b15 = RotL(b15, 46) ^ b4; b10 += b7; b7 = RotL(b7, 19) ^ b10; b12 += b3; b3 = RotL(b3, 42) ^ b12; b14 += b5; b5 = RotL(b5, 44) ^ b14; b8 += b1; b1 = RotL(b1, 25) ^ b8;
+		b0 += b7; b7 = RotL(b7, 9) ^ b0; b2 += b5; b5 = RotL(b5, 48) ^ b2; b4 += b3; b3 = RotL(b3, 35) ^ b4; b6 += b1; b1 = RotL(b1, 52) ^ b6; b12 += b15; b15 = RotL(b15, 23) ^ b12; b14 += b13; b13 = RotL(b13, 31) ^ b14; b8 += b11; b11 = RotL(b11, 37) ^ b8; b10 += b9; b9 = RotL(b9, 20) ^ b10;
+		b0 += b15; b15 = RotL(b15, 24) ^ b0; b2 += b11; b11 = RotL(b11, 13) ^ b2; b6 += b13; b13 = RotL(b13, 8) ^ b6; b4 += b9; b9 = RotL(b9, 47) ^ b4; b14 += b1; b1 = RotL(b1, 8) ^ b14; b8 += b5; b5 = RotL(b5, 17) ^ b8; b10 += b3; b3 = RotL(b3, 22) ^ b10; b12 += b7; b7 = RotL(b7, 37) ^ b12;
+		b0 += kw[14]; b1 += kw[15]; b2 += kw[16]; b3 += kw[17];
+		b4 += kw[18]; b5 += kw[19]; b6 += kw[20]; b7 += kw[21];
+		b8 += kw[22]; b9 += kw[23]; b10 += kw[24]; b11 += kw[25];
+		b12 += kw[26];
+		b13 += kw[27] + ts[2];
+		b14 += kw[28] + ts[3];
+		b15 += kw[29] + (ulong)14;
+
+		// ===== Iteration d=14 =====
+		b0 += b1; b1 = RotL(b1, 31) ^ b0; b2 += b3; b3 = RotL(b3, 44) ^ b2; b4 += b5; b5 = RotL(b5, 47) ^ b4; b6 += b7; b7 = RotL(b7, 46) ^ b6; b8 += b9; b9 = RotL(b9, 19) ^ b8; b10 += b11; b11 = RotL(b11, 42) ^ b10; b12 += b13; b13 = RotL(b13, 44) ^ b12; b14 += b15; b15 = RotL(b15, 25) ^ b14;
+		b0 += b9; b9 = RotL(b9, 9) ^ b0; b2 += b13; b13 = RotL(b13, 48) ^ b2; b6 += b11; b11 = RotL(b11, 35) ^ b6; b4 += b15; b15 = RotL(b15, 52) ^ b4; b10 += b7; b7 = RotL(b7, 23) ^ b10; b12 += b3; b3 = RotL(b3, 31) ^ b12; b14 += b5; b5 = RotL(b5, 37) ^ b14; b8 += b1; b1 = RotL(b1, 20) ^ b8;
+		b0 += b7; b7 = RotL(b7, 24) ^ b0; b2 += b5; b5 = RotL(b5, 13) ^ b2; b4 += b3; b3 = RotL(b3, 8) ^ b4; b6 += b1; b1 = RotL(b1, 47) ^ b6; b12 += b15; b15 = RotL(b15, 8) ^ b12; b14 += b13; b13 = RotL(b13, 17) ^ b14; b8 += b11; b11 = RotL(b11, 22) ^ b8; b10 += b9; b9 = RotL(b9, 37) ^ b10;
+		b0 += b15; b15 = RotL(b15, 38) ^ b0; b2 += b11; b11 = RotL(b11, 19) ^ b2; b6 += b13; b13 = RotL(b13, 10) ^ b6; b4 += b9; b9 = RotL(b9, 55) ^ b4; b14 += b1; b1 = RotL(b1, 49) ^ b14; b8 += b5; b5 = RotL(b5, 18) ^ b8; b10 += b3; b3 = RotL(b3, 23) ^ b10; b12 += b7; b7 = RotL(b7, 52) ^ b12;
+		b0 += kw[15]; b1 += kw[16]; b2 += kw[17]; b3 += kw[18];
+		b4 += kw[19]; b5 += kw[20]; b6 += kw[21]; b7 += kw[22];
+		b8 += kw[23]; b9 += kw[24]; b10 += kw[25]; b11 += kw[26];
+		b12 += kw[27];
+		b13 += kw[28] + ts[0];
+		b14 += kw[29] + ts[1];
+		b15 += kw[30] + (ulong)15;
+
+		// ===== Iteration d=15 =====
+		b0 += b1; b1 = RotL(b1, 9) ^ b0; b2 += b3; b3 = RotL(b3, 48) ^ b2; b4 += b5; b5 = RotL(b5, 35) ^ b4; b6 += b7; b7 = RotL(b7, 52) ^ b6; b8 += b9; b9 = RotL(b9, 23) ^ b8; b10 += b11; b11 = RotL(b11, 31) ^ b10; b12 += b13; b13 = RotL(b13, 37) ^ b12; b14 += b15; b15 = RotL(b15, 20) ^ b14;
+		b0 += b9; b9 = RotL(b9, 24) ^ b0; b2 += b13; b13 = RotL(b13, 13) ^ b2; b6 += b11; b11 = RotL(b11, 8) ^ b6; b4 += b15; b15 = RotL(b15, 47) ^ b4; b10 += b7; b7 = RotL(b7, 8) ^ b10; b12 += b3; b3 = RotL(b3, 17) ^ b12; b14 += b5; b5 = RotL(b5, 22) ^ b14; b8 += b1; b1 = RotL(b1, 37) ^ b8;
+		b0 += b7; b7 = RotL(b7, 38) ^ b0; b2 += b5; b5 = RotL(b5, 19) ^ b2; b4 += b3; b3 = RotL(b3, 10) ^ b4; b6 += b1; b1 = RotL(b1, 55) ^ b6; b12 += b15; b15 = RotL(b15, 49) ^ b12; b14 += b13; b13 = RotL(b13, 18) ^ b14; b8 += b11; b11 = RotL(b11, 23) ^ b8; b10 += b9; b9 = RotL(b9, 52) ^ b10;
+		b0 += b15; b15 = RotL(b15, 33) ^ b0; b2 += b11; b11 = RotL(b11, 4) ^ b2; b6 += b13; b13 = RotL(b13, 51) ^ b6; b4 += b9; b9 = RotL(b9, 13) ^ b4; b14 += b1; b1 = RotL(b1, 34) ^ b14; b8 += b5; b5 = RotL(b5, 41) ^ b8; b10 += b3; b3 = RotL(b3, 59) ^ b10; b12 += b7; b7 = RotL(b7, 17) ^ b12;
+		b0 += kw[16]; b1 += kw[17]; b2 += kw[18]; b3 += kw[19];
+		b4 += kw[20]; b5 += kw[21]; b6 += kw[22]; b7 += kw[23];
+		b8 += kw[24]; b9 += kw[25]; b10 += kw[26]; b11 += kw[27];
+		b12 += kw[28];
+		b13 += kw[29] + ts[1];
+		b14 += kw[30] + ts[2];
+		b15 += kw[31] + (ulong)16;
+
+		// ===== Iteration d=16 =====
+		b0 += b1; b1 = RotL(b1, 24) ^ b0; b2 += b3; b3 = RotL(b3, 13) ^ b2; b4 += b5; b5 = RotL(b5, 8) ^ b4; b6 += b7; b7 = RotL(b7, 47) ^ b6; b8 += b9; b9 = RotL(b9, 8) ^ b8; b10 += b11; b11 = RotL(b11, 17) ^ b10; b12 += b13; b13 = RotL(b13, 22) ^ b12; b14 += b15; b15 = RotL(b15, 37) ^ b14;
+		b0 += b9; b9 = RotL(b9, 38) ^ b0; b2 += b13; b13 = RotL(b13, 19) ^ b2; b6 += b11; b11 = RotL(b11, 10) ^ b6; b4 += b15; b15 = RotL(b15, 55) ^ b4; b10 += b7; b7 = RotL(b7, 49) ^ b10; b12 += b3; b3 = RotL(b3, 18) ^ b12; b14 += b5; b5 = RotL(b5, 23) ^ b14; b8 += b1; b1 = RotL(b1, 52) ^ b8;
+		b0 += b7; b7 = RotL(b7, 33) ^ b0; b2 += b5; b5 = RotL(b5, 4) ^ b2; b4 += b3; b3 = RotL(b3, 51) ^ b4; b6 += b1; b1 = RotL(b1, 13) ^ b6; b12 += b15; b15 = RotL(b15, 34) ^ b12; b14 += b13; b13 = RotL(b13, 41) ^ b14; b8 += b11; b11 = RotL(b11, 59) ^ b8; b10 += b9; b9 = RotL(b9, 17) ^ b10;
+		b0 += b15; b15 = RotL(b15, 5) ^ b0; b2 += b11; b11 = RotL(b11, 20) ^ b2; b6 += b13; b13 = RotL(b13, 48) ^ b6; b4 += b9; b9 = RotL(b9, 41) ^ b4; b14 += b1; b1 = RotL(b1, 47) ^ b14; b8 += b5; b5 = RotL(b5, 28) ^ b8; b10 += b3; b3 = RotL(b3, 16) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[0]; b1 += kw[1]; b2 += kw[2]; b3 += kw[3];
+		b4 += kw[4]; b5 += kw[5]; b6 += kw[6]; b7 += kw[7];
+		b8 += kw[8]; b9 += kw[9]; b10 += kw[10]; b11 += kw[11];
+		b12 += kw[12];
+		b13 += kw[13] + ts[2];
+		b14 += kw[14] + ts[3];
+		b15 += kw[15] + (ulong)17;
+
+		// ===== Iteration d=17 =====
+		b0 += b1; b1 = RotL(b1, 38) ^ b0; b2 += b3; b3 = RotL(b3, 19) ^ b2; b4 += b5; b5 = RotL(b5, 10) ^ b4; b6 += b7; b7 = RotL(b7, 55) ^ b6; b8 += b9; b9 = RotL(b9, 49) ^ b8; b10 += b11; b11 = RotL(b11, 18) ^ b10; b12 += b13; b13 = RotL(b13, 23) ^ b12; b14 += b15; b15 = RotL(b15, 52) ^ b14;
+		b0 += b9; b9 = RotL(b9, 33) ^ b0; b2 += b13; b13 = RotL(b13, 4) ^ b2; b6 += b11; b11 = RotL(b11, 51) ^ b6; b4 += b15; b15 = RotL(b15, 13) ^ b4; b10 += b7; b7 = RotL(b7, 34) ^ b10; b12 += b3; b3 = RotL(b3, 41) ^ b12; b14 += b5; b5 = RotL(b5, 59) ^ b14; b8 += b1; b1 = RotL(b1, 17) ^ b8;
+		b0 += b7; b7 = RotL(b7, 5) ^ b0; b2 += b5; b5 = RotL(b5, 20) ^ b2; b4 += b3; b3 = RotL(b3, 48) ^ b4; b6 += b1; b1 = RotL(b1, 41) ^ b6; b12 += b15; b15 = RotL(b15, 47) ^ b12; b14 += b13; b13 = RotL(b13, 28) ^ b14; b8 += b11; b11 = RotL(b11, 16) ^ b8; b10 += b9; b9 = RotL(b9, 25) ^ b10;
+		b0 += b15; b15 = RotL(b15, 41) ^ b0; b2 += b11; b11 = RotL(b11, 9) ^ b2; b6 += b13; b13 = RotL(b13, 37) ^ b6; b4 += b9; b9 = RotL(b9, 31) ^ b4; b14 += b1; b1 = RotL(b1, 12) ^ b14; b8 += b5; b5 = RotL(b5, 47) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 30) ^ b12;
+		b0 += kw[1]; b1 += kw[2]; b2 += kw[3]; b3 += kw[4];
+		b4 += kw[5]; b5 += kw[6]; b6 += kw[7]; b7 += kw[8];
+		b8 += kw[9]; b9 += kw[10]; b10 += kw[11]; b11 += kw[12];
+		b12 += kw[13];
+		b13 += kw[14] + ts[0];
+		b14 += kw[15] + ts[1];
+		b15 += kw[16] + (ulong)18;
+
+		// ===== Iteration d=18 =====
+		b0 += b1; b1 = RotL(b1, 33) ^ b0; b2 += b3; b3 = RotL(b3, 4) ^ b2; b4 += b5; b5 = RotL(b5, 51) ^ b4; b6 += b7; b7 = RotL(b7, 13) ^ b6; b8 += b9; b9 = RotL(b9, 34) ^ b8; b10 += b11; b11 = RotL(b11, 41) ^ b10; b12 += b13; b13 = RotL(b13, 59) ^ b12; b14 += b15; b15 = RotL(b15, 17) ^ b14;
+		b0 += b9; b9 = RotL(b9, 5) ^ b0; b2 += b13; b13 = RotL(b13, 20) ^ b2; b6 += b11; b11 = RotL(b11, 48) ^ b6; b4 += b15; b15 = RotL(b15, 41) ^ b4; b10 += b7; b7 = RotL(b7, 47) ^ b10; b12 += b3; b3 = RotL(b3, 28) ^ b12; b14 += b5; b5 = RotL(b5, 16) ^ b14; b8 += b1; b1 = RotL(b1, 25) ^ b8;
+		b0 += b7; b7 = RotL(b7, 41) ^ b0; b2 += b5; b5 = RotL(b5, 9) ^ b2; b4 += b3; b3 = RotL(b3, 37) ^ b4; b6 += b1; b1 = RotL(b1, 31) ^ b6; b12 += b15; b15 = RotL(b15, 12) ^ b12; b14 += b13; b13 = RotL(b13, 47) ^ b14; b8 += b11; b11 = RotL(b11, 44) ^ b8; b10 += b9; b9 = RotL(b9, 30) ^ b10;
+		b0 += b15; b15 = RotL(b15, 16) ^ b0; b2 += b11; b11 = RotL(b11, 34) ^ b2; b6 += b13; b13 = RotL(b13, 56) ^ b6; b4 += b9; b9 = RotL(b9, 51) ^ b4; b14 += b1; b1 = RotL(b1, 4) ^ b14; b8 += b5; b5 = RotL(b5, 53) ^ b8; b10 += b3; b3 = RotL(b3, 42) ^ b10; b12 += b7; b7 = RotL(b7, 41) ^ b12;
+		b0 += kw[2]; b1 += kw[3]; b2 += kw[4]; b3 += kw[5];
+		b4 += kw[6]; b5 += kw[7]; b6 += kw[8]; b7 += kw[9];
+		b8 += kw[10]; b9 += kw[11]; b10 += kw[12]; b11 += kw[13];
+		b12 += kw[14];
+		b13 += kw[15] + ts[1];
+		b14 += kw[16] + ts[2];
+		b15 += kw[17] + (ulong)19;
+
+		// ===== Iteration d=19 =====
+		b0 += b1; b1 = RotL(b1, 5) ^ b0; b2 += b3; b3 = RotL(b3, 20) ^ b2; b4 += b5; b5 = RotL(b5, 48) ^ b4; b6 += b7; b7 = RotL(b7, 41) ^ b6; b8 += b9; b9 = RotL(b9, 47) ^ b8; b10 += b11; b11 = RotL(b11, 28) ^ b10; b12 += b13; b13 = RotL(b13, 16) ^ b12; b14 += b15; b15 = RotL(b15, 25) ^ b14;
+		b0 += b9; b9 = RotL(b9, 41) ^ b0; b2 += b13; b13 = RotL(b13, 9) ^ b2; b6 += b11; b11 = RotL(b11, 37) ^ b6; b4 += b15; b15 = RotL(b15, 31) ^ b4; b10 += b7; b7 = RotL(b7, 12) ^ b10; b12 += b3; b3 = RotL(b3, 47) ^ b12; b14 += b5; b5 = RotL(b5, 44) ^ b14; b8 += b1; b1 = RotL(b1, 30) ^ b8;
+		b0 += b7; b7 = RotL(b7, 16) ^ b0; b2 += b5; b5 = RotL(b5, 34) ^ b2; b4 += b3; b3 = RotL(b3, 56) ^ b4; b6 += b1; b1 = RotL(b1, 51) ^ b6; b12 += b15; b15 = RotL(b15, 4) ^ b12; b14 += b13; b13 = RotL(b13, 53) ^ b14; b8 += b11; b11 = RotL(b11, 42) ^ b8; b10 += b9; b9 = RotL(b9, 41) ^ b10;
+		b0 += b15; b15 = RotL(b15, 31) ^ b0; b2 += b11; b11 = RotL(b11, 44) ^ b2; b6 += b13; b13 = RotL(b13, 47) ^ b6; b4 += b9; b9 = RotL(b9, 46) ^ b4; b14 += b1; b1 = RotL(b1, 19) ^ b14; b8 += b5; b5 = RotL(b5, 42) ^ b8; b10 += b3; b3 = RotL(b3, 44) ^ b10; b12 += b7; b7 = RotL(b7, 25) ^ b12;
+		b0 += kw[3]; b1 += kw[4]; b2 += kw[5]; b3 += kw[6];
+		b4 += kw[7]; b5 += kw[8]; b6 += kw[9]; b7 += kw[10];
+		b8 += kw[11]; b9 += kw[12]; b10 += kw[13]; b11 += kw[14];
+		b12 += kw[15];
+		b13 += kw[16] + ts[2];
+		b14 += kw[17] + ts[3];
+		b15 += kw[18] + (ulong)20;
 
 		// Store results back
 		_work[0] = b0; _work[1] = b1; _work[2] = b2; _work[3] = b3;

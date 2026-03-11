@@ -342,9 +342,11 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// For streaming scenarios, create an instance and use Update/Finalize.
 	/// </remarks>
 	public static ulong Hash(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key) {
-		using var hasher = new SipHash24(key);
-		hasher.Update(data);
-		return hasher.Finalize();
+		if (key.Length != 16)
+			throw new ArgumentException("SipHash key must be exactly 16 bytes.", nameof(key));
+		return ComputeHashStatic(data,
+			BinaryPrimitives.ReadUInt64LittleEndian(key),
+			BinaryPrimitives.ReadUInt64LittleEndian(key[8..]));
 	}
 
 	/// <summary>
@@ -357,9 +359,103 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 	/// <remarks>
 	/// This is a convenience method when the key is already split into 64-bit values.
 	/// </remarks>
-	public static ulong Hash(ReadOnlySpan<byte> data, ulong k0, ulong k1) {
-		using var hasher = new SipHash24(k0, k1);
-		hasher.Update(data);
-		return hasher.Finalize();
+	public static ulong Hash(ReadOnlySpan<byte> data, ulong k0, ulong k1) =>
+		ComputeHashStatic(data, k0, k1);
+
+	/// <summary>
+	/// High-performance static one-shot SipHash-2-4 computation.
+	/// All state stays in local variables (registers) for the entire computation,
+	/// avoiding per-block virtual dispatch and field load/store overhead.
+	/// </summary>
+	/// <param name="data">The data to hash.</param>
+	/// <param name="k0">First 64 bits of the key.</param>
+	/// <param name="k1">Second 64 bits of the key.</param>
+	/// <returns>The 64-bit hash value.</returns>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	internal static ulong ComputeHashStatic(ReadOnlySpan<byte> data, ulong k0 = 0, ulong k1 = 0) {
+		int length = data.Length;
+
+		// Initialize state — all locals, no fields
+		ulong v0 = k0 ^ 0x736f6d6570736575;
+		ulong v1 = k1 ^ 0x646f72616e646f6d;
+		ulong v2 = k0 ^ 0x6c7967656e657261;
+		ulong v3 = k1 ^ 0x7465646279746573;
+
+		// Process 8-byte blocks in a flat loop — no virtual dispatch, no field traffic
+		int offset = 0;
+		int end = length - 7;
+		while (offset < end) {
+			ulong m = BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(offset, 8));
+			offset += 8;
+
+			v3 ^= m;
+
+			// SipRound 1
+			v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+			v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+			v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+			v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+			// SipRound 2
+			v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+			v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+			v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+			v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+			v0 ^= m;
+		}
+
+		// Construct final block: high byte = (length mod 256), remaining bytes fill low bytes
+		ulong b = (ulong)length << 56;
+		ReadOnlySpan<byte> remaining = data[offset..];
+		switch (remaining.Length) {
+			case 7: b |= (ulong)remaining[6] << 48; goto case 6;
+			case 6: b |= (ulong)remaining[5] << 40; goto case 5;
+			case 5: b |= (ulong)remaining[4] << 32; goto case 4;
+			case 4: b |= (ulong)remaining[3] << 24; goto case 3;
+			case 3: b |= (ulong)remaining[2] << 16; goto case 2;
+			case 2: b |= (ulong)remaining[1] << 8; goto case 1;
+			case 1: b |= remaining[0]; break;
+		}
+
+		// Process final block (2 compression rounds)
+		v3 ^= b;
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 ^= b;
+
+		// Finalization: XOR 0xff into v2, apply 4 finalization rounds
+		v2 ^= 0xff;
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+		v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+		v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+		v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+		return v0 ^ v1 ^ v2 ^ v3;
 	}
 }
