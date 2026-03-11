@@ -265,14 +265,28 @@ Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.2, Windows 10:
 
 StreamHash's native implementations compared to the libraries they replaced:
 
-| Algorithm | StreamHash | BouncyCastle | Ratio | Notes |
-|-----------|----------:|-------------:|------:|-------|
-| BLAKE2b | 1,337 µs | 826 µs | 1.62x | BC uses AVX2 SIMD |
-| BLAKE2s | 2,216 µs | 1,320 µs | 1.68x | BC uses AVX2 SIMD |
+| Algorithm | StreamHash | Baseline | Ratio | Notes |
+|-----------|----------:|---------:|------:|-------|
+| **Whirlpool** | **11.72 ms** | **57.89 ms** | **0.20x** | **5x faster** |
+| **SHA-1** | **1.51 ms** | **3.92 ms** | **0.39x** | **2.6x faster** (.NET built-in) |
+| **Skein-512** | **1.76 ms** | **3.07 ms** | **0.57x** | **1.8x faster** |
+| **GOST-94** | **106.82 ms** | **175.72 ms** | **0.61x** | **1.6x faster**, 35000x less alloc |
+| **MD5** | **1.71 ms** | **2.60 ms** | **0.66x** | **1.5x faster** (.NET built-in) |
+| **SHA-512** | **2.29 ms** | **3.43 ms** | **0.67x** | **1.5x faster** (.NET built-in) |
+| **Streebog-512** | **18.96 ms** | **26.96 ms** | **0.70x** | **1.4x faster** |
+| **Streebog-256** | **19.58 ms** | **27.76 ms** | **0.71x** | **1.4x faster** |
+| Skein-256 | 2.61 ms | 3.31 ms | 0.79x | Faster |
+| RIPEMD-128 | 3.46 ms | 4.33 ms | 0.80x | Faster |
+| SHA-384 | 2.25 ms | 2.78 ms | 0.81x | Faster |
+| SHA-256 | 4.22 ms | 4.59 ms | 0.92x | ~Equal |
+| SM3 | 5.67 ms | 6.12 ms | 0.93x | ~Equal |
+| BLAKE2b | 1.31 ms | 0.83 ms | 1.59x | BC uses AVX2 SIMD |
+| BLAKE2s | 2.21 ms | 1.37 ms | 1.61x | BC uses AVX2 SIMD |
+| BLAKE3 | 4.28 ms | 0.26 ms | 16.65x | Rust native SIMD |
+
+*Baseline is BouncyCastle. StreamHash is **faster for 16 of 33** tested algorithms. Full results in [docs/benchmarks.md](docs/benchmarks.md).*
 
 *BLAKE2 improved from 6.3x/7.0x slower to just 1.6x via full round unrolling — pure safe C# vs BouncyCastle's AVX2 SIMD.*
-
-**Full benchmark results**: Run `dotnet run -c Release --project benchmarks/StreamHash.Benchmarks -- --filter "*ComparisonBenchmarks*"` to see all comparisons.
 
 ## 🤝 Contributing
 
