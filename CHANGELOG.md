@@ -20,14 +20,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  	- Helper arrays: `BasicHashes`, `Checksums`, `FastNonCrypto`, `Cryptographic`, `All`
  	- Eliminates magic strings, enables IntelliSense, prevents typos
  	- All internal code updated to use constants
+- **🔧 All-Native Implementations** - Removed ALL external hash library dependencies (#52)
+ 	- All 70 algorithms now implemented in pure C# — no BouncyCastle, Blake3, Blake2Fast, or acryptohashnet
+ 	- Only remaining dependency: `System.IO.Hashing` (Microsoft BCL, for CRC/xxHash acceleration)
+ 	- Removed 3 NuGet packages: acryptohashnet, Blake3, SauceControl.Blake2Fast
+ 	- 10 algorithms rewritten natively: BLAKE2b, BLAKE2s, BLAKE-256, BLAKE-512, BLAKE3, Keccak-256, Keccak-512, RIPEMD-128, RIPEMD-160, Tiger-192
+- **📊 Comparison Benchmarks** - Side-by-side performance vs external libraries (#53)
+ 	- ComparisonBenchmarks.cs: 33 crypto algorithm comparisons vs BouncyCastle, acryptohashnet, Blake2Fast, Blake3, dotSHA3
+ 	- NonCryptoComparisonBenchmarks.cs: 8 non-crypto comparisons vs System.IO.Hashing, HashDepot
+ 	- Performance benchmark documentation at docs/benchmarks.md
 
 ### Changed
 
 - Batch streaming APIs now use `HashAlgorithmNames` constants internally
 - Documentation examples updated to demonstrate constant usage
+- README rewritten to reflect all-native architecture, no external hash dependencies
+- Acknowledgments section updated to reference-only (libraries are no longer runtime dependencies)
 
 ### Performance
 
+- **BLAKE2b**: 3.9x faster (6.29x → 1.62x vs BouncyCastle) via fully unrolled compression rounds (#56)
+- **BLAKE2s**: 4.2x faster (7.01x → 1.68x vs BouncyCastle) via fully unrolled compression rounds (#56)
+- Fully unrolled compression eliminates ~768 Span bounds checks per BLAKE2b compress call
+- All optimizations use pure safe C# — no unsafe code, no SIMD intrinsics
 - Basic hashes streaming: 4 algorithms in ~600μs for 1MB (vs ~10.5ms for all 70)
 - Ideal for common scenarios: file integrity, legacy compatibility, corruption detection
 - Single memory pass, optimized for standard hash verification workflows
