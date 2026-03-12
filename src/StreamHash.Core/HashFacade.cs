@@ -371,7 +371,9 @@ public static class HashFacade {
 
 	/// <summary>Computes SipHash-2-4.</summary>
 	public static byte[] ComputeSipHash24(ReadOnlySpan<byte> data) {
-		ulong result = SipHash24.ComputeHashStatic(data);
+		using var hasher = new SipHash24();
+		hasher.Update(data);
+		ulong result = hasher.Finalize();
 		return BitConverter.GetBytes(result);
 	}
 

@@ -110,9 +110,11 @@ public abstract class StreamingHashBase<TResult> : IStreamingHash<TResult>, IStr
 		}
 
 		// Process complete blocks directly from input
-		while (data.Length >= BlockSize) {
-			ProcessBlock(data[..BlockSize]);
-			data = data[BlockSize..];
+		int blockSize = BlockSize;
+		if (data.Length >= blockSize) {
+			int fullBlockBytes = data.Length / blockSize * blockSize;
+			ProcessBlocks(data[..fullBlockBytes]);
+			data = data[fullBlockBytes..];
 		}
 
 		// Buffer remaining bytes
@@ -196,6 +198,20 @@ public abstract class StreamingHashBase<TResult> : IStreamingHash<TResult>, IStr
 	/// </para>
 	/// </remarks>
 	protected abstract void ProcessBlock(ReadOnlySpan<byte> block);
+
+	/// <summary>
+	/// Processes multiple complete blocks of data at once.
+	/// Override this method to keep algorithm state in local variables across all blocks,
+	/// eliminating per-block virtual dispatch and field load/store overhead.
+	/// </summary>
+	/// <param name="data">The data containing one or more complete blocks. Length is always a multiple of <see cref="BlockSize"/>.</param>
+	protected virtual void ProcessBlocks(ReadOnlySpan<byte> data) {
+		int blockSize = BlockSize;
+		while (data.Length >= blockSize) {
+			ProcessBlock(data[..blockSize]);
+			data = data[blockSize..];
+		}
+	}
 
 	/// <summary>
 	/// Computes the final hash value from any remaining data.

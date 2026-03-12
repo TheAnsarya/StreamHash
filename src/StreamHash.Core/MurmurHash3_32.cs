@@ -1,4 +1,5 @@
-﻿using System.Runtime.Intrinsics.X86;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace StreamHash.Core;
 
@@ -207,28 +208,43 @@ public sealed class MurmurHash3_32 : StreamingHashBase<uint> {
 	/// </para>
 	/// </remarks>
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
-		// Step 1: Read 4 bytes as little-endian uint32
-		// This is the input block value k1
 		uint k1 = BinaryPrimitives.ReadUInt32LittleEndian(block);
 
-		// Step 2-4: MurmurHash3 block mixing
-		// Multiply by C1, rotate left 15, multiply by C2
-		// This spreads the influence of input bits throughout k1
 		k1 *= C1;
 		k1 = BitOperations.RotateLeft(k1, 15);
 		k1 *= C2;
 
-		// Step 5: XOR mixed k1 into running hash state
-		// This incorporates the block's contribution into h1
 		_h1 ^= k1;
-
-		// Step 6-7: Mix h1 to improve avalanche
-		// Rotate left 13 provides bit diffusion
-		// Multiply by 5 and add magic constant further mixes
 		_h1 = BitOperations.RotateLeft(_h1, 13);
 		_h1 = _h1 * 5 + 0xe6546b64;
 
 		_processedBlocks++;
+	}
+
+	/// <summary>
+	/// Processes multiple complete 4-byte blocks in a single call, keeping h1 in a local
+	/// register to avoid per-block field load/store overhead.
+	/// </summary>
+	/// <param name="data">Span containing only complete 4-byte blocks (length is a multiple of 4).</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	protected override void ProcessBlocks(ReadOnlySpan<byte> data) {
+		uint h1 = _h1;
+		int blocks = data.Length / 4;
+
+		for (int i = 0; i < data.Length; i += 4) {
+			uint k1 = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(i, 4));
+
+			k1 *= C1;
+			k1 = BitOperations.RotateLeft(k1, 15);
+			k1 *= C2;
+
+			h1 ^= k1;
+			h1 = BitOperations.RotateLeft(h1, 13);
+			h1 = h1 * 5 + 0xe6546b64;
+		}
+
+		_h1 = h1;
+		_processedBlocks += blocks;
 	}
 
 	/// <inheritdoc/>

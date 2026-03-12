@@ -99,7 +99,7 @@ internal abstract class SkeinOptimized : IStreamingHashBytes {
 	public long TotalBytesProcessed => _totalBytes;
 
 	/// <inheritdoc/>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	public void Update(ReadOnlySpan<byte> data) {
 		_totalBytes += data.Length;
 		int offset = 0;
@@ -171,7 +171,7 @@ internal abstract class SkeinOptimized : IStreamingHashBytes {
 	/// <summary>
 	/// Processes a single block with Threefish encryption.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected void ProcessBlock(byte[] block, bool isFinal) {
 		// Convert block to words using efficient span casting
 		var blockSpan = MemoryMarshal.Cast<byte, ulong>(block.AsSpan());
@@ -196,7 +196,7 @@ internal abstract class SkeinOptimized : IStreamingHashBytes {
 	/// <summary>
 	/// Processes a block directly from a span.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected void ProcessBlockSpan(ReadOnlySpan<byte> block, bool isFinal) {
 		// Convert block to words
 		var blockSpan = MemoryMarshal.Cast<byte, ulong>(block);
@@ -757,6 +757,12 @@ internal sealed class Skein512Optimized : SkeinOptimized {
 /// Optimized Skein-1024 with zero-allocation Threefish-1024.
 /// </summary>
 internal sealed class Skein1024Optimized : SkeinOptimized {
+	/// <summary>Pre-allocated extended key schedule (17 keys + 16 repeated = 33 total).</summary>
+	private readonly ulong[] _kw = new ulong[33];
+
+	/// <summary>Pre-allocated extended tweak (3 values + 2 repeated = 5 total).</summary>
+	private readonly ulong[] _ts = new ulong[5];
+
 	public Skein1024Optimized(int outputBits = 1024) : base(1024, outputBits) {
 		Reset();
 	}
@@ -794,10 +800,10 @@ internal sealed class Skein1024Optimized : SkeinOptimized {
 	/// Uses local variables instead of arrays to eliminate bounds checking.
 	/// Extended key schedule (33 entries) eliminates modulo in key injection.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected override void ThreefishEncrypt() {
 		// Build extended key schedule: 17 keys + 16 repeated = 33 total for modulo-free lookup
-		Span<ulong> kw = stackalloc ulong[33];
+		ulong[] kw = _kw;
 		ulong knw = C240;
 		for (int i = 0; i < 16; i++) {
 			kw[i] = _state[i];
@@ -810,7 +816,7 @@ internal sealed class Skein1024Optimized : SkeinOptimized {
 
 		// Extended tweak: 5 entries for modulo-free lookup
 		ulong t0 = _t0, t1 = _t1, t2 = t0 ^ t1;
-		Span<ulong> ts = stackalloc ulong[5];
+		ulong[] ts = _ts;
 		ts[0] = t0; ts[1] = t1; ts[2] = t2; ts[3] = t0; ts[4] = t1;
 
 		// Load plaintext into 16 local variables (CRITICAL: eliminates array bounds checking)

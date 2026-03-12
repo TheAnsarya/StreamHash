@@ -246,6 +246,39 @@ public sealed class SipHash24 : StreamingHashBase<ulong> {
 		_v0 = v0; _v1 = v1; _v2 = v2; _v3 = v3;
 	}
 
+	/// <summary>
+	/// Processes multiple 8-byte blocks in a single call, keeping v0-v3 in local
+	/// variables (CPU registers) for the entire span. Eliminates per-block virtual
+	/// dispatch and field load/store overhead of the base class loop.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	protected override void ProcessBlocks(ReadOnlySpan<byte> data) {
+		ulong v0 = _v0, v1 = _v1, v2 = _v2, v3 = _v3;
+
+		while (data.Length >= 8) {
+			ulong m = BinaryPrimitives.ReadUInt64LittleEndian(data);
+			data = data[8..];
+
+			v3 ^= m;
+
+			// SipRound 1
+			v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+			v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+			v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+			v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+			// SipRound 2
+			v0 += v1; v1 = BitOperations.RotateLeft(v1, 13); v1 ^= v0; v0 = BitOperations.RotateLeft(v0, 32);
+			v2 += v3; v3 = BitOperations.RotateLeft(v3, 16); v3 ^= v2;
+			v0 += v3; v3 = BitOperations.RotateLeft(v3, 21); v3 ^= v0;
+			v2 += v1; v1 = BitOperations.RotateLeft(v1, 17); v1 ^= v2; v2 = BitOperations.RotateLeft(v2, 32);
+
+			v0 ^= m;
+		}
+
+		_v0 = v0; _v1 = v1; _v2 = v2; _v3 = v3;
+	}
+
 	/// <inheritdoc/>
 	/// <remarks>
 	/// <para>
