@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace StreamHash.Core;
@@ -160,6 +161,7 @@ public sealed class NativeSha224Digest : IStreamingHashBytes {
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	[SkipLocalsInit]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		Span<uint> w = stackalloc uint[64];
 
@@ -168,35 +170,82 @@ public sealed class NativeSha224Digest : IStreamingHashBytes {
 			w[i] = BinaryPrimitives.ReadUInt32BigEndian(block.Slice(i * 4));
 		}
 
-		// Expand message schedule
+		// Expand message schedule — cache repeated reads to reduce indexing
 		for (int i = 16; i < 64; i++) {
-			uint s0 = RotateRight(w[i - 15], 7) ^ RotateRight(w[i - 15], 18) ^ (w[i - 15] >> 3);
-			uint s1 = RotateRight(w[i - 2], 17) ^ RotateRight(w[i - 2], 19) ^ (w[i - 2] >> 10);
+			uint w15 = w[i - 15];
+			uint w2 = w[i - 2];
+			uint s0 = BitOperations.RotateRight(w15, 7) ^ BitOperations.RotateRight(w15, 18) ^ (w15 >> 3);
+			uint s1 = BitOperations.RotateRight(w2, 17) ^ BitOperations.RotateRight(w2, 19) ^ (w2 >> 10);
 			w[i] = w[i - 16] + s0 + w[i - 7] + s1;
 		}
 
 		uint a = _h0, b = _h1, c = _h2, d = _h3;
 		uint e = _h4, f = _h5, g = _h6, h = _h7;
 
-		// Main compression loop (same as SHA-256)
-		for (int i = 0; i < 64; i++) {
-			uint S1 = RotateRight(e, 6) ^ RotateRight(e, 11) ^ RotateRight(e, 25);
-			uint ch = (e & f) ^ (~e & g);
-			uint temp1 = h + S1 + ch + K[i] + w[i];
-			uint S0 = RotateRight(a, 2) ^ RotateRight(a, 13) ^ RotateRight(a, 22);
-			uint maj = (a & b) ^ (a & c) ^ (b & c);
-			uint temp2 = S0 + maj;
+		// 8x unrolled compression — eliminates per-round variable shuffling (6 moves/round * 64 = 384 moves saved)
+		for (int i = 0; i < 64; i += 8) {
+			h += BitOperations.RotateRight(e, 6) ^ BitOperations.RotateRight(e, 11) ^ BitOperations.RotateRight(e, 25);
+			h += (e & f) ^ (~e & g);
+			h += K[i] + w[i];
+			d += h;
+			h += BitOperations.RotateRight(a, 2) ^ BitOperations.RotateRight(a, 13) ^ BitOperations.RotateRight(a, 22);
+			h += (a & b) ^ (a & c) ^ (b & c);
 
-			h = g; g = f; f = e; e = d + temp1;
-			d = c; c = b; b = a; a = temp1 + temp2;
+			g += BitOperations.RotateRight(d, 6) ^ BitOperations.RotateRight(d, 11) ^ BitOperations.RotateRight(d, 25);
+			g += (d & e) ^ (~d & f);
+			g += K[i + 1] + w[i + 1];
+			c += g;
+			g += BitOperations.RotateRight(h, 2) ^ BitOperations.RotateRight(h, 13) ^ BitOperations.RotateRight(h, 22);
+			g += (h & a) ^ (h & b) ^ (a & b);
+
+			f += BitOperations.RotateRight(c, 6) ^ BitOperations.RotateRight(c, 11) ^ BitOperations.RotateRight(c, 25);
+			f += (c & d) ^ (~c & e);
+			f += K[i + 2] + w[i + 2];
+			b += f;
+			f += BitOperations.RotateRight(g, 2) ^ BitOperations.RotateRight(g, 13) ^ BitOperations.RotateRight(g, 22);
+			f += (g & h) ^ (g & a) ^ (h & a);
+
+			e += BitOperations.RotateRight(b, 6) ^ BitOperations.RotateRight(b, 11) ^ BitOperations.RotateRight(b, 25);
+			e += (b & c) ^ (~b & d);
+			e += K[i + 3] + w[i + 3];
+			a += e;
+			e += BitOperations.RotateRight(f, 2) ^ BitOperations.RotateRight(f, 13) ^ BitOperations.RotateRight(f, 22);
+			e += (f & g) ^ (f & h) ^ (g & h);
+
+			d += BitOperations.RotateRight(a, 6) ^ BitOperations.RotateRight(a, 11) ^ BitOperations.RotateRight(a, 25);
+			d += (a & b) ^ (~a & c);
+			d += K[i + 4] + w[i + 4];
+			h += d;
+			d += BitOperations.RotateRight(e, 2) ^ BitOperations.RotateRight(e, 13) ^ BitOperations.RotateRight(e, 22);
+			d += (e & f) ^ (e & g) ^ (f & g);
+
+			c += BitOperations.RotateRight(h, 6) ^ BitOperations.RotateRight(h, 11) ^ BitOperations.RotateRight(h, 25);
+			c += (h & a) ^ (~h & b);
+			c += K[i + 5] + w[i + 5];
+			g += c;
+			c += BitOperations.RotateRight(d, 2) ^ BitOperations.RotateRight(d, 13) ^ BitOperations.RotateRight(d, 22);
+			c += (d & e) ^ (d & f) ^ (e & f);
+
+			b += BitOperations.RotateRight(g, 6) ^ BitOperations.RotateRight(g, 11) ^ BitOperations.RotateRight(g, 25);
+			b += (g & h) ^ (~g & a);
+			b += K[i + 6] + w[i + 6];
+			f += b;
+			b += BitOperations.RotateRight(c, 2) ^ BitOperations.RotateRight(c, 13) ^ BitOperations.RotateRight(c, 22);
+			b += (c & d) ^ (c & e) ^ (d & e);
+
+			a += BitOperations.RotateRight(f, 6) ^ BitOperations.RotateRight(f, 11) ^ BitOperations.RotateRight(f, 25);
+			a += (f & g) ^ (~f & h);
+			a += K[i + 7] + w[i + 7];
+			e += a;
+			a += BitOperations.RotateRight(b, 2) ^ BitOperations.RotateRight(b, 13) ^ BitOperations.RotateRight(b, 22);
+			a += (b & c) ^ (b & d) ^ (c & d);
 		}
 
 		_h0 += a; _h1 += b; _h2 += c; _h3 += d;
 		_h4 += e; _h5 += f; _h6 += g; _h7 += h;
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static uint RotateRight(uint x, int n) => (x >> n) | (x << (32 - n));
+
 
 	// SHA-256 round constants (first 32 bits of fractional parts of cube roots of first 64 primes)
 	private static readonly uint[] K = [

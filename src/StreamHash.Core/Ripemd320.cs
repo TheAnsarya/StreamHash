@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace StreamHash.Core;
@@ -203,6 +204,7 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 	// ========== Core Algorithm ==========
 
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	[SkipLocalsInit]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		// Load message words (little-endian)
 		Span<uint> x = stackalloc uint[16];
@@ -291,7 +293,7 @@ public sealed class Ripemd320Digest : IStreamingHashBytes {
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static uint RotateLeft(uint value, int bits) =>
-		(value << bits) | (value >> (32 - bits));
+		BitOperations.RotateLeft(value, bits);
 
 	/// <summary>F0(x,y,z) = x XOR y XOR z</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]

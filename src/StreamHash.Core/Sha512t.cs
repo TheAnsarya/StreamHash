@@ -213,17 +213,64 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 		ulong a = _h0, b = _h1, c = _h2, d = _h3;
 		ulong e = _h4, f = _h5, g = _h6, h = _h7;
 
-		// Main compression loop
-		for (int i = 0; i < 80; i++) {
-			ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
-			ulong ch = (e & f) ^ (~e & g);
-			ulong temp1 = h + S1 + ch + K[i] + w[i];
-			ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
-			ulong maj = (a & b) ^ (a & c) ^ (b & c);
-			ulong temp2 = S0 + maj;
+		// 8x unrolled compression — eliminates per-round variable shuffling (6 moves/round * 80 = 480 moves saved)
+		// Each round writes to a different variable position, so after 8 rounds we're back to the original layout.
+		for (int i = 0; i < 80; i += 8) {
+			h += BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
+			h += (e & f) ^ (~e & g);
+			h += K[i] + w[i];
+			d += h;
+			h += BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
+			h += (a & b) ^ (a & c) ^ (b & c);
 
-			h = g; g = f; f = e; e = d + temp1;
-			d = c; c = b; b = a; a = temp1 + temp2;
+			g += BitOperations.RotateRight(d, 14) ^ BitOperations.RotateRight(d, 18) ^ BitOperations.RotateRight(d, 41);
+			g += (d & e) ^ (~d & f);
+			g += K[i + 1] + w[i + 1];
+			c += g;
+			g += BitOperations.RotateRight(h, 28) ^ BitOperations.RotateRight(h, 34) ^ BitOperations.RotateRight(h, 39);
+			g += (h & a) ^ (h & b) ^ (a & b);
+
+			f += BitOperations.RotateRight(c, 14) ^ BitOperations.RotateRight(c, 18) ^ BitOperations.RotateRight(c, 41);
+			f += (c & d) ^ (~c & e);
+			f += K[i + 2] + w[i + 2];
+			b += f;
+			f += BitOperations.RotateRight(g, 28) ^ BitOperations.RotateRight(g, 34) ^ BitOperations.RotateRight(g, 39);
+			f += (g & h) ^ (g & a) ^ (h & a);
+
+			e += BitOperations.RotateRight(b, 14) ^ BitOperations.RotateRight(b, 18) ^ BitOperations.RotateRight(b, 41);
+			e += (b & c) ^ (~b & d);
+			e += K[i + 3] + w[i + 3];
+			a += e;
+			e += BitOperations.RotateRight(f, 28) ^ BitOperations.RotateRight(f, 34) ^ BitOperations.RotateRight(f, 39);
+			e += (f & g) ^ (f & h) ^ (g & h);
+
+			d += BitOperations.RotateRight(a, 14) ^ BitOperations.RotateRight(a, 18) ^ BitOperations.RotateRight(a, 41);
+			d += (a & b) ^ (~a & c);
+			d += K[i + 4] + w[i + 4];
+			h += d;
+			d += BitOperations.RotateRight(e, 28) ^ BitOperations.RotateRight(e, 34) ^ BitOperations.RotateRight(e, 39);
+			d += (e & f) ^ (e & g) ^ (f & g);
+
+			c += BitOperations.RotateRight(h, 14) ^ BitOperations.RotateRight(h, 18) ^ BitOperations.RotateRight(h, 41);
+			c += (h & a) ^ (~h & b);
+			c += K[i + 5] + w[i + 5];
+			g += c;
+			c += BitOperations.RotateRight(d, 28) ^ BitOperations.RotateRight(d, 34) ^ BitOperations.RotateRight(d, 39);
+			c += (d & e) ^ (d & f) ^ (e & f);
+
+			b += BitOperations.RotateRight(g, 14) ^ BitOperations.RotateRight(g, 18) ^ BitOperations.RotateRight(g, 41);
+			b += (g & h) ^ (~g & a);
+			b += K[i + 6] + w[i + 6];
+			f += b;
+			b += BitOperations.RotateRight(c, 28) ^ BitOperations.RotateRight(c, 34) ^ BitOperations.RotateRight(c, 39);
+			b += (c & d) ^ (c & e) ^ (d & e);
+
+			a += BitOperations.RotateRight(f, 14) ^ BitOperations.RotateRight(f, 18) ^ BitOperations.RotateRight(f, 41);
+			a += (f & g) ^ (~f & h);
+			a += K[i + 7] + w[i + 7];
+			e += a;
+			a += BitOperations.RotateRight(b, 28) ^ BitOperations.RotateRight(b, 34) ^ BitOperations.RotateRight(b, 39);
+			a += (b & c) ^ (b & d) ^ (c & d);
 		}
 
 		_h0 += a; _h1 += b; _h2 += c; _h3 += d;
@@ -415,17 +462,63 @@ internal static class Sha512tFactory {
 		ulong a = h0, b = h1, c = h2, d = h3;
 		ulong e = h4, f = h5, g = h6, h = h7;
 
-		// Main compression loop
-		for (int i = 0; i < 80; i++) {
-			ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
-			ulong ch = (e & f) ^ (~e & g);
-			ulong temp1 = h + S1 + ch + K[i] + w[i];
-			ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
-			ulong maj = (a & b) ^ (a & c) ^ (b & c);
-			ulong temp2 = S0 + maj;
+		// 8x unrolled compression — eliminates per-round variable shuffling
+		for (int i = 0; i < 80; i += 8) {
+			h += BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
+			h += (e & f) ^ (~e & g);
+			h += K[i] + w[i];
+			d += h;
+			h += BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
+			h += (a & b) ^ (a & c) ^ (b & c);
 
-			h = g; g = f; f = e; e = d + temp1;
-			d = c; c = b; b = a; a = temp1 + temp2;
+			g += BitOperations.RotateRight(d, 14) ^ BitOperations.RotateRight(d, 18) ^ BitOperations.RotateRight(d, 41);
+			g += (d & e) ^ (~d & f);
+			g += K[i + 1] + w[i + 1];
+			c += g;
+			g += BitOperations.RotateRight(h, 28) ^ BitOperations.RotateRight(h, 34) ^ BitOperations.RotateRight(h, 39);
+			g += (h & a) ^ (h & b) ^ (a & b);
+
+			f += BitOperations.RotateRight(c, 14) ^ BitOperations.RotateRight(c, 18) ^ BitOperations.RotateRight(c, 41);
+			f += (c & d) ^ (~c & e);
+			f += K[i + 2] + w[i + 2];
+			b += f;
+			f += BitOperations.RotateRight(g, 28) ^ BitOperations.RotateRight(g, 34) ^ BitOperations.RotateRight(g, 39);
+			f += (g & h) ^ (g & a) ^ (h & a);
+
+			e += BitOperations.RotateRight(b, 14) ^ BitOperations.RotateRight(b, 18) ^ BitOperations.RotateRight(b, 41);
+			e += (b & c) ^ (~b & d);
+			e += K[i + 3] + w[i + 3];
+			a += e;
+			e += BitOperations.RotateRight(f, 28) ^ BitOperations.RotateRight(f, 34) ^ BitOperations.RotateRight(f, 39);
+			e += (f & g) ^ (f & h) ^ (g & h);
+
+			d += BitOperations.RotateRight(a, 14) ^ BitOperations.RotateRight(a, 18) ^ BitOperations.RotateRight(a, 41);
+			d += (a & b) ^ (~a & c);
+			d += K[i + 4] + w[i + 4];
+			h += d;
+			d += BitOperations.RotateRight(e, 28) ^ BitOperations.RotateRight(e, 34) ^ BitOperations.RotateRight(e, 39);
+			d += (e & f) ^ (e & g) ^ (f & g);
+
+			c += BitOperations.RotateRight(h, 14) ^ BitOperations.RotateRight(h, 18) ^ BitOperations.RotateRight(h, 41);
+			c += (h & a) ^ (~h & b);
+			c += K[i + 5] + w[i + 5];
+			g += c;
+			c += BitOperations.RotateRight(d, 28) ^ BitOperations.RotateRight(d, 34) ^ BitOperations.RotateRight(d, 39);
+			c += (d & e) ^ (d & f) ^ (e & f);
+
+			b += BitOperations.RotateRight(g, 14) ^ BitOperations.RotateRight(g, 18) ^ BitOperations.RotateRight(g, 41);
+			b += (g & h) ^ (~g & a);
+			b += K[i + 6] + w[i + 6];
+			f += b;
+			b += BitOperations.RotateRight(c, 28) ^ BitOperations.RotateRight(c, 34) ^ BitOperations.RotateRight(c, 39);
+			b += (c & d) ^ (c & e) ^ (d & e);
+
+			a += BitOperations.RotateRight(f, 14) ^ BitOperations.RotateRight(f, 18) ^ BitOperations.RotateRight(f, 41);
+			a += (f & g) ^ (~f & h);
+			a += K[i + 7] + w[i + 7];
+			e += a;
+			a += BitOperations.RotateRight(b, 28) ^ BitOperations.RotateRight(b, 34) ^ BitOperations.RotateRight(b, 39);
+			a += (b & c) ^ (b & d) ^ (c & d);
 		}
 
 		h0 += a; h1 += b; h2 += c; h3 += d;
