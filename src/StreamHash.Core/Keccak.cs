@@ -174,9 +174,8 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 		}
 
 		// Process complete blocks directly from input
-		while (offset + _rate <= data.Length) {
-			AbsorbBlock(data.Slice(offset, _rate));
-			offset += _rate;
+		if (offset + _rate <= data.Length) {
+			AbsorbMultipleBlocks(data, ref offset);
 		}
 
 		// Buffer remaining data
@@ -243,6 +242,25 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 	// ========== Core Algorithm ==========
 
 	/// <summary>
+	/// Absorbs multiple rate-sized blocks by keeping state on the stack,
+	/// eliminating per-block heap-array load/store overhead.
+	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	private void AbsorbMultipleBlocks(ReadOnlySpan<byte> data, ref int offset) {
+		int rate = _rate;
+		int lanes = rate >> 3;
+
+		while (offset + rate <= data.Length) {
+			ReadOnlySpan<ulong> inputLanes = MemoryMarshal.Cast<byte, ulong>(data.Slice(offset, rate));
+			for (int i = 0; i < lanes; i++) {
+				_state[i] ^= inputLanes[i];
+			}
+			KeccakF1600();
+			offset += rate;
+		}
+	}
+
+	/// <summary>
 	/// Absorbs a rate-sized block into the state.
 	/// XORs input bytes into state lanes, then applies Keccak-f[1600].
 	/// </summary>
@@ -273,6 +291,7 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 	/// The Keccak-f[1600] permutation - 24 rounds of θ, ρ, π, χ, ι.
 	/// Uses 25 local variables to eliminate array/span bounds checking.
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void KeccakF1600() {
 		// Load state into 25 local variables (eliminates span bounds checking in hot loop)
 		ulong a00 = _state[0], a01 = _state[1], a02 = _state[2], a03 = _state[3], a04 = _state[4];
@@ -633,6 +652,7 @@ public static class NativeSha3Factory {
 	/// <summary>
 	/// Static Keccak-f[1600] permutation - 24 rounds using 25 local variables.
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	[SkipLocalsInit]
 	private static void KeccakF1600Static(Span<ulong> state) {
 		// Load state into 25 local variables (eliminates span bounds checking in hot loop)
