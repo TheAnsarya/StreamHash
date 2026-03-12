@@ -340,7 +340,7 @@ internal sealed class Skein256Optimized : SkeinOptimized {
 	/// <summary>
 	/// Threefish-256: 72 rounds, 4 words. Fully unrolled key schedule.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected override void ThreefishEncrypt() {
 		ulong k0 = _state[0], k1 = _state[1], k2 = _state[2], k3 = _state[3];
 		ulong k4 = k0 ^ k1 ^ k2 ^ k3 ^ C240;
@@ -525,7 +525,7 @@ internal sealed class Skein512Optimized : SkeinOptimized {
 	/// <summary>
 	/// Threefish-512: 72 rounds, 8 words. Fully unrolled.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected override void ThreefishEncrypt() {
 		ulong k0 = _state[0], k1 = _state[1], k2 = _state[2], k3 = _state[3];
 		ulong k4 = _state[4], k5 = _state[5], k6 = _state[6], k7 = _state[7];

@@ -1,4 +1,5 @@
-﻿using System.Runtime.Intrinsics.X86;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace StreamHash.Core;
 
@@ -208,6 +209,7 @@ public sealed class SpookyHash128 : StreamingHashBase<UInt128> {
 	/// where each state variable is influenced by its neighbors.
 	/// </para>
 	/// </remarks>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	protected override void ProcessBlock(ReadOnlySpan<byte> block) {
 		// Read 12 x 64-bit words from the 96-byte block
 		ulong d0 = BinaryPrimitives.ReadUInt64LittleEndian(block);
@@ -285,6 +287,7 @@ public sealed class SpookyHash128 : StreamingHashBase<UInt128> {
 	/// Processes the final block by adding (not mixing) the data words to state.
 	/// </summary>
 	/// <param name="block">A 96-byte padded block.</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void ProcessLastBlock(ReadOnlySpan<byte> block) {
 		// Read all 12 words
 		ulong d0 = BinaryPrimitives.ReadUInt64LittleEndian(block);

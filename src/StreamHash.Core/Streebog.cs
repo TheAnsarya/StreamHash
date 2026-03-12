@@ -183,7 +183,7 @@ internal abstract class Streebog : IStreamingHashBytes {
 	/// <summary>
 	/// The g compression function: h = h ⊕ LPS(h ⊕ m) ⊕ m
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void GCompress(ulong[] h, ReadOnlySpan<byte> m, ulong[] mArr, ulong[] k, ulong[] t) {
 		// Convert m to ulongs
 		for (int i = 0; i < 8; i++) {

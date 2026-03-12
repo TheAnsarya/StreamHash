@@ -231,6 +231,7 @@ public sealed class NativeGost94 : IStreamingHashBytes {
 	/// <summary>
 	/// Processes a single 256-bit block.
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		// Copy block to M
 		block.CopyTo(_m);
@@ -275,6 +276,7 @@ public sealed class NativeGost94 : IStreamingHashBytes {
 	/// <summary>
 	/// Step hash function χ(M, H) - the core compression function.
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void StepHash(byte[] m, byte[] h) {
 		// Generate keys K1..K4
 		// Initialize: U = H, V = M

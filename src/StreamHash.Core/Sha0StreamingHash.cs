@@ -1,4 +1,6 @@
-﻿namespace StreamHash.Core;
+﻿using System.Runtime.CompilerServices;
+
+namespace StreamHash.Core;
 
 /// <summary>
 /// SHA-0 streaming hash implementation.
@@ -97,6 +99,8 @@ internal sealed class Sha0StreamingHash : IStreamingHashBytes {
 		Array.Clear(_buffer);
 	}
 
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+	[SkipLocalsInit]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		Span<uint> w = stackalloc uint[80];
 

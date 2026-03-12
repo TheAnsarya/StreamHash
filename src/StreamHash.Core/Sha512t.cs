@@ -191,6 +191,7 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 		Array.Clear(_buffer);
 	}
 
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	[SkipLocalsInit]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		Span<ulong> w = stackalloc ulong[80];
@@ -391,7 +392,7 @@ internal static class Sha512tFactory {
 	}
 
 	[SkipLocalsInit]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void ProcessBlockStatic(ReadOnlySpan<byte> block,
 		ref ulong h0, ref ulong h1, ref ulong h2, ref ulong h3,
 		ref ulong h4, ref ulong h5, ref ulong h6, ref ulong h7,

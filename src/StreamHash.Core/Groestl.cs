@@ -1,4 +1,6 @@
-﻿namespace StreamHash.Core;
+﻿using System.Runtime.CompilerServices;
+
+namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of the Grøstl hash function (SHA-3 finalist).
@@ -389,6 +391,7 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// f(h, m) = P(h XOR m) XOR Q(m) XOR h
 	/// </summary>
 	/// <param name="block">The message block to process.</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		// Convert block to column-major matrix using pre-allocated buffer
 		for (int col = 0; col < _cols; col++) {
@@ -417,6 +420,7 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// <summary>
 	/// Applies the P permutation (used for chaining value path).
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void PermutationP(byte[] state) {
 		int[] shift = _cols == Cols512 ? Shift512P : Shift1024P;
 
@@ -438,6 +442,7 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// <summary>
 	/// Applies the Q permutation (used for message path).
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void PermutationQ(byte[] state) {
 		int[] shift = _cols == Cols512 ? Shift512Q : Shift1024Q;
 
@@ -607,6 +612,7 @@ public sealed class GroestlDigest : IStreamingHashBytes {
 	/// Uses T-tables for efficient computation - each multiplication is a table lookup.
 	/// The MDS matrix is circulant: [02, 02, 03, 04, 05, 03, 05, 07].
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void MixBytes(byte[] state) {
 		// Process 2 columns at a time for better cache utilization
 		// This interleaved approach reduces memory access latency

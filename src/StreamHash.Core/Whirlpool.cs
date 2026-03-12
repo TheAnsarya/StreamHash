@@ -361,6 +361,7 @@ public sealed class WhirlpoolDigest : IStreamingHashBytes {
 	/// Process a single 512-bit block using the Miyaguchi-Preneel construction:
 	/// H(i+1) = E(K=H(i), M) XOR H(i) XOR M
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void ProcessBlock(ReadOnlySpan<byte> block) {
 		// Convert block to 8 64-bit words (big-endian)
 		for (int i = 0; i < StateDim; i++) {
@@ -401,7 +402,7 @@ public sealed class WhirlpoolDigest : IStreamingHashBytes {
 	/// Perform key expansion round: apply SubBytes, ShiftColumns, MixRows, AddRoundConstant.
 	/// Uses T-tables for efficiency.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void KeyExpansionRound(int round) {
 		// Apply T-table transformation to key state
 		// For output column i, byte j comes from input column (i-j) & 7
@@ -439,7 +440,7 @@ public sealed class WhirlpoolDigest : IStreamingHashBytes {
 	/// Perform state transformation round: apply SubBytes, ShiftColumns, MixRows, AddRoundKey.
 	/// Uses T-tables for efficiency.
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private void StateRound() {
 		ulong s0 = _tempState[0], s1 = _tempState[1], s2 = _tempState[2], s3 = _tempState[3];
 		ulong s4 = _tempState[4], s5 = _tempState[5], s6 = _tempState[6], s7 = _tempState[7];

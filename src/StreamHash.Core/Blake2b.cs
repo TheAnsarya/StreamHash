@@ -157,6 +157,7 @@ _t1++;
 /// Fully unrolled with local message word variables to eliminate all Span bounds checks.
 /// </summary>
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+[SkipLocalsInit]
 private void Compress(ReadOnlySpan<byte> block, bool isFinal) {
 // Parse message block into 16 64-bit local variables (eliminates all Span indexing)
 ulong m0 = BinaryPrimitives.ReadUInt64LittleEndian(block);
@@ -861,6 +862,7 @@ _t1++;
 /// Fully unrolled with local message word variables to eliminate all Span bounds checks.
 /// </summary>
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+[SkipLocalsInit]
 private void Compress(ReadOnlySpan<byte> block, bool isFinal) {
 // Parse message block into 16 32-bit local variables (eliminates all Span indexing)
 uint m0 = BinaryPrimitives.ReadUInt32LittleEndian(block);

@@ -1,4 +1,6 @@
-﻿namespace StreamHash.Core;
+﻿using System.Runtime.CompilerServices;
+
+namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of the JH hash function (SHA-3 finalist).
@@ -209,6 +211,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// <param name="state">The 1024-bit state to transform.</param>
 	/// <param name="block">The 512-bit message block.</param>
 	/// <param name="temp">Pre-allocated temporary buffer for permutation (128 bytes).</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void ApplyE8(byte[] state, ReadOnlySpan<byte> block, byte[] temp) {
 		// XOR message block into first half of state
 		int blockLen = Math.Min(BlockSizeBytes, block.Length);
@@ -234,6 +237,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// <param name="state">The state to transform.</param>
 	/// <param name="round">The round number (0-41).</param>
 	/// <param name="temp">Pre-allocated temporary buffer for permutation (128 bytes).</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void RoundFunction(byte[] state, int round, byte[] temp) {
 		byte[] roundConst = RoundConstants[round];
 
@@ -261,6 +265,7 @@ public sealed class JHDigest : IStreamingHashBytes {
 	/// Apply S-box layer to state using pre-computed lookup tables.
 	/// Instead of processing nibbles separately, uses full byte lookups.
 	/// </summary>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void ApplySBoxLayer(byte[] state, int round) {
 		// Process all bytes in state using pre-computed full-byte S-box tables
 		// Alternating between S0 and S1 based on position and round

@@ -1,4 +1,6 @@
-﻿namespace StreamHash.Core;
+﻿using System.Runtime.CompilerServices;
+
+namespace StreamHash.Core;
 
 /// <summary>
 /// Streaming implementation of KangarooTwelve (K12), a fast extendable-output function.
@@ -480,6 +482,7 @@ public sealed class KangarooTwelve : IDisposable, IStreamingHashBytes {
 	/// Performs the Keccak-p[1600, 12] permutation.
 	/// </summary>
 	/// <param name="state">The 25-word state to permute.</param>
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void KeccakPermutation(ulong[] state) {
 		Span<ulong> c = stackalloc ulong[5];
 		Span<ulong> d = stackalloc ulong[5];
