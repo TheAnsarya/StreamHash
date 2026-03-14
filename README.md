@@ -21,7 +21,7 @@
 - **🎯 Unified API**: `HashFacade` provides access to all 70 algorithms through a single interface
 - **🔐 All-Native Crypto**: Every cryptographic algorithm implemented in pure C# — no BouncyCastle dependency
 - **⚡ Batch Streaming**: Process 70 algorithms in parallel with `CreateAllStreaming()`
-- **🧪 Thoroughly Tested**: 1850+ tests validating against official test vectors
+- **🧪 Thoroughly Tested**: 1853+ tests validating against official test vectors
 - **📖 Fully Documented**: XML docs, examples, and algorithm references
 - **📦 Minimal Dependencies**: Only `System.IO.Hashing` — no large transitive dependency chains
 
@@ -212,7 +212,7 @@ cd StreamHash
 # Build
 dotnet build StreamHash.slnx
 
-# Run tests (1850+ tests)
+# Run tests (1853+ tests)
 dotnet test
 
 # Run benchmarks
