@@ -210,7 +210,7 @@ git clone https://github.com/TheAnsarya/StreamHash.git
 cd StreamHash
 
 # Build
-dotnet build StreamHash.sln
+dotnet build StreamHash.slnx
 
 # Run tests (1850+ tests)
 dotnet test

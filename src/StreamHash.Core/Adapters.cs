@@ -11,7 +11,8 @@ internal sealed class StreamingHashBytesAdapter<TResult> : IStreamingHashBytes w
 	private bool _disposed;
 
 	public StreamingHashBytesAdapter(IStreamingHash<TResult> inner) {
-		_inner = inner ?? throw new ArgumentNullException(nameof(inner));
+		ArgumentNullException.ThrowIfNull(inner);
+		_inner = inner;
 	}
 
 	public int BlockSize => _inner.BlockSize;
@@ -70,7 +71,8 @@ internal sealed class NonCryptoHashAdapter32 : IStreamingHashBytes {
 	private long _totalBytes;
 
 	public NonCryptoHashAdapter32(NonCryptographicHashAlgorithm inner) {
-		_inner = inner ?? throw new ArgumentNullException(nameof(inner));
+		ArgumentNullException.ThrowIfNull(inner);
+		_inner = inner;
 	}
 
 	public int BlockSize => 4; // Typical for 32-bit hashes
@@ -109,7 +111,8 @@ internal sealed class NonCryptoHashAdapter64 : IStreamingHashBytes {
 	private long _totalBytes;
 
 	public NonCryptoHashAdapter64(NonCryptographicHashAlgorithm inner) {
-		_inner = inner ?? throw new ArgumentNullException(nameof(inner));
+		ArgumentNullException.ThrowIfNull(inner);
+		_inner = inner;
 	}
 
 	public int BlockSize => 8; // Typical for 64-bit hashes
@@ -147,7 +150,8 @@ internal sealed class NonCryptoHashAdapter128 : IStreamingHashBytes {
 	private long _totalBytes;
 
 	public NonCryptoHashAdapter128(NonCryptographicHashAlgorithm inner) {
-		_inner = inner ?? throw new ArgumentNullException(nameof(inner));
+		ArgumentNullException.ThrowIfNull(inner);
+		_inner = inner;
 	}
 
 	public int BlockSize => 16;

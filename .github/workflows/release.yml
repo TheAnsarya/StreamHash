@@ -27,13 +27,13 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Restore dependencies
-      run: dotnet restore StreamHash.sln
+      run: dotnet restore StreamHash.slnx
 
     - name: Build
-      run: dotnet build StreamHash.sln -c Release --no-restore
+      run: dotnet build StreamHash.slnx -c Release --no-restore
 
     - name: Test
-      run: dotnet test StreamHash.sln -c Release --no-build --verbosity normal
+      run: dotnet test StreamHash.slnx -c Release --no-build --verbosity normal
 
     - name: Pack
       run: dotnet pack src/StreamHash.Core/StreamHash.Core.csproj -c Release --no-build -o ./nupkg

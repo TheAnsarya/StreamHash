@@ -13,7 +13,7 @@
 	<ItemGroup>
 		<PackageReference Include="acryptohashnet" Version="3.1.0" />
 		<PackageReference Include="BenchmarkDotNet" Version="0.*" />
-		<PackageReference Include="Blake3" Version="2.2.0" />
+		<PackageReference Include="Blake3" Version="2.2.1" />
 		<PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
 		<PackageReference Include="HashDepot" Version="3.2.0" />
 		<PackageReference Include="nebulae.dotSHA3" Version="0.1.2" />

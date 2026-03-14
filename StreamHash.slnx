@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/StreamHash.Benchmarks/StreamHash.Benchmarks.csproj">
+      <BuildType Project="Release" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/StreamHash.Core/StreamHash.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StreamHash.Core.Tests/StreamHash.Core.Tests.csproj" />
+  </Folder>
+</Solution>

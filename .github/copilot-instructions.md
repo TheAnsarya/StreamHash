@@ -6,6 +6,35 @@
 
 **Home Folder:** `C:\Users\me\source\repos\StreamHash`
 
+## ⚠️ THE THREE PRIMARY PRINCIPLES
+
+Every decision in this project must be guided by these three principles, in priority order:
+
+### 1. Correctness (Highest Priority)
+
+- **Hash accuracy is sacred** — never sacrifice correctness for any reason
+- **Comprehensive test suite** — test as much code as possible, aim for maximum coverage
+- **Test vectors from reference implementations** — verify against official specs
+- **Property-based tests** for streaming consistency
+- **Run ALL tests after EVERY change** — no exceptions
+- **Regression tests** for every bug fix
+
+### 2. Performance (Second Priority)
+
+- **Benchmark testing is mandatory** — every code change must meet or exceed current performance
+- **Minimize memory usage and allocations** — use `Span<T>`, `ArrayPool<T>`, `stackalloc`
+- **BenchmarkDotNet** for all performance measurements — prove improvements with data
+- **SIMD optimization** where applicable with scalar fallbacks
+- **Never guess at performance** — always measure before and after
+
+### 3. Modern (Third Priority)
+
+- **Always use the latest versions** of .NET, C#, Visual Studio, NuGet packages, and tools
+- **Use the most modern code patterns and features** — pattern matching, collection expressions, file-scoped namespaces, primary constructors, `required` modifier, `init` accessors, record types, global usings
+- **Stay current** — when a newer stable version exists, upgrade to it
+- **Modern standards and practices** — follow current .NET best practices, not legacy patterns
+- **Today's baseline: .NET 10+, C# 14, Visual Studio 2026, latest NuGet packages**
+
 ## ⚠️ CRITICAL: Always Use Latest Modern Versions
 
 **ALWAYS use the most modern, latest versions of everything:**
