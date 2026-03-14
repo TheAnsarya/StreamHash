@@ -16,7 +16,7 @@ namespace StreamHash.Benchmarks;
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
-public class LargeFileBenchmarks {
+public sealed class LargeFileBenchmarks {
 	private byte[] _64KB = null!;
 	private byte[] _760KB = null!;
 	private byte[] _3MB = null!;
@@ -205,7 +205,7 @@ public class LargeFileBenchmarks {
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
-public class AllAlgorithms38MBBenchmarks {
+public sealed class AllAlgorithms38MBBenchmarks {
 	private byte[] _data = null!;
 
 	[GlobalSetup]
@@ -505,7 +505,7 @@ public class AllAlgorithms38MBBenchmarks {
 /// </summary>
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
-public class QuickMultiSizeBenchmarks {
+public sealed class QuickMultiSizeBenchmarks {
 	private byte[] _64KB = null!;
 	private byte[] _760KB = null!;
 	private byte[] _3MB = null!;

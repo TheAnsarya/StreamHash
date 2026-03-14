@@ -15,7 +15,7 @@ namespace StreamHash.Benchmarks;
 [RankColumn]
 [GroupBenchmarksBy(BenchmarkDotNet.Configs.BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
-public class ComparisonBenchmarks {
+public sealed class ComparisonBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536, 1048576)]

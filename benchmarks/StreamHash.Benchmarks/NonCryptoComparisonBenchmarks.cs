@@ -13,7 +13,7 @@ namespace StreamHash.Benchmarks;
 [RankColumn]
 [GroupBenchmarksBy(BenchmarkDotNet.Configs.BenchmarkLogicalGroupRule.ByCategory)]
 [CategoriesColumn]
-public class NonCryptoComparisonBenchmarks {
+public sealed class NonCryptoComparisonBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536, 1048576)]

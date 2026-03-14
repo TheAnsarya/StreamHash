@@ -11,7 +11,7 @@ namespace StreamHash.Benchmarks;
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
-public class AllAlgorithmsBenchmarks {
+public sealed class AllAlgorithmsBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536, 1048576)]
@@ -216,7 +216,7 @@ public class AllAlgorithmsBenchmarks {
 /// Benchmarks for streaming vs one-shot performance comparison.
 /// </summary>
 [MemoryDiagnoser]
-public class StreamingVsOneShotBenchmarks {
+public sealed class StreamingVsOneShotBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(4096, 65536, 1048576)]
@@ -337,7 +337,7 @@ public class StreamingVsOneShotBenchmarks {
 /// Memory allocation benchmarks for different algorithms.
 /// </summary>
 [MemoryDiagnoser]
-public class MemoryAllocationBenchmarks {
+public sealed class MemoryAllocationBenchmarks {
 	private byte[] _data = null!;
 
 	[GlobalSetup]
