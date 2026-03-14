@@ -3,6 +3,9 @@
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+		<!-- CA1806: False positive for Assert.Throws(() => new X()) pattern in tests -->
+		<!-- CA1832: Range-based indexers in tests are fine (minor allocation in non-hot-path code) -->
+		<NoWarn>CA1806;CA1832</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

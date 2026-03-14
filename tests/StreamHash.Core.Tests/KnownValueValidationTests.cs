@@ -525,10 +525,11 @@ public class KnownValueValidationTests {
 		foreach (HashAlgorithm algo in Enum.GetValues<HashAlgorithm>()) {
 			string hash = HashFacade.ComputeHashHex(algo, testData);
 
-			if (!results.ContainsKey(hash)) {
-				results[hash] = [];
+			if (!results.TryGetValue(hash, out var list)) {
+				list = [];
+				results[hash] = list;
 			}
-			results[hash].Add(algo);
+			list.Add(algo);
 		}
 
 		// Check for duplicates (except expected ones)
