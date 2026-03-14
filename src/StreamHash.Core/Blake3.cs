@@ -122,11 +122,14 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 		uint[] cv = CompressChunk(chunkData, IV, _chunkCounter);
 
 		// Merge with parent stack
+		// Reuse a single stack-allocated parent block buffer
+		Span<byte> parentBlock = stackalloc byte[BlockLen];
+
 		while (_cvStackLen > 0) {
 			_cvStackLen--;
 			uint[] left = _cvStack[_cvStackLen];
 
-			byte[] parentBlock = new byte[BlockLen];
+			parentBlock.Clear();
 			CvToBytes(left, parentBlock, 0);
 			CvToBytes(cv, parentBlock, 32);
 
@@ -166,12 +169,15 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 		int nBlocks = (chunk.Length + BlockLen - 1) / BlockLen;
 		if (nBlocks == 0) nBlocks = 1;
 
+		// Reuse a single stack-allocated block buffer across all iterations
+		Span<byte> block = stackalloc byte[BlockLen];
+
 		for (int i = 0; i < nBlocks; i++) {
 			int blockStart = i * BlockLen;
 			int remaining = chunk.Length - blockStart;
 			int blockBytes = Math.Min(BlockLen, remaining);
 
-			byte[] block = new byte[BlockLen];
+			block.Clear();
 			if (blockBytes > 0) {
 				chunk.Slice(blockStart, blockBytes).CopyTo(block);
 			}
@@ -196,12 +202,15 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 		int nBlocks = (chunk.Length + BlockLen - 1) / BlockLen;
 		if (nBlocks == 0) nBlocks = 1;
 
+		// Reuse a single stack-allocated block buffer across all iterations
+		Span<byte> block = stackalloc byte[BlockLen];
+
 		for (int i = 0; i < nBlocks; i++) {
 			int blockStart = i * BlockLen;
 			int remaining = chunk.Length - blockStart;
 			int blockBytes = Math.Min(BlockLen, remaining);
 
-			byte[] block = new byte[BlockLen];
+			block.Clear();
 			if (blockBytes > 0) {
 				chunk.Slice(blockStart, blockBytes).CopyTo(block);
 			}
@@ -219,7 +228,8 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 		}
 
 		// Fallback for empty input
-		return Compress(cv, new byte[BlockLen], chunkCounter, 0, ChunkStart | ChunkEnd | Root);
+		Span<byte> emptyBlock = stackalloc byte[BlockLen];
+		return Compress(cv, emptyBlock, chunkCounter, 0, ChunkStart | ChunkEnd | Root);
 	}
 
 	/// <summary>
@@ -244,11 +254,14 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	/// Adds a chunk chaining value to the tree, merging completed subtrees.
 	/// </summary>
 	private void AddChunkCv(uint[] newCv, ulong totalChunks) {
+		// Reuse a single stack-allocated parent block buffer
+		Span<byte> parentBlock = stackalloc byte[BlockLen];
+
 		while ((totalChunks & 1) != 0) {
 			_cvStackLen--;
 			uint[] left = _cvStack[_cvStackLen];
 
-			byte[] parentBlock = new byte[BlockLen];
+			parentBlock.Clear();
 			CvToBytes(left, parentBlock, 0);
 			CvToBytes(newCv, parentBlock, 32);
 
@@ -264,9 +277,9 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	/// Writes 8 uint32 words as little-endian bytes into a block at the given offset.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static void CvToBytes(uint[] cv, byte[] block, int offset) {
+	private static void CvToBytes(uint[] cv, Span<byte> block, int offset) {
 		for (int i = 0; i < 8; i++) {
-			BinaryPrimitives.WriteUInt32LittleEndian(block.AsSpan(offset + i * 4), cv[i]);
+			BinaryPrimitives.WriteUInt32LittleEndian(block.Slice(offset + i * 4), cv[i]);
 		}
 	}
 
