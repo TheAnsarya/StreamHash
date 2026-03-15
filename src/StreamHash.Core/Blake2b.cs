@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 namespace StreamHash.Core;
@@ -173,23 +174,25 @@ CompressScalar(block, isFinal);
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressScalar(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 64-bit local variables (eliminates all Span indexing)
-ulong m0 = BinaryPrimitives.ReadUInt64LittleEndian(block);
-ulong m1 = BinaryPrimitives.ReadUInt64LittleEndian(block[8..]);
-ulong m2 = BinaryPrimitives.ReadUInt64LittleEndian(block[16..]);
-ulong m3 = BinaryPrimitives.ReadUInt64LittleEndian(block[24..]);
-ulong m4 = BinaryPrimitives.ReadUInt64LittleEndian(block[32..]);
-ulong m5 = BinaryPrimitives.ReadUInt64LittleEndian(block[40..]);
-ulong m6 = BinaryPrimitives.ReadUInt64LittleEndian(block[48..]);
-ulong m7 = BinaryPrimitives.ReadUInt64LittleEndian(block[56..]);
-ulong m8 = BinaryPrimitives.ReadUInt64LittleEndian(block[64..]);
-ulong m9 = BinaryPrimitives.ReadUInt64LittleEndian(block[72..]);
-ulong m10 = BinaryPrimitives.ReadUInt64LittleEndian(block[80..]);
-ulong m11 = BinaryPrimitives.ReadUInt64LittleEndian(block[88..]);
-ulong m12 = BinaryPrimitives.ReadUInt64LittleEndian(block[96..]);
-ulong m13 = BinaryPrimitives.ReadUInt64LittleEndian(block[104..]);
-ulong m14 = BinaryPrimitives.ReadUInt64LittleEndian(block[112..]);
-ulong m15 = BinaryPrimitives.ReadUInt64LittleEndian(block[120..]);
+// Parse message block into 16 64-bit local variables using direct unaligned reads
+// to avoid Span slice overhead. On little-endian x86 this compiles to plain MOV instructions.
+ref byte blockRef = ref MemoryMarshal.GetReference(block);
+ulong m0 = Unsafe.ReadUnaligned<ulong>(ref blockRef);
+ulong m1 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 8));
+ulong m2 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 16));
+ulong m3 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 24));
+ulong m4 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 32));
+ulong m5 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 40));
+ulong m6 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 48));
+ulong m7 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 56));
+ulong m8 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 64));
+ulong m9 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 72));
+ulong m10 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 80));
+ulong m11 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 88));
+ulong m12 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 96));
+ulong m13 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 104));
+ulong m14 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 112));
+ulong m15 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 120));
 // Initialize working vector as local variables (no array/Span bounds checks)
 ulong v0 = _h[0], v1 = _h[1], v2 = _h[2], v3 = _h[3];
 ulong v4 = _h[4], v5 = _h[5], v6 = _h[6], v7 = _h[7];
@@ -733,23 +736,24 @@ _h[7] ^= v7 ^ v15;
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressAvx2(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 64-bit local variables
-ulong m0 = BinaryPrimitives.ReadUInt64LittleEndian(block);
-ulong m1 = BinaryPrimitives.ReadUInt64LittleEndian(block[8..]);
-ulong m2 = BinaryPrimitives.ReadUInt64LittleEndian(block[16..]);
-ulong m3 = BinaryPrimitives.ReadUInt64LittleEndian(block[24..]);
-ulong m4 = BinaryPrimitives.ReadUInt64LittleEndian(block[32..]);
-ulong m5 = BinaryPrimitives.ReadUInt64LittleEndian(block[40..]);
-ulong m6 = BinaryPrimitives.ReadUInt64LittleEndian(block[48..]);
-ulong m7 = BinaryPrimitives.ReadUInt64LittleEndian(block[56..]);
-ulong m8 = BinaryPrimitives.ReadUInt64LittleEndian(block[64..]);
-ulong m9 = BinaryPrimitives.ReadUInt64LittleEndian(block[72..]);
-ulong m10 = BinaryPrimitives.ReadUInt64LittleEndian(block[80..]);
-ulong m11 = BinaryPrimitives.ReadUInt64LittleEndian(block[88..]);
-ulong m12 = BinaryPrimitives.ReadUInt64LittleEndian(block[96..]);
-ulong m13 = BinaryPrimitives.ReadUInt64LittleEndian(block[104..]);
-ulong m14 = BinaryPrimitives.ReadUInt64LittleEndian(block[112..]);
-ulong m15 = BinaryPrimitives.ReadUInt64LittleEndian(block[120..]);
+// Parse message block into 16 64-bit local variables using direct unaligned reads
+ref byte blockRef = ref MemoryMarshal.GetReference(block);
+ulong m0 = Unsafe.ReadUnaligned<ulong>(ref blockRef);
+ulong m1 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 8));
+ulong m2 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 16));
+ulong m3 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 24));
+ulong m4 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 32));
+ulong m5 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 40));
+ulong m6 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 48));
+ulong m7 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 56));
+ulong m8 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 64));
+ulong m9 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 72));
+ulong m10 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 80));
+ulong m11 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 88));
+ulong m12 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 96));
+ulong m13 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 104));
+ulong m14 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 112));
+ulong m15 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 120));
 // Byte shuffle masks for 64-bit rotations via VPSHUFB
 // RotateRight(24): each 8-byte lane shifts bytes right by 3
 var rot24Mask = Vector256.Create(
@@ -763,13 +767,15 @@ var rot16Mask = Vector256.Create(
 10, 11, 12, 13, 14, 15, 8, 9,
 2, 3, 4, 5, 6, 7, 0, 1,
 10, 11, 12, 13, 14, 15, 8, 9);
-// Initialize working vector rows from hash state and IV
-var row0 = Vector256.Create(_h[0], _h[1], _h[2], _h[3]);
-var row1 = Vector256.Create(_h[4], _h[5], _h[6], _h[7]);
-var row2 = Vector256.Create(IV[0], IV[1], IV[2], IV[3]);
-var row3 = Vector256.Create(
-IV[4] ^ _t0, IV[5] ^ _t1,
-isFinal ? IV[6] ^ 0xffffffffffffffff : IV[6], IV[7]);
+// Initialize working vector rows from hash state and IV using direct vector loads
+ref ulong hRef = ref MemoryMarshal.GetArrayDataReference(_h);
+var row0 = Unsafe.As<ulong, Vector256<ulong>>(ref hRef);
+var row1 = Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hRef, 4));
+ref ulong ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
+var row2 = Unsafe.As<ulong, Vector256<ulong>>(ref ivRef);
+var row3 = Avx2.Xor(
+Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref ivRef, 4)),
+Vector256.Create(_t0, _t1, isFinal ? 0xffffffffffffffff : 0UL, 0UL));
 Vector256<ulong> b0, b1, t0;
 		// Round 0 - Column phase
 		b0 = Vector256.Create(m0, m2, m4, m6);
@@ -1166,17 +1172,14 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x93);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
-// Finalize: XOR upper and lower halves back into state
+// Finalize: XOR upper and lower halves back into state using vector operations
 var f0 = Avx2.Xor(row0, row2);
 var f1 = Avx2.Xor(row1, row3);
-_h[0] ^= f0.GetElement(0);
-_h[1] ^= f0.GetElement(1);
-_h[2] ^= f0.GetElement(2);
-_h[3] ^= f0.GetElement(3);
-_h[4] ^= f1.GetElement(0);
-_h[5] ^= f1.GetElement(1);
-_h[6] ^= f1.GetElement(2);
-_h[7] ^= f1.GetElement(3);
+ref ulong hEnd = ref MemoryMarshal.GetArrayDataReference(_h);
+Unsafe.As<ulong, Vector256<ulong>>(ref hEnd) = Avx2.Xor(
+Unsafe.As<ulong, Vector256<ulong>>(ref hEnd), f0);
+Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)) = Avx2.Xor(
+Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)), f1);
 }
 /// <summary>
 /// BLAKE2b G mixing function (retained for reference; hot path uses fully unrolled version).
@@ -1355,23 +1358,24 @@ CompressScalar(block, isFinal);
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressScalar(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 32-bit local variables (eliminates all Span indexing)
-uint m0 = BinaryPrimitives.ReadUInt32LittleEndian(block);
-uint m1 = BinaryPrimitives.ReadUInt32LittleEndian(block[4..]);
-uint m2 = BinaryPrimitives.ReadUInt32LittleEndian(block[8..]);
-uint m3 = BinaryPrimitives.ReadUInt32LittleEndian(block[12..]);
-uint m4 = BinaryPrimitives.ReadUInt32LittleEndian(block[16..]);
-uint m5 = BinaryPrimitives.ReadUInt32LittleEndian(block[20..]);
-uint m6 = BinaryPrimitives.ReadUInt32LittleEndian(block[24..]);
-uint m7 = BinaryPrimitives.ReadUInt32LittleEndian(block[28..]);
-uint m8 = BinaryPrimitives.ReadUInt32LittleEndian(block[32..]);
-uint m9 = BinaryPrimitives.ReadUInt32LittleEndian(block[36..]);
-uint m10 = BinaryPrimitives.ReadUInt32LittleEndian(block[40..]);
-uint m11 = BinaryPrimitives.ReadUInt32LittleEndian(block[44..]);
-uint m12 = BinaryPrimitives.ReadUInt32LittleEndian(block[48..]);
-uint m13 = BinaryPrimitives.ReadUInt32LittleEndian(block[52..]);
-uint m14 = BinaryPrimitives.ReadUInt32LittleEndian(block[56..]);
-uint m15 = BinaryPrimitives.ReadUInt32LittleEndian(block[60..]);
+// Parse message block into 16 32-bit local variables using direct unaligned reads
+ref byte blockRef = ref MemoryMarshal.GetReference(block);
+uint m0 = Unsafe.ReadUnaligned<uint>(ref blockRef);
+uint m1 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 4));
+uint m2 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 8));
+uint m3 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 12));
+uint m4 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 16));
+uint m5 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 20));
+uint m6 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 24));
+uint m7 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 28));
+uint m8 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 32));
+uint m9 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 36));
+uint m10 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 40));
+uint m11 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 44));
+uint m12 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 48));
+uint m13 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 52));
+uint m14 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 56));
+uint m15 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 60));
 // Initialize working vector as local variables (no Span bounds checks)
 uint v0 = _h[0], v1 = _h[1], v2 = _h[2], v3 = _h[3];
 uint v4 = _h[4], v5 = _h[5], v6 = _h[6], v7 = _h[7];
@@ -1831,23 +1835,24 @@ _h[7] ^= v7 ^ v15;
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressSsse3(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 32-bit local variables
-uint m0 = BinaryPrimitives.ReadUInt32LittleEndian(block);
-uint m1 = BinaryPrimitives.ReadUInt32LittleEndian(block[4..]);
-uint m2 = BinaryPrimitives.ReadUInt32LittleEndian(block[8..]);
-uint m3 = BinaryPrimitives.ReadUInt32LittleEndian(block[12..]);
-uint m4 = BinaryPrimitives.ReadUInt32LittleEndian(block[16..]);
-uint m5 = BinaryPrimitives.ReadUInt32LittleEndian(block[20..]);
-uint m6 = BinaryPrimitives.ReadUInt32LittleEndian(block[24..]);
-uint m7 = BinaryPrimitives.ReadUInt32LittleEndian(block[28..]);
-uint m8 = BinaryPrimitives.ReadUInt32LittleEndian(block[32..]);
-uint m9 = BinaryPrimitives.ReadUInt32LittleEndian(block[36..]);
-uint m10 = BinaryPrimitives.ReadUInt32LittleEndian(block[40..]);
-uint m11 = BinaryPrimitives.ReadUInt32LittleEndian(block[44..]);
-uint m12 = BinaryPrimitives.ReadUInt32LittleEndian(block[48..]);
-uint m13 = BinaryPrimitives.ReadUInt32LittleEndian(block[52..]);
-uint m14 = BinaryPrimitives.ReadUInt32LittleEndian(block[56..]);
-uint m15 = BinaryPrimitives.ReadUInt32LittleEndian(block[60..]);
+// Parse message block into 16 32-bit local variables using direct unaligned reads
+ref byte blockRef = ref MemoryMarshal.GetReference(block);
+uint m0 = Unsafe.ReadUnaligned<uint>(ref blockRef);
+uint m1 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 4));
+uint m2 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 8));
+uint m3 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 12));
+uint m4 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 16));
+uint m5 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 20));
+uint m6 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 24));
+uint m7 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 28));
+uint m8 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 32));
+uint m9 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 36));
+uint m10 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 40));
+uint m11 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 44));
+uint m12 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 48));
+uint m13 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 52));
+uint m14 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 56));
+uint m15 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 60));
 // Byte shuffle masks for 32-bit rotations via PSHUFB
 // RotateRight(16): each 4-byte lane swaps upper and lower halves
 var rot16Mask = Vector128.Create(
@@ -1861,13 +1866,15 @@ var rot8Mask = Vector128.Create(
 5, 6, 7, 4,
 9, 10, 11, 8,
 13, 14, 15, 12);
-// Initialize working vector rows from hash state and IV
-var row0 = Vector128.Create(_h[0], _h[1], _h[2], _h[3]);
-var row1 = Vector128.Create(_h[4], _h[5], _h[6], _h[7]);
-var row2 = Vector128.Create(IV[0], IV[1], IV[2], IV[3]);
-var row3 = Vector128.Create(
-IV[4] ^ _t0, IV[5] ^ _t1,
-isFinal ? IV[6] ^ 0xffffffff : IV[6], IV[7]);
+// Initialize working vector rows from hash state and IV using direct vector loads
+ref uint hRef = ref MemoryMarshal.GetArrayDataReference(_h);
+var row0 = Unsafe.As<uint, Vector128<uint>>(ref hRef);
+var row1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref hRef, 4));
+ref uint ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
+var row2 = Unsafe.As<uint, Vector128<uint>>(ref ivRef);
+var row3 = Sse2.Xor(
+Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref ivRef, 4)),
+Vector128.Create(_t0, _t1, isFinal ? 0xffffffff : 0U, 0U));
 Vector128<uint> b0, b1, t0;
 		// Round 0 - Column phase
 		b0 = Vector128.Create(m0, m2, m4, m6);
@@ -2218,17 +2225,14 @@ Vector128<uint> b0, b1, t0;
 		row1 = Sse2.Shuffle(row1.AsInt32(), 0x93).AsUInt32();
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
-// Finalize: XOR upper and lower halves back into state
+// Finalize: XOR upper and lower halves back into state using vector operations
 var f0 = Sse2.Xor(row0, row2);
 var f1 = Sse2.Xor(row1, row3);
-_h[0] ^= f0.GetElement(0);
-_h[1] ^= f0.GetElement(1);
-_h[2] ^= f0.GetElement(2);
-_h[3] ^= f0.GetElement(3);
-_h[4] ^= f1.GetElement(0);
-_h[5] ^= f1.GetElement(1);
-_h[6] ^= f1.GetElement(2);
-_h[7] ^= f1.GetElement(3);
+ref uint hEnd = ref MemoryMarshal.GetArrayDataReference(_h);
+Unsafe.As<uint, Vector128<uint>>(ref hEnd) = Sse2.Xor(
+Unsafe.As<uint, Vector128<uint>>(ref hEnd), f0);
+Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref hEnd, 4)) = Sse2.Xor(
+Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref hEnd, 4)), f1);
 }
 /// <summary>
 /// BLAKE2s G mixing function (retained for reference; hot path uses fully unrolled version).
