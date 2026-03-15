@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace StreamHash.Core;
 
@@ -284,16 +285,17 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	/// BLAKE3 compression function. Parses block bytes into message words, then compresses.
 	/// </summary>
 	/// <remarks>
-	/// Uses <see cref="BinaryPrimitives"/> for portable little-endian message word
-	/// loading. Delegates to <see cref="CompressWords"/> for the actual compression.
+	/// Uses <see cref="Unsafe"/> for fast little-endian message word
+	/// loading on x86/x64. Delegates to <see cref="CompressWords"/> for the actual compression.
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static void Compress(ReadOnlySpan<uint> cv, ReadOnlySpan<byte> block, ulong counter,
 		uint blockLen, uint flags, Span<uint> output) {
-		// Parse block into 16 message words using portable little-endian reads
+		// Parse block into 16 message words using unaligned reads (LE on x86)
 		Span<uint> m = stackalloc uint[16];
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
 		for (int i = 0; i < 16; i++) {
-			m[i] = BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(i * 4, 4));
+			m[i] = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, i * 4));
 		}
 		CompressWords(cv, m, counter, blockLen, flags, output);
 	}
@@ -314,20 +316,31 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	private static void CompressWords(ReadOnlySpan<uint> cv, ReadOnlySpan<uint> m, ulong counter,
 		uint blockLen, uint flags, Span<uint> output) {
-		// Initialize state from CV
-		uint s0 = cv[0], s1 = cv[1], s2 = cv[2], s3 = cv[3];
-		uint s4 = cv[4], s5 = cv[5], s6 = cv[6], s7 = cv[7];
-		uint s8 = IV[0], s9 = IV[1], s10 = IV[2], s11 = IV[3];
+		// Initialize state from CV using direct ref access to skip bounds checks
+		ref uint cvRef = ref MemoryMarshal.GetReference(cv);
+		uint s0 = cvRef, s1 = Unsafe.Add(ref cvRef, 1);
+		uint s2 = Unsafe.Add(ref cvRef, 2), s3 = Unsafe.Add(ref cvRef, 3);
+		uint s4 = Unsafe.Add(ref cvRef, 4), s5 = Unsafe.Add(ref cvRef, 5);
+		uint s6 = Unsafe.Add(ref cvRef, 6), s7 = Unsafe.Add(ref cvRef, 7);
+
+		ref uint ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
+		uint s8 = ivRef, s9 = Unsafe.Add(ref ivRef, 1);
+		uint s10 = Unsafe.Add(ref ivRef, 2), s11 = Unsafe.Add(ref ivRef, 3);
 		uint s12 = (uint)(counter & 0xffffffff);
 		uint s13 = (uint)(counter >> 32);
 		uint s14 = blockLen;
 		uint s15 = flags;
 
 		// Load message words into locals for in-place permutation
-		uint m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3];
-		uint m4 = m[4], m5 = m[5], m6 = m[6], m7 = m[7];
-		uint m8 = m[8], m9 = m[9], m10 = m[10], m11 = m[11];
-		uint m12 = m[12], m13 = m[13], m14 = m[14], m15 = m[15];
+		ref uint mRef = ref MemoryMarshal.GetReference(m);
+		uint m0 = mRef, m1 = Unsafe.Add(ref mRef, 1);
+		uint m2 = Unsafe.Add(ref mRef, 2), m3 = Unsafe.Add(ref mRef, 3);
+		uint m4 = Unsafe.Add(ref mRef, 4), m5 = Unsafe.Add(ref mRef, 5);
+		uint m6 = Unsafe.Add(ref mRef, 6), m7 = Unsafe.Add(ref mRef, 7);
+		uint m8 = Unsafe.Add(ref mRef, 8), m9 = Unsafe.Add(ref mRef, 9);
+		uint m10 = Unsafe.Add(ref mRef, 10), m11 = Unsafe.Add(ref mRef, 11);
+		uint m12 = Unsafe.Add(ref mRef, 12), m13 = Unsafe.Add(ref mRef, 13);
+		uint m14 = Unsafe.Add(ref mRef, 14), m15 = Unsafe.Add(ref mRef, 15);
 
 		for (int round = 0; round < Rounds; round++) {
 			// Column step: (0,4,8,12), (1,5,9,13), (2,6,10,14), (3,7,11,15)
@@ -367,15 +380,16 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 			}
 		}
 
-		// Write output — first 8 = state XOR high state, last 8 = high state XOR CV
-		output[0] = s0 ^ s8; output[1] = s1 ^ s9;
-		output[2] = s2 ^ s10; output[3] = s3 ^ s11;
-		output[4] = s4 ^ s12; output[5] = s5 ^ s13;
-		output[6] = s6 ^ s14; output[7] = s7 ^ s15;
-		output[8] = s8 ^ cv[0]; output[9] = s9 ^ cv[1];
-		output[10] = s10 ^ cv[2]; output[11] = s11 ^ cv[3];
-		output[12] = s12 ^ cv[4]; output[13] = s13 ^ cv[5];
-		output[14] = s14 ^ cv[6]; output[15] = s15 ^ cv[7];
+		// Write output using direct ref access — first 8 = state XOR high state, last 8 = high state XOR CV
+		ref uint outRef = ref MemoryMarshal.GetReference(output);
+		outRef = s0 ^ s8; Unsafe.Add(ref outRef, 1) = s1 ^ s9;
+		Unsafe.Add(ref outRef, 2) = s2 ^ s10; Unsafe.Add(ref outRef, 3) = s3 ^ s11;
+		Unsafe.Add(ref outRef, 4) = s4 ^ s12; Unsafe.Add(ref outRef, 5) = s5 ^ s13;
+		Unsafe.Add(ref outRef, 6) = s6 ^ s14; Unsafe.Add(ref outRef, 7) = s7 ^ s15;
+		Unsafe.Add(ref outRef, 8) = s8 ^ cvRef; Unsafe.Add(ref outRef, 9) = s9 ^ Unsafe.Add(ref cvRef, 1);
+		Unsafe.Add(ref outRef, 10) = s10 ^ Unsafe.Add(ref cvRef, 2); Unsafe.Add(ref outRef, 11) = s11 ^ Unsafe.Add(ref cvRef, 3);
+		Unsafe.Add(ref outRef, 12) = s12 ^ Unsafe.Add(ref cvRef, 4); Unsafe.Add(ref outRef, 13) = s13 ^ Unsafe.Add(ref cvRef, 5);
+		Unsafe.Add(ref outRef, 14) = s14 ^ Unsafe.Add(ref cvRef, 6); Unsafe.Add(ref outRef, 15) = s15 ^ Unsafe.Add(ref cvRef, 7);
 	}
 }
 
