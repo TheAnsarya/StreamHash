@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace StreamHash.Core;
 
@@ -62,8 +63,9 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	private int _chunkLen;
 	private ulong _chunkCounter;
 
-	// Tree stack for parent nodes (max depth 54 for 2^54 chunks)
-	private readonly uint[][] _cvStack = new uint[54][];
+	// Flat tree stack for parent nodes (max depth 54 for 2^54 chunks)
+	// Stored as contiguous uint words to eliminate jagged array overhead
+	private readonly uint[] _cvStack = new uint[54 * 8];
 	private int _cvStackLen;
 
 	private long _totalBytes;
@@ -71,12 +73,7 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	/// <summary>
 	/// Creates a new BLAKE3 streaming hash instance.
 	/// </summary>
-	public NativeBlake3Digest() {
-		for (int i = 0; i < _cvStack.Length; i++) {
-			_cvStack[i] = new uint[8];
-		}
-		Reset();
-	}
+	public NativeBlake3Digest() => Reset();
 
 	/// <inheritdoc/>
 	public int BlockSize => BlockLen;
@@ -92,11 +89,15 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 		_totalBytes += data.Length;
 		int offset = 0;
 
+		// Stack-allocate compression buffers once, reuse across all chunk completions
+		Span<uint> chunkCv = stackalloc uint[8];
+		Span<uint> compressOutput = stackalloc uint[16];
+
 		while (offset < data.Length) {
 			// If the chunk buffer is full (1024 bytes), finalize this chunk and start a new one
 			if (_chunkLen == ChunkLen) {
-				uint[] chunkCv = CompressChunk(_chunkBuf.AsSpan(0, ChunkLen), IV, _chunkCounter);
-				AddChunkCv(chunkCv, _chunkCounter);
+				CompressChunk(_chunkBuf.AsSpan(0, ChunkLen), IV, _chunkCounter, compressOutput, chunkCv);
+				AddChunkCv(chunkCv, _chunkCounter, compressOutput);
 				_chunkCounter++;
 				_chunkLen = 0;
 			}
@@ -111,40 +112,38 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	/// <inheritdoc/>
 	public byte[] FinalizeBytes() {
 		ReadOnlySpan<byte> chunkData = _chunkBuf.AsSpan(0, _chunkLen);
+		Span<uint> output = stackalloc uint[16];
 
 		if (_cvStackLen == 0) {
 			// Single chunk — compress as root
-			uint[] rootOutput = CompressChunkRoot(chunkData, IV, _chunkCounter);
-			return WordsToBytes(rootOutput);
+			CompressChunkRoot(chunkData, IV, _chunkCounter, output);
+			return WordsToBytes(output);
 		}
 
 		// Multiple chunks — finalize current chunk normally, then merge parent stack
-		uint[] cv = CompressChunk(chunkData, IV, _chunkCounter);
+		Span<uint> cv = stackalloc uint[8];
+		CompressChunk(chunkData, IV, _chunkCounter, output, cv);
 
-		// Merge with parent stack
-		// Reuse a single stack-allocated parent block buffer
-		Span<byte> parentBlock = stackalloc byte[BlockLen];
+		// Pack two CVs as 16 message words — avoids uint→byte→uint round trip
+		Span<uint> parentWords = stackalloc uint[16];
 
 		while (_cvStackLen > 0) {
 			_cvStackLen--;
-			uint[] left = _cvStack[_cvStackLen];
-
-			parentBlock.Clear();
-			CvToBytes(left, parentBlock, 0);
-			CvToBytes(cv, parentBlock, 32);
+			_cvStack.AsSpan(_cvStackLen * 8, 8).CopyTo(parentWords);
+			cv.CopyTo(parentWords[8..]);
 
 			if (_cvStackLen == 0) {
 				// Root parent — return full 16-word output
-				uint[] rootOutput = Compress(IV, parentBlock, 0, BlockLen, Parent | Root);
-				return WordsToBytes(rootOutput);
+				CompressWords(IV, parentWords, 0, BlockLen, Parent | Root, output);
+				return WordsToBytes(output);
 			}
 
-			cv = First8(Compress(IV, parentBlock, 0, BlockLen, Parent));
+			CompressWords(IV, parentWords, 0, BlockLen, Parent, output);
+			output[..8].CopyTo(cv);
 		}
 
 		// Should not reach here
-		return WordsToBytes([cv[0], cv[1], cv[2], cv[3], cv[4], cv[5], cv[6], cv[7],
-			0, 0, 0, 0, 0, 0, 0, 0]);
+		return WordsToBytes(output);
 	}
 
 	/// <inheritdoc/>
@@ -160,89 +159,97 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 	public void Dispose() { }
 
 	/// <summary>
-	/// Compresses an entire chunk and returns its 8-word chaining value.
+	/// Compresses an entire chunk, writing the 8-word chaining value to <paramref name="cvOut"/>.
 	/// </summary>
-	private static uint[] CompressChunk(ReadOnlySpan<byte> chunk, ReadOnlySpan<uint> key, ulong chunkCounter) {
-		uint[] cv = new uint[8];
+	private static void CompressChunk(ReadOnlySpan<byte> chunk, ReadOnlySpan<uint> key, ulong chunkCounter,
+		Span<uint> output, Span<uint> cvOut) {
+		Span<uint> cv = stackalloc uint[8];
 		key[..8].CopyTo(cv);
 
 		int nBlocks = (chunk.Length + BlockLen - 1) / BlockLen;
 		if (nBlocks == 0) nBlocks = 1;
 
-		// Reuse a single stack-allocated block buffer across all iterations
-		Span<byte> block = stackalloc byte[BlockLen];
+		// Stack buffer only needed for partial last block padding
+		Span<byte> padBlock = stackalloc byte[BlockLen];
 
 		for (int i = 0; i < nBlocks; i++) {
 			int blockStart = i * BlockLen;
 			int remaining = chunk.Length - blockStart;
 			int blockBytes = Math.Min(BlockLen, remaining);
 
-			block.Clear();
-			if (blockBytes > 0) {
-				chunk.Slice(blockStart, blockBytes).CopyTo(block);
-			}
-
 			uint flags = 0u;
 			if (i == 0) flags |= ChunkStart;
 			if (i == nBlocks - 1) flags |= ChunkEnd;
 
-			cv = First8(Compress(cv, block, chunkCounter, (uint)blockBytes, flags));
+			if (blockBytes == BlockLen) {
+				// Full block — compress directly from source, no copy needed
+				Compress(cv, chunk.Slice(blockStart, BlockLen), chunkCounter, (uint)blockBytes, flags, output);
+			} else {
+				// Partial last block — pad with zeros
+				padBlock.Clear();
+				if (blockBytes > 0) chunk.Slice(blockStart, blockBytes).CopyTo(padBlock);
+				Compress(cv, padBlock, chunkCounter, (uint)blockBytes, flags, output);
+			}
+
+			output[..8].CopyTo(cv);
 		}
 
-		return cv;
+		cv.CopyTo(cvOut);
 	}
 
 	/// <summary>
-	/// Compresses an entire chunk as the root, returning full 16-word output from the last block.
+	/// Compresses an entire chunk as the root, writing full 16-word output to <paramref name="output"/>.
 	/// </summary>
-	private static uint[] CompressChunkRoot(ReadOnlySpan<byte> chunk, ReadOnlySpan<uint> key, ulong chunkCounter) {
-		uint[] cv = new uint[8];
+	private static void CompressChunkRoot(ReadOnlySpan<byte> chunk, ReadOnlySpan<uint> key, ulong chunkCounter,
+		Span<uint> output) {
+		Span<uint> cv = stackalloc uint[8];
 		key[..8].CopyTo(cv);
 
 		int nBlocks = (chunk.Length + BlockLen - 1) / BlockLen;
 		if (nBlocks == 0) nBlocks = 1;
 
-		// Reuse a single stack-allocated block buffer across all iterations
-		Span<byte> block = stackalloc byte[BlockLen];
+		// Stack buffer only needed for partial last block padding
+		Span<byte> padBlock = stackalloc byte[BlockLen];
 
 		for (int i = 0; i < nBlocks; i++) {
 			int blockStart = i * BlockLen;
 			int remaining = chunk.Length - blockStart;
 			int blockBytes = Math.Min(BlockLen, remaining);
 
-			block.Clear();
-			if (blockBytes > 0) {
-				chunk.Slice(blockStart, blockBytes).CopyTo(block);
-			}
-
 			uint flags = 0u;
 			if (i == 0) flags |= ChunkStart;
 			if (i == nBlocks - 1) flags |= ChunkEnd;
 
-			if (i < nBlocks - 1) {
-				cv = First8(Compress(cv, block, chunkCounter, (uint)blockBytes, flags));
+			if (blockBytes == BlockLen) {
+				if (i < nBlocks - 1) {
+					Compress(cv, chunk.Slice(blockStart, BlockLen), chunkCounter, (uint)blockBytes, flags, output);
+					output[..8].CopyTo(cv);
+				} else {
+					Compress(cv, chunk.Slice(blockStart, BlockLen), chunkCounter, (uint)blockBytes, flags | Root, output);
+					return;
+				}
 			} else {
-				// Last block — return full 16-word root output
-				return Compress(cv, block, chunkCounter, (uint)blockBytes, flags | Root);
+				padBlock.Clear();
+				if (blockBytes > 0) chunk.Slice(blockStart, blockBytes).CopyTo(padBlock);
+				if (i < nBlocks - 1) {
+					Compress(cv, padBlock, chunkCounter, (uint)blockBytes, flags, output);
+					output[..8].CopyTo(cv);
+				} else {
+					Compress(cv, padBlock, chunkCounter, (uint)blockBytes, flags | Root, output);
+					return;
+				}
 			}
 		}
 
 		// Fallback for empty input
-		Span<byte> emptyBlock = stackalloc byte[BlockLen];
-		return Compress(cv, emptyBlock, chunkCounter, 0, ChunkStart | ChunkEnd | Root);
+		padBlock.Clear();
+		Compress(cv, padBlock, chunkCounter, 0, ChunkStart | ChunkEnd | Root, output);
 	}
 
 	/// <summary>
-	/// Returns the first 8 words of a 16-word array.
+	/// Converts the first 8 words of output to a 32-byte result (little-endian).
 	/// </summary>
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static uint[] First8(uint[] output) =>
-		[output[0], output[1], output[2], output[3], output[4], output[5], output[6], output[7]];
-
-	/// <summary>
-	/// Converts the first 8 words of output to a 32-byte result.
-	/// </summary>
-	private static byte[] WordsToBytes(uint[] output) {
+	private static byte[] WordsToBytes(ReadOnlySpan<uint> output) {
 		byte[] result = new byte[OutLen];
 		for (int i = 0; i < 8; i++) {
 			BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(i * 4), output[i]);
@@ -252,101 +259,137 @@ public sealed class NativeBlake3Digest : IStreamingHashBytes {
 
 	/// <summary>
 	/// Adds a chunk chaining value to the tree, merging completed subtrees.
+	/// Uses direct word packing to avoid uint→byte→uint round trips in parent compression.
 	/// </summary>
-	private void AddChunkCv(uint[] newCv, ulong totalChunks) {
-		// Reuse a single stack-allocated parent block buffer
-		Span<byte> parentBlock = stackalloc byte[BlockLen];
+	private void AddChunkCv(ReadOnlySpan<uint> newCv, ulong totalChunks, Span<uint> output) {
+		// Pack two CVs as 16 message words for parent compression
+		Span<uint> parentWords = stackalloc uint[16];
+		Span<uint> working = stackalloc uint[8];
+		newCv.CopyTo(working);
 
 		while ((totalChunks & 1) != 0) {
 			_cvStackLen--;
-			uint[] left = _cvStack[_cvStackLen];
+			_cvStack.AsSpan(_cvStackLen * 8, 8).CopyTo(parentWords);
+			working.CopyTo(parentWords[8..]);
 
-			parentBlock.Clear();
-			CvToBytes(left, parentBlock, 0);
-			CvToBytes(newCv, parentBlock, 32);
-
-			newCv = First8(Compress(IV, parentBlock, 0, BlockLen, Parent));
+			CompressWords(IV, parentWords, 0, BlockLen, Parent, output);
+			output[..8].CopyTo(working);
 			totalChunks >>= 1;
 		}
 
-		Array.Copy(newCv, _cvStack[_cvStackLen], 8);
+		working.CopyTo(_cvStack.AsSpan(_cvStackLen * 8, 8));
 		_cvStackLen++;
 	}
 
 	/// <summary>
-	/// Writes 8 uint32 words as little-endian bytes into a block at the given offset.
+	/// BLAKE3 compression function. Parses block bytes into message words, then compresses.
 	/// </summary>
+	/// <remarks>
+	/// Uses <see cref="Unsafe"/> for fast little-endian message word
+	/// loading on x86/x64. Delegates to <see cref="CompressWords"/> for the actual compression.
+	/// </remarks>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static void CvToBytes(uint[] cv, Span<byte> block, int offset) {
-		for (int i = 0; i < 8; i++) {
-			BinaryPrimitives.WriteUInt32LittleEndian(block.Slice(offset + i * 4), cv[i]);
+	private static void Compress(ReadOnlySpan<uint> cv, ReadOnlySpan<byte> block, ulong counter,
+		uint blockLen, uint flags, Span<uint> output) {
+		// Parse block into 16 message words using unaligned reads (LE on x86)
+		Span<uint> m = stackalloc uint[16];
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
+		for (int i = 0; i < 16; i++) {
+			m[i] = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, i * 4));
 		}
+		CompressWords(cv, m, counter, blockLen, flags, output);
 	}
 
 	/// <summary>
-	/// BLAKE3 compression function. Returns 16 words.
+	/// BLAKE3 compression core operating on pre-parsed message words.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Accepts message words directly to avoid byte→uint→byte round trips during parent
+	/// compression, where chaining values are already available as uint words.
+	/// </para>
+	/// <para>
+	/// Uses local variables for all state and message words to maximize register allocation.
+	/// Message permutation uses cycle decomposition (two 8-cycles) instead of temp array + copy.
+	/// </para>
+	/// </remarks>
 	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
-	private static uint[] Compress(ReadOnlySpan<uint> cv, ReadOnlySpan<byte> block, ulong counter, uint blockLen, uint flags) {
-		// Parse block into 16 message words
-		Span<uint> m = stackalloc uint[16];
-		for (int i = 0; i < 16; i++) {
-			m[i] = BinaryPrimitives.ReadUInt32LittleEndian(block[(i * 4)..]);
-		}
+	private static void CompressWords(ReadOnlySpan<uint> cv, ReadOnlySpan<uint> m, ulong counter,
+		uint blockLen, uint flags, Span<uint> output) {
+		// Initialize state from CV using direct ref access to skip bounds checks
+		ref uint cvRef = ref MemoryMarshal.GetReference(cv);
+		uint s0 = cvRef, s1 = Unsafe.Add(ref cvRef, 1);
+		uint s2 = Unsafe.Add(ref cvRef, 2), s3 = Unsafe.Add(ref cvRef, 3);
+		uint s4 = Unsafe.Add(ref cvRef, 4), s5 = Unsafe.Add(ref cvRef, 5);
+		uint s6 = Unsafe.Add(ref cvRef, 6), s7 = Unsafe.Add(ref cvRef, 7);
 
-		// Initialize state
-		uint s0 = cv[0], s1 = cv[1], s2 = cv[2], s3 = cv[3];
-		uint s4 = cv[4], s5 = cv[5], s6 = cv[6], s7 = cv[7];
-		uint s8 = IV[0], s9 = IV[1], s10 = IV[2], s11 = IV[3];
+		ref uint ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
+		uint s8 = ivRef, s9 = Unsafe.Add(ref ivRef, 1);
+		uint s10 = Unsafe.Add(ref ivRef, 2), s11 = Unsafe.Add(ref ivRef, 3);
 		uint s12 = (uint)(counter & 0xffffffff);
 		uint s13 = (uint)(counter >> 32);
 		uint s14 = blockLen;
 		uint s15 = flags;
 
-		Span<uint> permuted = stackalloc uint[16];
+		// Load message words into locals for in-place permutation
+		ref uint mRef = ref MemoryMarshal.GetReference(m);
+		uint m0 = mRef, m1 = Unsafe.Add(ref mRef, 1);
+		uint m2 = Unsafe.Add(ref mRef, 2), m3 = Unsafe.Add(ref mRef, 3);
+		uint m4 = Unsafe.Add(ref mRef, 4), m5 = Unsafe.Add(ref mRef, 5);
+		uint m6 = Unsafe.Add(ref mRef, 6), m7 = Unsafe.Add(ref mRef, 7);
+		uint m8 = Unsafe.Add(ref mRef, 8), m9 = Unsafe.Add(ref mRef, 9);
+		uint m10 = Unsafe.Add(ref mRef, 10), m11 = Unsafe.Add(ref mRef, 11);
+		uint m12 = Unsafe.Add(ref mRef, 12), m13 = Unsafe.Add(ref mRef, 13);
+		uint m14 = Unsafe.Add(ref mRef, 14), m15 = Unsafe.Add(ref mRef, 15);
 
 		for (int round = 0; round < Rounds; round++) {
 			// Column step: (0,4,8,12), (1,5,9,13), (2,6,10,14), (3,7,11,15)
-			s0 += s4 + m[0]; s12 = uint.RotateRight(s12 ^ s0, 16); s8 += s12; s4 = uint.RotateRight(s4 ^ s8, 12);
-			s0 += s4 + m[1]; s12 = uint.RotateRight(s12 ^ s0, 8); s8 += s12; s4 = uint.RotateRight(s4 ^ s8, 7);
+			s0 += s4 + m0; s12 = uint.RotateRight(s12 ^ s0, 16); s8 += s12; s4 = uint.RotateRight(s4 ^ s8, 12);
+			s0 += s4 + m1; s12 = uint.RotateRight(s12 ^ s0, 8); s8 += s12; s4 = uint.RotateRight(s4 ^ s8, 7);
 
-			s1 += s5 + m[2]; s13 = uint.RotateRight(s13 ^ s1, 16); s9 += s13; s5 = uint.RotateRight(s5 ^ s9, 12);
-			s1 += s5 + m[3]; s13 = uint.RotateRight(s13 ^ s1, 8); s9 += s13; s5 = uint.RotateRight(s5 ^ s9, 7);
+			s1 += s5 + m2; s13 = uint.RotateRight(s13 ^ s1, 16); s9 += s13; s5 = uint.RotateRight(s5 ^ s9, 12);
+			s1 += s5 + m3; s13 = uint.RotateRight(s13 ^ s1, 8); s9 += s13; s5 = uint.RotateRight(s5 ^ s9, 7);
 
-			s2 += s6 + m[4]; s14 = uint.RotateRight(s14 ^ s2, 16); s10 += s14; s6 = uint.RotateRight(s6 ^ s10, 12);
-			s2 += s6 + m[5]; s14 = uint.RotateRight(s14 ^ s2, 8); s10 += s14; s6 = uint.RotateRight(s6 ^ s10, 7);
+			s2 += s6 + m4; s14 = uint.RotateRight(s14 ^ s2, 16); s10 += s14; s6 = uint.RotateRight(s6 ^ s10, 12);
+			s2 += s6 + m5; s14 = uint.RotateRight(s14 ^ s2, 8); s10 += s14; s6 = uint.RotateRight(s6 ^ s10, 7);
 
-			s3 += s7 + m[6]; s15 = uint.RotateRight(s15 ^ s3, 16); s11 += s15; s7 = uint.RotateRight(s7 ^ s11, 12);
-			s3 += s7 + m[7]; s15 = uint.RotateRight(s15 ^ s3, 8); s11 += s15; s7 = uint.RotateRight(s7 ^ s11, 7);
+			s3 += s7 + m6; s15 = uint.RotateRight(s15 ^ s3, 16); s11 += s15; s7 = uint.RotateRight(s7 ^ s11, 12);
+			s3 += s7 + m7; s15 = uint.RotateRight(s15 ^ s3, 8); s11 += s15; s7 = uint.RotateRight(s7 ^ s11, 7);
 
 			// Diagonal step: (0,5,10,15), (1,6,11,12), (2,7,8,13), (3,4,9,14)
-			s0 += s5 + m[8]; s15 = uint.RotateRight(s15 ^ s0, 16); s10 += s15; s5 = uint.RotateRight(s5 ^ s10, 12);
-			s0 += s5 + m[9]; s15 = uint.RotateRight(s15 ^ s0, 8); s10 += s15; s5 = uint.RotateRight(s5 ^ s10, 7);
+			s0 += s5 + m8; s15 = uint.RotateRight(s15 ^ s0, 16); s10 += s15; s5 = uint.RotateRight(s5 ^ s10, 12);
+			s0 += s5 + m9; s15 = uint.RotateRight(s15 ^ s0, 8); s10 += s15; s5 = uint.RotateRight(s5 ^ s10, 7);
 
-			s1 += s6 + m[10]; s12 = uint.RotateRight(s12 ^ s1, 16); s11 += s12; s6 = uint.RotateRight(s6 ^ s11, 12);
-			s1 += s6 + m[11]; s12 = uint.RotateRight(s12 ^ s1, 8); s11 += s12; s6 = uint.RotateRight(s6 ^ s11, 7);
+			s1 += s6 + m10; s12 = uint.RotateRight(s12 ^ s1, 16); s11 += s12; s6 = uint.RotateRight(s6 ^ s11, 12);
+			s1 += s6 + m11; s12 = uint.RotateRight(s12 ^ s1, 8); s11 += s12; s6 = uint.RotateRight(s6 ^ s11, 7);
 
-			s2 += s7 + m[12]; s13 = uint.RotateRight(s13 ^ s2, 16); s8 += s13; s7 = uint.RotateRight(s7 ^ s8, 12);
-			s2 += s7 + m[13]; s13 = uint.RotateRight(s13 ^ s2, 8); s8 += s13; s7 = uint.RotateRight(s7 ^ s8, 7);
+			s2 += s7 + m12; s13 = uint.RotateRight(s13 ^ s2, 16); s8 += s13; s7 = uint.RotateRight(s7 ^ s8, 12);
+			s2 += s7 + m13; s13 = uint.RotateRight(s13 ^ s2, 8); s8 += s13; s7 = uint.RotateRight(s7 ^ s8, 7);
 
-			s3 += s4 + m[14]; s14 = uint.RotateRight(s14 ^ s3, 16); s9 += s14; s4 = uint.RotateRight(s4 ^ s9, 12);
-			s3 += s4 + m[15]; s14 = uint.RotateRight(s14 ^ s3, 8); s9 += s14; s4 = uint.RotateRight(s4 ^ s9, 7);
+			s3 += s4 + m14; s14 = uint.RotateRight(s14 ^ s3, 16); s9 += s14; s4 = uint.RotateRight(s4 ^ s9, 12);
+			s3 += s4 + m15; s14 = uint.RotateRight(s14 ^ s3, 8); s9 += s14; s4 = uint.RotateRight(s4 ^ s9, 7);
 
-			// Permute message words for next round (except last)
+			// In-place message permutation using cycle decomposition (except last round)
+			// Permutation [2,6,3,10,7,0,4,13,1,11,12,5,9,14,15,8] decomposes into two 8-cycles
 			if (round < Rounds - 1) {
-				for (int i = 0; i < 16; i++) {
-					permuted[i] = m[MsgPermutation[i]];
-				}
-				permuted.CopyTo(m);
+				uint tmp;
+				// Cycle 1: 0→2→3→10→12→9→11→5→0
+				tmp = m0; m0 = m2; m2 = m3; m3 = m10; m10 = m12; m12 = m9; m9 = m11; m11 = m5; m5 = tmp;
+				// Cycle 2: 1→6→4→7→13→14→15→8→1
+				tmp = m1; m1 = m6; m6 = m4; m4 = m7; m7 = m13; m13 = m14; m14 = m15; m15 = m8; m8 = tmp;
 			}
 		}
 
-		return [
-			s0 ^ s8, s1 ^ s9, s2 ^ s10, s3 ^ s11,
-			s4 ^ s12, s5 ^ s13, s6 ^ s14, s7 ^ s15,
-			s8 ^ cv[0], s9 ^ cv[1], s10 ^ cv[2], s11 ^ cv[3],
-			s12 ^ cv[4], s13 ^ cv[5], s14 ^ cv[6], s15 ^ cv[7]
-		];
+		// Write output using direct ref access — first 8 = state XOR high state, last 8 = high state XOR CV
+		ref uint outRef = ref MemoryMarshal.GetReference(output);
+		outRef = s0 ^ s8; Unsafe.Add(ref outRef, 1) = s1 ^ s9;
+		Unsafe.Add(ref outRef, 2) = s2 ^ s10; Unsafe.Add(ref outRef, 3) = s3 ^ s11;
+		Unsafe.Add(ref outRef, 4) = s4 ^ s12; Unsafe.Add(ref outRef, 5) = s5 ^ s13;
+		Unsafe.Add(ref outRef, 6) = s6 ^ s14; Unsafe.Add(ref outRef, 7) = s7 ^ s15;
+		Unsafe.Add(ref outRef, 8) = s8 ^ cvRef; Unsafe.Add(ref outRef, 9) = s9 ^ Unsafe.Add(ref cvRef, 1);
+		Unsafe.Add(ref outRef, 10) = s10 ^ Unsafe.Add(ref cvRef, 2); Unsafe.Add(ref outRef, 11) = s11 ^ Unsafe.Add(ref cvRef, 3);
+		Unsafe.Add(ref outRef, 12) = s12 ^ Unsafe.Add(ref cvRef, 4); Unsafe.Add(ref outRef, 13) = s13 ^ Unsafe.Add(ref cvRef, 5);
+		Unsafe.Add(ref outRef, 14) = s14 ^ Unsafe.Add(ref cvRef, 6); Unsafe.Add(ref outRef, 15) = s15 ^ Unsafe.Add(ref cvRef, 7);
 	}
 }
 
