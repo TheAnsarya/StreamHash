@@ -2,6 +2,7 @@
 
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -226,17 +227,21 @@ public sealed class HighwayHash64 : StreamingHashBase<ulong> {
 	/// All 4 lanes are processed in parallel with a single vector.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private unsafe void ProcessBlockAvx2(ReadOnlySpan<byte> block) {
-		// Load packet (4 × 64-bit lanes) from input
-		fixed (byte* ptr = block) {
-			Vector256<ulong> packet = Avx.LoadVector256((ulong*)ptr);
+	private void ProcessBlockAvx2(ReadOnlySpan<byte> block) {
+		// Load packet (4 × 64-bit lanes) from input using managed ref-based vector load
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
+		Vector256<ulong> packet = Unsafe.As<byte, Vector256<ulong>>(ref blockRef);
 
-			// Load state vectors
-			fixed (ulong* v0Ptr = _v0, v1Ptr = _v1, mul0Ptr = _mul0, mul1Ptr = _mul1) {
-				Vector256<ulong> v0 = Avx.LoadVector256(v0Ptr);
-				Vector256<ulong> v1 = Avx.LoadVector256(v1Ptr);
-				Vector256<ulong> mul0 = Avx.LoadVector256(mul0Ptr);
-				Vector256<ulong> mul1 = Avx.LoadVector256(mul1Ptr);
+		// Load state vectors using managed ref-based vector loads (no pinning needed)
+		ref ulong v0Ref = ref MemoryMarshal.GetArrayDataReference(_v0);
+		ref ulong v1Ref = ref MemoryMarshal.GetArrayDataReference(_v1);
+		ref ulong mul0Ref = ref MemoryMarshal.GetArrayDataReference(_mul0);
+		ref ulong mul1Ref = ref MemoryMarshal.GetArrayDataReference(_mul1);
+		{
+			Vector256<ulong> v0 = Unsafe.As<ulong, Vector256<ulong>>(ref v0Ref);
+			Vector256<ulong> v1 = Unsafe.As<ulong, Vector256<ulong>>(ref v1Ref);
+			Vector256<ulong> mul0 = Unsafe.As<ulong, Vector256<ulong>>(ref mul0Ref);
+			Vector256<ulong> mul1 = Unsafe.As<ulong, Vector256<ulong>>(ref mul1Ref);
 
 				// Step 1: v1 += packet
 				v1 = Avx2.Add(v1, packet);
@@ -292,12 +297,11 @@ public sealed class HighwayHash64 : StreamingHashBase<ulong> {
 					v1_3 + ZipperMerge1(v0_3, v0_2)
 				);
 
-				// Store updated state
-				Avx.Store(v0Ptr, v0);
-				Avx.Store(v1Ptr, v1);
-				Avx.Store(mul0Ptr, mul0);
-				Avx.Store(mul1Ptr, mul1);
-			}
+				// Store updated state using managed ref-based vector stores
+				Unsafe.As<ulong, Vector256<ulong>>(ref v0Ref) = v0;
+				Unsafe.As<ulong, Vector256<ulong>>(ref v1Ref) = v1;
+				Unsafe.As<ulong, Vector256<ulong>>(ref mul0Ref) = mul0;
+				Unsafe.As<ulong, Vector256<ulong>>(ref mul1Ref) = mul1;
 		}
 	}
 
@@ -306,21 +310,25 @@ public sealed class HighwayHash64 : StreamingHashBase<ulong> {
 	/// Processes 2 lanes at a time.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private unsafe void ProcessBlockSse41(ReadOnlySpan<byte> block) {
-		fixed (byte* ptr = block) {
-			// Load packet as two 128-bit halves
-			Vector128<ulong> packetLo = Sse2.LoadVector128((ulong*)ptr);
-			Vector128<ulong> packetHi = Sse2.LoadVector128((ulong*)(ptr + 16));
+	private void ProcessBlockSse41(ReadOnlySpan<byte> block) {
+		// Load packet as two 128-bit halves using managed ref-based vector loads
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
+		Vector128<ulong> packetLo = Unsafe.As<byte, Vector128<ulong>>(ref blockRef);
+		Vector128<ulong> packetHi = Unsafe.As<byte, Vector128<ulong>>(ref Unsafe.Add(ref blockRef, 16));
 
-			fixed (ulong* v0Ptr = _v0, v1Ptr = _v1, mul0Ptr = _mul0, mul1Ptr = _mul1) {
-				Vector128<ulong> v0Lo = Sse2.LoadVector128(v0Ptr);
-				Vector128<ulong> v0Hi = Sse2.LoadVector128(v0Ptr + 2);
-				Vector128<ulong> v1Lo = Sse2.LoadVector128(v1Ptr);
-				Vector128<ulong> v1Hi = Sse2.LoadVector128(v1Ptr + 2);
-				Vector128<ulong> mul0Lo = Sse2.LoadVector128(mul0Ptr);
-				Vector128<ulong> mul0Hi = Sse2.LoadVector128(mul0Ptr + 2);
-				Vector128<ulong> mul1Lo = Sse2.LoadVector128(mul1Ptr);
-				Vector128<ulong> mul1Hi = Sse2.LoadVector128(mul1Ptr + 2);
+		ref ulong v0Ref = ref MemoryMarshal.GetArrayDataReference(_v0);
+		ref ulong v1Ref = ref MemoryMarshal.GetArrayDataReference(_v1);
+		ref ulong mul0Ref = ref MemoryMarshal.GetArrayDataReference(_mul0);
+		ref ulong mul1Ref = ref MemoryMarshal.GetArrayDataReference(_mul1);
+		{
+			Vector128<ulong> v0Lo = Unsafe.As<ulong, Vector128<ulong>>(ref v0Ref);
+			Vector128<ulong> v0Hi = Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref v0Ref, 2));
+			Vector128<ulong> v1Lo = Unsafe.As<ulong, Vector128<ulong>>(ref v1Ref);
+			Vector128<ulong> v1Hi = Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref v1Ref, 2));
+			Vector128<ulong> mul0Lo = Unsafe.As<ulong, Vector128<ulong>>(ref mul0Ref);
+			Vector128<ulong> mul0Hi = Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref mul0Ref, 2));
+			Vector128<ulong> mul1Lo = Unsafe.As<ulong, Vector128<ulong>>(ref mul1Ref);
+			Vector128<ulong> mul1Hi = Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref mul1Ref, 2));
 
 				// Step 1: v1 += packet
 				v1Lo = Sse2.Add(v1Lo, packetLo);
@@ -391,16 +399,15 @@ public sealed class HighwayHash64 : StreamingHashBase<ulong> {
 					v1_3 + ZipperMerge1(v0_3, v0_2)
 				);
 
-				// Store updated state
-				Sse2.Store(v0Ptr, v0Lo);
-				Sse2.Store(v0Ptr + 2, v0Hi);
-				Sse2.Store(v1Ptr, v1Lo);
-				Sse2.Store(v1Ptr + 2, v1Hi);
-				Sse2.Store(mul0Ptr, mul0Lo);
-				Sse2.Store(mul0Ptr + 2, mul0Hi);
-				Sse2.Store(mul1Ptr, mul1Lo);
-				Sse2.Store(mul1Ptr + 2, mul1Hi);
-			}
+				// Store updated state using managed ref-based vector stores
+				Unsafe.As<ulong, Vector128<ulong>>(ref v0Ref) = v0Lo;
+				Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref v0Ref, 2)) = v0Hi;
+				Unsafe.As<ulong, Vector128<ulong>>(ref v1Ref) = v1Lo;
+				Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref v1Ref, 2)) = v1Hi;
+				Unsafe.As<ulong, Vector128<ulong>>(ref mul0Ref) = mul0Lo;
+				Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref mul0Ref, 2)) = mul0Hi;
+				Unsafe.As<ulong, Vector128<ulong>>(ref mul1Ref) = mul1Lo;
+				Unsafe.As<ulong, Vector128<ulong>>(ref Unsafe.Add(ref mul1Ref, 2)) = mul1Hi;
 		}
 	}
 

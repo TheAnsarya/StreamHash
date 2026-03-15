@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!-- Required for [SkipLocalsInit] performance attribute used across all hash implementations -->
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Package metadata -->
