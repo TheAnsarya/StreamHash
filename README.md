@@ -184,9 +184,41 @@ Console.WriteLine($"Hash: {hasher.FinalizeHex()}");
 
 ## 📖 Documentation
 
-- [📚 Algorithm Reference](docs/algorithms/README.md)
+- [📚 Algorithm Reference](docs/algorithms/README.md) — All 70 algorithms documented
 - [🔧 API Documentation](docs/api/README.md)
-- [📈 Performance Benchmarks](docs/benchmarks.md)
+- [📈 Performance Benchmarks](docs/benchmarks.md) — Detailed comparisons vs BouncyCastle, System.IO.Hashing, Blake2Fast, and more
+- [📋 Reference Hash Values](docs/reference-hashes.md)
+
+### Algorithm Documentation
+
+| Category | Docs |
+|----------|------|
+| BLAKE2b/2s | [blake2.md](docs/algorithms/blake2.md) |
+| BLAKE3 | [blake3.md](docs/algorithms/blake3.md) |
+| Keccak/SHA-3 | [keccak-sha3.md](docs/algorithms/keccak-sha3.md) |
+| SHA-0/224/512t | [sha-family.md](docs/algorithms/sha-family.md) |
+| MD2/MD4/MD5 | [md-family.md](docs/algorithms/md-family.md) |
+| RIPEMD-128/160/256/320 | [ripemd.md](docs/algorithms/ripemd.md) |
+| Skein-256/512/1024 | [skein.md](docs/algorithms/skein.md) |
+| Whirlpool | [Whirlpool.md](docs/algorithms/Whirlpool.md) |
+| Tiger-192 | [tiger.md](docs/algorithms/tiger.md) |
+| SM3 | [sm3.md](docs/algorithms/sm3.md) |
+| Grøstl | [groestl.md](docs/algorithms/groestl.md) |
+| JH | [jh.md](docs/algorithms/jh.md) |
+| KangarooTwelve | [kangarootwelve.md](docs/algorithms/kangarootwelve.md) |
+| Streebog | [streebog.md](docs/algorithms/streebog.md) |
+| GOST-94 | [gost94.md](docs/algorithms/gost94.md) |
+| xxHash family | [xxhash.md](docs/algorithms/xxhash.md) |
+| MetroHash | [metrohash.md](docs/algorithms/metrohash.md) |
+| wyhash | [wyhash.md](docs/algorithms/wyhash.md) |
+| FNV-1a | [fnv1a.md](docs/algorithms/fnv1a.md) |
+| CRC-16 | [crc16.md](docs/algorithms/crc16.md) |
+| MurmurHash3 | [murmurhash3.md](docs/algorithms/murmurhash3.md) |
+| CityHash | [cityhash.md](docs/algorithms/cityhash.md) |
+| FarmHash | [farmhash.md](docs/algorithms/farmhash.md) |
+| SipHash | [siphash.md](docs/algorithms/siphash.md) |
+| SpookyHash | [spookyhash.md](docs/algorithms/spookyhash.md) |
+| HighwayHash | [highwayhash.md](docs/algorithms/highwayhash.md) |
 
 ## Markdown Quality Automation
 
