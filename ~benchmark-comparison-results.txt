@@ -1,0 +1,13 @@
+// Validating benchmarks:
+// Benchmark AllocationComparisonBenchmarks.'One-shot SHA-256': Job-NTRUNJ(IterationCount=5, WarmupCount=3) [DataSize=1024]
+//    * Benchmarked method `OneShotSha256` is within a sealed class, Declaring type must be unsealed.
+
+// Benchmark AllocationComparisonBenchmarks.'Streaming SHA-256': Job-NTRUNJ(IterationCount=5, WarmupCount=3) [DataSize=1024]
+//    * Benchmarked method `StreamingSha256` is within a sealed class, Declaring type must be unsealed.
+
+// Benchmark AllocationComparisonBenchmarks.'One-shot BLAKE3': Job-NTRUNJ(IterationCount=5, WarmupCount=3) [DataSize=1024]
+//    * Benchmarked method `OneShotBlake3` is within a sealed class, Declaring type must be unsealed.
+
+// Benchmark AllocationComparisonBenchmarks.'Streaming BLAKE3': Job-NTRUNJ(IterationCount=5, WarmupCount=3) [DataSize=1024]
+//    * Benchmarked method `StreamingBlake3` is within a sealed class, Declaring type must be unsealed.
+
