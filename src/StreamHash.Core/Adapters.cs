@@ -1,4 +1,7 @@
 ﻿using System.IO.Hashing;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace StreamHash.Core;
 
@@ -240,9 +243,18 @@ internal sealed class IncrementalHashAdapter : IStreamingHashBytes {
 }
 
 /// <summary>
-/// Streaming adapter for CRC-32C (Castagnoli polynomial).
+/// Streaming adapter for CRC-32C (Castagnoli polynomial 0x1EDC6F41).
 /// </summary>
+/// <remarks>
+/// <para>
+/// Uses SSE4.2 hardware CRC32C instruction when available (processes 8 bytes/cycle).
+/// Falls back to a 256-entry lookup table for CPUs without SSE4.2.
+/// </para>
+/// </remarks>
 internal sealed class Crc32CStreamingAdapter : IStreamingHashBytes {
+	/// <summary>CRC-32C lookup table for the Castagnoli polynomial (software fallback).</summary>
+	private static readonly uint[] Table = GenerateTable();
+
 	private uint _crc = 0xFFFFFFFF;
 	private long _totalBytes;
 	private bool _disposed;
@@ -251,14 +263,46 @@ internal sealed class Crc32CStreamingAdapter : IStreamingHashBytes {
 	public int DigestSize => 4;
 	public long TotalBytesProcessed => _totalBytes;
 
+	[MethodImpl(MethodImplOptions.AggressiveOptimization)]
 	public void Update(ReadOnlySpan<byte> data) {
 		ObjectDisposedException.ThrowIf(_disposed, this);
-		foreach (byte b in data) {
-			_crc ^= b;
-			for (int i = 0; i < 8; i++) {
-				_crc = (_crc >> 1) ^ ((_crc & 1) * 0x82F63B78u);
+
+		uint crc = _crc;
+
+		if (Sse42.IsSupported) {
+			// Hardware-accelerated path using SSE4.2 CRC32C instruction
+			ref byte dataRef = ref MemoryMarshal.GetReference(data);
+			int offset = 0;
+			int len = data.Length;
+
+			// Process 8 bytes at a time with 64-bit CRC instruction
+			if (Sse42.X64.IsSupported) {
+				while (len - offset >= 8) {
+					crc = (uint)Sse42.X64.Crc32(crc, Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref dataRef, offset)));
+					offset += 8;
+				}
+			}
+
+			// Process 4 bytes at a time
+			while (len - offset >= 4) {
+				crc = Sse42.Crc32(crc, Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref dataRef, offset)));
+				offset += 4;
+			}
+
+			// Process remaining bytes
+			while (offset < len) {
+				crc = Sse42.Crc32(crc, Unsafe.Add(ref dataRef, offset));
+				offset++;
+			}
+		} else {
+			// Table-based software fallback
+			ref uint tableRef = ref MemoryMarshal.GetArrayDataReference(Table);
+			for (int i = 0; i < data.Length; i++) {
+				crc = (crc >> 8) ^ Unsafe.Add(ref tableRef, (byte)(crc ^ data[i]));
 			}
 		}
+
+		_crc = crc;
 		_totalBytes += data.Length;
 	}
 
@@ -276,6 +320,21 @@ internal sealed class Crc32CStreamingAdapter : IStreamingHashBytes {
 
 	public void Dispose() {
 		_disposed = true;
+	}
+
+	/// <summary>
+	/// Generates the 256-entry CRC-32C lookup table for the Castagnoli polynomial.
+	/// </summary>
+	private static uint[] GenerateTable() {
+		var table = new uint[256];
+		for (uint i = 0; i < 256; i++) {
+			uint crc = i;
+			for (int j = 0; j < 8; j++) {
+				crc = (crc >> 1) ^ ((crc & 1) * 0x82f63b78u);
+			}
+			table[i] = crc;
+		}
+		return table;
 	}
 }
 
