@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -46,6 +46,24 @@ private static readonly ulong[] IV = [
 0x510e527fade682d1, 0x9b05688c2b3e6c1f,
 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179
 ];
+/// <summary>
+/// Byte shuffle mask for 64-bit RotateRight(24): each 8-byte lane shifts bytes right by 3.
+/// Static to avoid per-call reconstruction and reduce register pressure in CompressAvx2.
+/// </summary>
+private static readonly Vector256<byte> Rot24Mask = Vector256.Create(
+(byte)3, 4, 5, 6, 7, 0, 1, 2,
+11, 12, 13, 14, 15, 8, 9, 10,
+3, 4, 5, 6, 7, 0, 1, 2,
+11, 12, 13, 14, 15, 8, 9, 10);
+/// <summary>
+/// Byte shuffle mask for 64-bit RotateRight(16): each 8-byte lane shifts bytes right by 2.
+/// Static to avoid per-call reconstruction and reduce register pressure in CompressAvx2.
+/// </summary>
+private static readonly Vector256<byte> Rot16Mask = Vector256.Create(
+(byte)2, 3, 4, 5, 6, 7, 0, 1,
+10, 11, 12, 13, 14, 15, 8, 9,
+2, 3, 4, 5, 6, 7, 0, 1,
+10, 11, 12, 13, 14, 15, 8, 9);
 /// <summary>
 /// BLAKE2 message schedule permutation sigma (flat array, 12 rows x 16 columns).
 /// Retained for the reference G function; the hot-path Compress is fully unrolled.
@@ -736,50 +754,34 @@ _h[7] ^= v7 ^ v15;
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressAvx2(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 64-bit local variables using direct unaligned reads
-ref byte blockRef = ref MemoryMarshal.GetReference(block);
-ulong m0 = Unsafe.ReadUnaligned<ulong>(ref blockRef);
-ulong m1 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 8));
-ulong m2 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 16));
-ulong m3 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 24));
-ulong m4 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 32));
-ulong m5 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 40));
-ulong m6 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 48));
-ulong m7 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 56));
-ulong m8 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 64));
-ulong m9 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 72));
-ulong m10 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 80));
-ulong m11 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 88));
-ulong m12 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 96));
-ulong m13 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 104));
-ulong m14 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 112));
-ulong m15 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, 120));
-// Byte shuffle masks for 64-bit rotations via VPSHUFB
-// RotateRight(24): each 8-byte lane shifts bytes right by 3
-var rot24Mask = Vector256.Create(
-(byte)3, 4, 5, 6, 7, 0, 1, 2,
-11, 12, 13, 14, 15, 8, 9, 10,
-3, 4, 5, 6, 7, 0, 1, 2,
-11, 12, 13, 14, 15, 8, 9, 10);
-// RotateRight(16): each 8-byte lane shifts bytes right by 2
-var rot16Mask = Vector256.Create(
-(byte)2, 3, 4, 5, 6, 7, 0, 1,
-10, 11, 12, 13, 14, 15, 8, 9,
-2, 3, 4, 5, 6, 7, 0, 1,
-10, 11, 12, 13, 14, 15, 8, 9);
-// Initialize working vector rows from hash state and IV using direct vector loads
-ref ulong hRef = ref MemoryMarshal.GetArrayDataReference(_h);
-var row0 = Unsafe.As<ulong, Vector256<ulong>>(ref hRef);
-var row1 = Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hRef, 4));
-ref ulong ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
-var row2 = Unsafe.As<ulong, Vector256<ulong>>(ref ivRef);
-var row3 = Avx2.Xor(
-Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref ivRef, 4)),
-Vector256.Create(_t0, _t1, isFinal ? 0xffffffffffffffff : 0UL, 0UL));
-Vector256<ulong> b0, b1, t0;
-		// Round 0 - Column phase
-		b0 = Vector256.Create(m0, m2, m4, m6);
-		b1 = Vector256.Create(m1, m3, m5, m7);
+	// Load message block as 4 vectors — all-SIMD, eliminates 16 scalar→SIMD cross-domain moves
+	// msg0=[w0,w1,w2,w3], msg1=[w4,w5,w6,w7], msg2=[w8,w9,w10,w11], msg3=[w12,w13,w14,w15]
+	ref byte blockRef = ref MemoryMarshal.GetReference(block);
+	var msg0 = Unsafe.As<byte, Vector256<ulong>>(ref blockRef);
+	var msg1 = Unsafe.As<byte, Vector256<ulong>>(ref Unsafe.Add(ref blockRef, 32));
+	var msg2 = Unsafe.As<byte, Vector256<ulong>>(ref Unsafe.Add(ref blockRef, 64));
+	var msg3 = Unsafe.As<byte, Vector256<ulong>>(ref Unsafe.Add(ref blockRef, 96));
+
+	// Load rotation masks from static fields
+	var rot24Mask = Rot24Mask;
+	var rot16Mask = Rot16Mask;
+
+	// Initialize working vector rows from hash state and IV using direct vector loads
+	ref ulong hRef = ref MemoryMarshal.GetArrayDataReference(_h);
+	var row0 = Unsafe.As<ulong, Vector256<ulong>>(ref hRef);
+	var row1 = Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hRef, 4));
+	ref ulong ivRef = ref MemoryMarshal.GetArrayDataReference(IV);
+	var row2 = Unsafe.As<ulong, Vector256<ulong>>(ref ivRef);
+	var row3 = Avx2.Xor(
+		Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref ivRef, 4)),
+		Vector256.Create(_t0, _t1, isFinal ? 0xffffffffffffffff : 0UL, 0UL));
+
+	Vector256<ulong> b0, b1, t0;
+
+		// ===== Round 0 (sigma: 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15) =====
+		// Column: b0=[w0,w2,w4,w6], b1=[w1,w3,w5,w7]
+		b0 = Avx2.Permute4x64(Avx2.UnpackLow(msg0, msg1), 0xd8);
+		b1 = Avx2.Permute4x64(Avx2.UnpackHigh(msg0, msg1), 0xd8);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -793,9 +795,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 0 - Diagonal phase
-		b0 = Vector256.Create(m8, m10, m12, m14);
-		b1 = Vector256.Create(m9, m11, m13, m15);
+		// Diagonal: b0=[w8,w10,w12,w14], b1=[w9,w11,w13,w15]
+		b0 = Avx2.Permute4x64(Avx2.UnpackLow(msg2, msg3), 0xd8);
+		b1 = Avx2.Permute4x64(Avx2.UnpackHigh(msg2, msg3), 0xd8);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -810,9 +812,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 1 - Column phase
-		b0 = Vector256.Create(m14, m4, m9, m13);
-		b1 = Vector256.Create(m10, m8, m15, m6);
+		// ===== Round 1 (sigma: 14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3) =====
+		// Column: b0=[w14,w4,w9,w13], b1=[w10,w8,w15,w6]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0x03).AsUInt64(), 0x02), Avx2.UnpackHigh(msg2, msg3), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(msg2, 0x02), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0x30).AsUInt64(), 0x0b), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -826,9 +829,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 1 - Diagonal phase
-		b0 = Vector256.Create(m1, m0, m11, m5);
-		b1 = Vector256.Create(m12, m2, m7, m3);
+		// Diagonal: b0=[w1,w0,w11,w5], b1=[w12,w2,w7,w3]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(msg0, 0x01), Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg1.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg0.AsInt32(), 0x30).AsUInt64(), 0x08), Avx2.Permute4x64(Avx2.UnpackHigh(msg1, msg0), 0x0e), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -843,9 +846,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 2 - Column phase
-		b0 = Vector256.Create(m11, m12, m5, m15);
-		b1 = Vector256.Create(m8, m0, m2, m13);
+		// ===== Round 2 (sigma: 11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4) =====
+		// Column: b0=[w11,w12,w5,w15], b1=[w8,w0,w2,w13]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg3.AsInt32(), 0x03).AsUInt64(), 0x03), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg3.AsInt32(), 0xc0).AsUInt64(), 0x0d), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.UnpackLow(msg2, msg0), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg3.AsInt32(), 0x0c).AsUInt64(), 0x06), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -859,9 +863,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 2 - Diagonal phase
-		b0 = Vector256.Create(m10, m3, m7, m9);
-		b1 = Vector256.Create(m14, m6, m1, m4);
+		// Diagonal: b0=[w10,w3,w7,w9], b1=[w14,w6,w1,w4]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg0.AsInt32(), 0xc0).AsUInt64(), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg2.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackLow(msg3, msg1), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0x03).AsUInt64(), 0x01), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -876,9 +880,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 3 - Column phase
-		b0 = Vector256.Create(m7, m3, m13, m11);
-		b1 = Vector256.Create(m9, m1, m12, m14);
+		// ===== Round 3 (sigma: 7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8) =====
+		// Column: b0=[w7,w3,w13,w11], b1=[w9,w1,w12,w14]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackHigh(msg1, msg0), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0xc0).AsUInt64(), 0x0d), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.UnpackHigh(msg2, msg0), Avx2.Permute4x64(msg3, 0x08), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -892,9 +897,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 3 - Diagonal phase
-		b0 = Vector256.Create(m2, m5, m4, m15);
-		b1 = Vector256.Create(m6, m10, m0, m8);
+		// Diagonal: b0=[w2,w5,w4,w15], b1=[w6,w10,w0,w8]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0x0c).AsUInt64(), 0x06), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg3.AsInt32(), 0xc0).AsUInt64(), 0x0c), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackLow(msg1, msg2), 0x0e), Avx2.UnpackLow(msg0, msg2), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -909,9 +914,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 4 - Column phase
-		b0 = Vector256.Create(m9, m5, m2, m10);
-		b1 = Vector256.Create(m0, m7, m4, m15);
+		// ===== Round 4 (sigma: 9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13) =====
+		// Column: b0=[w9,w5,w2,w10], b1=[w0,w7,w4,w15]
+		b0 = Avx2.Permute2x128(Avx2.UnpackHigh(msg2, msg1), Avx2.Permute4x64(Avx2.UnpackLow(msg0, msg2), 0x0e), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0xc0).AsUInt64(), 0x0c), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg3.AsInt32(), 0xc0).AsUInt64(), 0x0c), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -925,9 +931,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 4 - Diagonal phase
-		b0 = Vector256.Create(m14, m11, m6, m3);
-		b1 = Vector256.Create(m1, m12, m8, m13);
+		// Diagonal: b0=[w14,w11,w6,w3], b1=[w1,w12,w8,w13]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0xc0).AsUInt64(), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg0.AsInt32(), 0xc0).AsUInt64(), 0x0e), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg3.AsInt32(), 0x03).AsUInt64(), 0x01), Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg3.AsInt32(), 0x0c).AsUInt64(), 0x04), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -942,9 +948,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 5 - Column phase
-		b0 = Vector256.Create(m2, m6, m0, m8);
-		b1 = Vector256.Create(m12, m10, m11, m3);
+		// ===== Round 5 (sigma: 2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9) =====
+		// Column: b0=[w2,w6,w0,w8], b1=[w12,w10,w11,w3]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackLow(msg0, msg1), 0x0e), Avx2.UnpackLow(msg0, msg2), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0x30).AsUInt64(), 0x08), Avx2.Permute4x64(Avx2.UnpackHigh(msg2, msg0), 0x0e), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -958,9 +965,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 5 - Diagonal phase
-		b0 = Vector256.Create(m4, m7, m15, m1);
-		b1 = Vector256.Create(m13, m5, m14, m9);
+		// Diagonal: b0=[w4,w7,w15,w1], b1=[w13,w5,w14,w9]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(msg1, 0x0c), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg0.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.UnpackHigh(msg3, msg1), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0x0c).AsUInt64(), 0x06), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -975,9 +982,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 6 - Column phase
-		b0 = Vector256.Create(m12, m1, m14, m4);
-		b1 = Vector256.Create(m5, m15, m13, m10);
+		// ===== Round 6 (sigma: 12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11) =====
+		// Column: b0=[w12,w1,w14,w4], b1=[w5,w15,w13,w10]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg0.AsInt32(), 0x0c).AsUInt64(), 0x04), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0x03).AsUInt64(), 0x02), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg3.AsInt32(), 0xc0).AsUInt64(), 0x0d), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0x30).AsUInt64(), 0x09), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -991,9 +999,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 6 - Diagonal phase
-		b0 = Vector256.Create(m0, m6, m9, m8);
-		b1 = Vector256.Create(m7, m3, m2, m11);
+		// Diagonal: b0=[w0,w6,w9,w8], b1=[w7,w3,w2,w11]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0x30).AsUInt64(), 0x08), Avx2.Permute4x64(msg2, 0x01), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackHigh(msg1, msg0), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg2.AsInt32(), 0xc0).AsUInt64(), 0x0e), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1008,9 +1016,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 7 - Column phase
-		b0 = Vector256.Create(m13, m7, m12, m3);
-		b1 = Vector256.Create(m11, m14, m1, m9);
+		// ===== Round 7 (sigma: 13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10) =====
+		// Column: b0=[w13,w7,w12,w3], b1=[w11,w14,w1,w9]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0xc0).AsUInt64(), 0x0d), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg0.AsInt32(), 0xc0).AsUInt64(), 0x0c), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg3.AsInt32(), 0x30).AsUInt64(), 0x0b), Avx2.UnpackHigh(msg0, msg2), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1024,9 +1033,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 7 - Diagonal phase
-		b0 = Vector256.Create(m5, m15, m8, m2);
-		b1 = Vector256.Create(m0, m4, m6, m10);
+		// Diagonal: b0=[w5,w15,w8,w2], b1=[w0,w4,w6,w10]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg3.AsInt32(), 0xc0).AsUInt64(), 0x0d), Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg0.AsInt32(), 0x30).AsUInt64(), 0x08), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.UnpackLow(msg0, msg1), Avx2.Permute4x64(Avx2.UnpackLow(msg1, msg2), 0x0e), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1041,9 +1050,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 8 - Column phase
-		b0 = Vector256.Create(m6, m14, m11, m0);
-		b1 = Vector256.Create(m15, m9, m3, m8);
+		// ===== Round 8 (sigma: 6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5) =====
+		// Column: b0=[w6,w14,w11,w0], b1=[w15,w9,w3,w8]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.UnpackLow(msg1, msg3), 0x0e), Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg0.AsInt32(), 0x03).AsUInt64(), 0x03), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0x0c).AsUInt64(), 0x07), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg2.AsInt32(), 0x03).AsUInt64(), 0x03), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1057,9 +1067,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 8 - Diagonal phase
-		b0 = Vector256.Create(m12, m13, m1, m10);
-		b1 = Vector256.Create(m2, m7, m4, m5);
+		// Diagonal: b0=[w12,w13,w1,w10], b1=[w2,w7,w4,w5]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(msg3, 0x04), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg2.AsInt32(), 0x30).AsUInt64(), 0x09), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0xc0).AsUInt64(), 0x0e), Avx2.Permute4x64(msg1, 0x04), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1074,9 +1084,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 9 - Column phase
-		b0 = Vector256.Create(m10, m8, m7, m1);
-		b1 = Vector256.Create(m2, m4, m6, m5);
+		// ===== Round 9 (sigma: 10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0) =====
+		// Column: b0=[w10,w8,w7,w1], b1=[w2,w4,w6,w5]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(msg2, 0x02), Avx2.Permute4x64(Avx2.Blend(msg1.AsInt32(), msg0.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg1.AsInt32(), 0x03).AsUInt64(), 0x02), Avx2.Permute4x64(msg1, 0x06), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1090,9 +1101,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 9 - Diagonal phase
-		b0 = Vector256.Create(m15, m9, m3, m12);
-		b1 = Vector256.Create(m11, m14, m13, m0);
+		// Diagonal: b0=[w15,w9,w3,w13], b1=[w11,w14,w12,w0]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg2.AsInt32(), 0x0c).AsUInt64(), 0x07), Avx2.Permute4x64(Avx2.Blend(msg0.AsInt32(), msg3.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg3.AsInt32(), 0x30).AsUInt64(), 0x0b), Avx2.UnpackLow(msg3, msg0), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1107,9 +1118,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 10 - Column phase
-		b0 = Vector256.Create(m0, m2, m4, m6);
-		b1 = Vector256.Create(m1, m3, m5, m7);
+		// ===== Round 10 (same as Round 0) =====
+		// Column: b0=[w0,w2,w4,w6], b1=[w1,w3,w5,w7]
+		b0 = Avx2.Permute4x64(Avx2.UnpackLow(msg0, msg1), 0xd8);
+		b1 = Avx2.Permute4x64(Avx2.UnpackHigh(msg0, msg1), 0xd8);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1123,9 +1135,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 10 - Diagonal phase
-		b0 = Vector256.Create(m8, m10, m12, m14);
-		b1 = Vector256.Create(m9, m11, m13, m15);
+		// Diagonal: b0=[w8,w10,w12,w14], b1=[w9,w11,w13,w15]
+		b0 = Avx2.Permute4x64(Avx2.UnpackLow(msg2, msg3), 0xd8);
+		b1 = Avx2.Permute4x64(Avx2.UnpackHigh(msg2, msg3), 0xd8);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1140,9 +1152,10 @@ Vector256<ulong> b0, b1, t0;
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
 
-		// Round 11 - Column phase
-		b0 = Vector256.Create(m14, m4, m9, m13);
-		b1 = Vector256.Create(m10, m8, m15, m6);
+		// ===== Round 11 (same as Round 1) =====
+		// Column: b0=[w14,w4,w9,w13], b1=[w10,w8,w15,w6]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0x03).AsUInt64(), 0x02), Avx2.UnpackHigh(msg2, msg3), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(msg2, 0x02), Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg1.AsInt32(), 0x30).AsUInt64(), 0x0b), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1156,9 +1169,9 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x39);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x93);
-		// Round 11 - Diagonal phase
-		b0 = Vector256.Create(m1, m0, m11, m5);
-		b1 = Vector256.Create(m12, m2, m7, m3);
+		// Diagonal: b0=[w1,w0,w11,w5], b1=[w12,w2,w7,w3]
+		b0 = Avx2.Permute2x128(Avx2.Permute4x64(msg0, 0x01), Avx2.Permute4x64(Avx2.Blend(msg2.AsInt32(), msg1.AsInt32(), 0x0c).AsUInt64(), 0x07), 0x20);
+		b1 = Avx2.Permute2x128(Avx2.Permute4x64(Avx2.Blend(msg3.AsInt32(), msg0.AsInt32(), 0x30).AsUInt64(), 0x08), Avx2.Permute4x64(Avx2.UnpackHigh(msg1, msg0), 0x0e), 0x20);
 		row0 = Avx2.Add(Avx2.Add(row0, row1), b0);
 		row3 = Avx2.Shuffle(Avx2.Xor(row3, row0).AsUInt32(), 0xB1).AsUInt64();
 		row2 = Avx2.Add(row2, row3);
@@ -1172,15 +1185,16 @@ Vector256<ulong> b0, b1, t0;
 		row1 = Avx2.Permute4x64(row1, 0x93);
 		row2 = Avx2.Permute4x64(row2, 0x4E);
 		row3 = Avx2.Permute4x64(row3, 0x39);
-// Finalize: XOR upper and lower halves back into state using vector operations
-var f0 = Avx2.Xor(row0, row2);
-var f1 = Avx2.Xor(row1, row3);
-ref ulong hEnd = ref MemoryMarshal.GetArrayDataReference(_h);
-Unsafe.As<ulong, Vector256<ulong>>(ref hEnd) = Avx2.Xor(
-Unsafe.As<ulong, Vector256<ulong>>(ref hEnd), f0);
-Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)) = Avx2.Xor(
-Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)), f1);
-}
+
+	// Finalize: XOR upper and lower halves back into state using vector operations
+	var f0 = Avx2.Xor(row0, row2);
+	var f1 = Avx2.Xor(row1, row3);
+	ref ulong hEnd = ref MemoryMarshal.GetArrayDataReference(_h);
+	Unsafe.As<ulong, Vector256<ulong>>(ref hEnd) = Avx2.Xor(
+		Unsafe.As<ulong, Vector256<ulong>>(ref hEnd), f0);
+	Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)) = Avx2.Xor(
+		Unsafe.As<ulong, Vector256<ulong>>(ref Unsafe.Add(ref hEnd, 4)), f1);
+	}
 /// <summary>
 /// BLAKE2b G mixing function (retained for reference; hot path uses fully unrolled version).
 /// </summary>
@@ -1835,24 +1849,12 @@ _h[7] ^= v7 ^ v15;
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 [SkipLocalsInit]
 private void CompressSsse3(ReadOnlySpan<byte> block, bool isFinal) {
-// Parse message block into 16 32-bit local variables using direct unaligned reads
-ref byte blockRef = ref MemoryMarshal.GetReference(block);
-uint m0 = Unsafe.ReadUnaligned<uint>(ref blockRef);
-uint m1 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 4));
-uint m2 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 8));
-uint m3 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 12));
-uint m4 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 16));
-uint m5 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 20));
-uint m6 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 24));
-uint m7 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 28));
-uint m8 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 32));
-uint m9 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 36));
-uint m10 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 40));
-uint m11 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 44));
-uint m12 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 48));
-uint m13 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 52));
-uint m14 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 56));
-uint m15 = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref blockRef, 60));
+		// Load message block as 4 vector registers (replaces 16 scalar reads)
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
+		var msg0 = Unsafe.ReadUnaligned<Vector128<uint>>(ref blockRef);
+		var msg1 = Unsafe.ReadUnaligned<Vector128<uint>>(ref Unsafe.Add(ref blockRef, 16));
+		var msg2 = Unsafe.ReadUnaligned<Vector128<uint>>(ref Unsafe.Add(ref blockRef, 32));
+		var msg3 = Unsafe.ReadUnaligned<Vector128<uint>>(ref Unsafe.Add(ref blockRef, 48));
 // Byte shuffle masks for 32-bit rotations via PSHUFB
 // RotateRight(16): each 4-byte lane swaps upper and lower halves
 var rot16Mask = Vector128.Create(
@@ -1875,10 +1877,10 @@ var row2 = Unsafe.As<uint, Vector128<uint>>(ref ivRef);
 var row3 = Sse2.Xor(
 Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref ivRef, 4)),
 Vector128.Create(_t0, _t1, isFinal ? 0xffffffff : 0U, 0U));
-Vector128<uint> b0, b1, t0;
+Vector128<uint> b0, b1, t0, tt, tu;
 		// Round 0 - Column phase
-		b0 = Vector128.Create(m0, m2, m4, m6);
-		b1 = Vector128.Create(m1, m3, m5, m7);
+		b0 = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x88).AsUInt32();
+		b1 = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0xdd).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1894,8 +1896,8 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 0 - Diagonal phase
-		b0 = Vector128.Create(m8, m10, m12, m14);
-		b1 = Vector128.Create(m9, m11, m13, m15);
+		b0 = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0x88).AsUInt32();
+		b1 = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0xdd).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1912,8 +1914,11 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 1 - Column phase
-		b0 = Vector128.Create(m14, m4, m9, m13);
-		b1 = Vector128.Create(m10, m8, m15, m6);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0x0a).AsUInt32();
+		tu = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0x55).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0x23).AsUInt32();
+		b1 = Sse.Shuffle(msg2.AsSingle(), tt.AsSingle(), 0x82).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1929,8 +1934,11 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 1 - Diagonal phase
-		b0 = Vector128.Create(m1, m0, m11, m5);
-		b1 = Vector128.Create(m12, m2, m7, m3);
+		tt = Sse.Shuffle(msg2.AsSingle(), msg1.AsSingle(), 0x13).AsUInt32();
+		b0 = Sse.Shuffle(msg0.AsSingle(), tt.AsSingle(), 0x81).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg0.AsSingle(), 0xa0).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg0.AsSingle(), 0xff).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1947,8 +1955,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 2 - Column phase
-		b0 = Vector128.Create(m11, m12, m5, m15);
-		b1 = Vector128.Create(m8, m0, m2, m13);
+		tt = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0x0f).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xf5).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0x00).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg3.AsSingle(), 0x5a).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1964,8 +1976,12 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 2 - Diagonal phase
-		b0 = Vector128.Create(m10, m3, m7, m9);
-		b1 = Vector128.Create(m14, m6, m1, m4);
+		tt = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0xfa).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg2.AsSingle(), 0x5f).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0xaa).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x05).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1982,8 +1998,11 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 3 - Column phase
-		b0 = Vector128.Create(m7, m3, m13, m11);
-		b1 = Vector128.Create(m9, m1, m12, m14);
+		tt = Sse.Shuffle(msg1.AsSingle(), msg0.AsSingle(), 0xff).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0xf5).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0x11).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), msg3.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -1999,8 +2018,12 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 3 - Diagonal phase
-		b0 = Vector128.Create(m2, m5, m4, m15);
-		b1 = Vector128.Create(m6, m10, m0, m8);
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x5a).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xf0).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg1.AsSingle(), msg2.AsSingle(), 0xaa).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0x00).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2017,8 +2040,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 4 - Column phase
-		b0 = Vector128.Create(m9, m5, m2, m10);
-		b1 = Vector128.Create(m0, m7, m4, m15);
+		tt = Sse.Shuffle(msg2.AsSingle(), msg1.AsSingle(), 0x55).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0xaa).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0xf0).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xf0).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2034,8 +2061,12 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 4 - Diagonal phase
-		b0 = Vector128.Create(m14, m11, m6, m3);
-		b1 = Vector128.Create(m1, m12, m8, m13);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0xfa).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg0.AsSingle(), 0xfa).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg0.AsSingle(), msg3.AsSingle(), 0x05).AsUInt32();
+		tu = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0x50).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2052,8 +2083,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 5 - Column phase
-		b0 = Vector128.Create(m2, m6, m0, m8);
-		b1 = Vector128.Create(m12, m10, m11, m3);
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0xaa).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0x00).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0xa0).AsUInt32();
+		tu = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0xff).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2069,8 +2104,11 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 5 - Diagonal phase
-		b0 = Vector128.Create(m4, m7, m15, m1);
-		b1 = Vector128.Create(m13, m5, m14, m9);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg0.AsSingle(), 0x13).AsUInt32();
+		b0 = Sse.Shuffle(msg1.AsSingle(), tt.AsSingle(), 0x8c).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0x55).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0x5a).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2087,8 +2125,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 6 - Column phase
-		b0 = Vector128.Create(m12, m1, m14, m4);
-		b1 = Vector128.Create(m5, m15, m13, m10);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg0.AsSingle(), 0x50).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0x0a).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xf5).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0xa5).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2104,8 +2146,11 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 6 - Diagonal phase
-		b0 = Vector128.Create(m0, m6, m9, m8);
-		b1 = Vector128.Create(m7, m3, m2, m11);
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x20).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), msg2.AsSingle(), 0x18).AsUInt32();
+		tt = Sse.Shuffle(msg1.AsSingle(), msg0.AsSingle(), 0xff).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0xfa).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2122,8 +2167,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 7 - Column phase
-		b0 = Vector128.Create(m13, m7, m12, m3);
-		b1 = Vector128.Create(m11, m14, m1, m9);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg1.AsSingle(), 0xf5).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg0.AsSingle(), 0xf0).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0xaf).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0x55).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2139,8 +2188,12 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 7 - Diagonal phase
-		b0 = Vector128.Create(m5, m15, m8, m2);
-		b1 = Vector128.Create(m0, m4, m6, m10);
+		tt = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xf5).AsUInt32();
+		tu = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0xa0).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x00).AsUInt32();
+		tu = Sse.Shuffle(msg1.AsSingle(), msg2.AsSingle(), 0xaa).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2157,8 +2210,12 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 8 - Column phase
-		b0 = Vector128.Create(m6, m14, m11, m0);
-		b1 = Vector128.Create(m15, m9, m3, m8);
+		tt = Sse.Shuffle(msg1.AsSingle(), msg3.AsSingle(), 0xaa).AsUInt32();
+		tu = Sse.Shuffle(msg2.AsSingle(), msg0.AsSingle(), 0x0f).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0x5f).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0x0f).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2174,8 +2231,10 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 8 - Diagonal phase
-		b0 = Vector128.Create(m12, m13, m1, m10);
-		b1 = Vector128.Create(m2, m7, m4, m5);
+		tt = Sse.Shuffle(msg0.AsSingle(), msg2.AsSingle(), 0x21).AsUInt32();
+		b0 = Sse.Shuffle(msg3.AsSingle(), tt.AsSingle(), 0x84).AsUInt32();
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x32).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), msg1.AsSingle(), 0x48).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2192,8 +2251,10 @@ Vector128<uint> b0, b1, t0;
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x39).AsUInt32();
 
 		// Round 9 - Column phase
-		b0 = Vector128.Create(m10, m8, m7, m1);
-		b1 = Vector128.Create(m2, m4, m6, m5);
+		tt = Sse.Shuffle(msg1.AsSingle(), msg0.AsSingle(), 0x13).AsUInt32();
+		b0 = Sse.Shuffle(msg2.AsSingle(), tt.AsSingle(), 0x82).AsUInt32();
+		tt = Sse.Shuffle(msg0.AsSingle(), msg1.AsSingle(), 0x02).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), msg1.AsSingle(), 0x68).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);
@@ -2209,8 +2270,12 @@ Vector128<uint> b0, b1, t0;
 		row2 = Sse2.Shuffle(row2.AsInt32(), 0x4E).AsUInt32();
 		row3 = Sse2.Shuffle(row3.AsInt32(), 0x93).AsUInt32();
 		// Round 9 - Diagonal phase
-		b0 = Vector128.Create(m15, m9, m3, m12);
-		b1 = Vector128.Create(m11, m14, m13, m0);
+		tt = Sse.Shuffle(msg3.AsSingle(), msg2.AsSingle(), 0x5f).AsUInt32();
+		tu = Sse.Shuffle(msg0.AsSingle(), msg3.AsSingle(), 0x0f).AsUInt32();
+		b0 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
+		tt = Sse.Shuffle(msg2.AsSingle(), msg3.AsSingle(), 0xaf).AsUInt32();
+		tu = Sse.Shuffle(msg3.AsSingle(), msg0.AsSingle(), 0x05).AsUInt32();
+		b1 = Sse.Shuffle(tt.AsSingle(), tu.AsSingle(), 0x88).AsUInt32();
 		row0 = Sse2.Add(Sse2.Add(row0, row1), b0);
 		row3 = Ssse3.Shuffle(Sse2.Xor(row3, row0).AsByte(), rot16Mask).AsUInt32();
 		row2 = Sse2.Add(row2, row3);

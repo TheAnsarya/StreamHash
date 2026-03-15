@@ -33,6 +33,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Blake3" />
 		<PackageReference Include="System.IO.Hashing" />
 	</ItemGroup>
 

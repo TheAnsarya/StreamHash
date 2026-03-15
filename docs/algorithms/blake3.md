@@ -68,7 +68,7 @@ hasher.Update(data);
 byte[] hash = hasher.FinalizeHash();
 
 // Streaming
-using var blake3 = new NativeBlake3Digest();
+using var blake3 = new Blake3RustDigest();
 blake3.Update(chunk1);
 blake3.Update(chunk2);
 byte[] result = blake3.FinalizeHash();
