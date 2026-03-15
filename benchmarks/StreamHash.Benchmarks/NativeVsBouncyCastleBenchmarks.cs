@@ -11,7 +11,7 @@ namespace StreamHash.Benchmarks;
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
-public sealed class NativeVsBouncyCastleBenchmarks {
+public class NativeVsBouncyCastleBenchmarks {
 	private byte[] _smallData = null!;
 	private byte[] _mediumData = null!;
 	private byte[] _largeData = null!;
@@ -149,7 +149,7 @@ public sealed class NativeVsBouncyCastleBenchmarks {
 /// </summary>
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
-public sealed class NativeAllocationBenchmarks {
+public class NativeAllocationBenchmarks {
 	private byte[] _data = null!;
 
 	[GlobalSetup]

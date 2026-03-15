@@ -9,7 +9,7 @@ namespace StreamHash.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(warmupCount: 3, iterationCount: 5)]
-public sealed class BatchApiSizeBenchmarks {
+public class BatchApiSizeBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536, 1024 * 1024)]
@@ -57,7 +57,7 @@ public sealed class BatchApiSizeBenchmarks {
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(warmupCount: 3, iterationCount: 5)]
-public sealed class AllocationComparisonBenchmarks {
+public class AllocationComparisonBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536)]

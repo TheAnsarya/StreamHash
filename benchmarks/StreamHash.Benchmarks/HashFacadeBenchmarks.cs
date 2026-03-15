@@ -10,7 +10,7 @@ namespace StreamHash.Benchmarks;
 /// Validates that the facade has minimal overhead.
 /// </summary>
 [MemoryDiagnoser]
-public sealed class HashFacadeBenchmarks {
+public class HashFacadeBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024, 65536, 1048576)]

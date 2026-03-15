@@ -9,7 +9,7 @@ namespace StreamHash.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [DisassemblyDiagnoser(maxDepth: 3)]
-public sealed class ThroughputBenchmarks {
+public class ThroughputBenchmarks {
 	private byte[] _data = null!;
 	private static readonly ulong[] HighwayKey = [
 		0x0706050403020100UL,

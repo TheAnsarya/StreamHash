@@ -8,7 +8,7 @@ namespace StreamHash.Benchmarks;
 /// Simulates real-world file streaming scenarios.
 /// </summary>
 [MemoryDiagnoser]
-public sealed class StreamingChunkBenchmarks {
+public class StreamingChunkBenchmarks {
 	private byte[] _data = null!;
 
 	[Params(1024 * 1024)] // 1 MB

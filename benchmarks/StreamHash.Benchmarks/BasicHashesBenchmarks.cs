@@ -11,7 +11,7 @@ namespace StreamHash.Benchmarks;
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
-public sealed class BasicHashesBenchmarks {
+public class BasicHashesBenchmarks {
 	private byte[] _smallData = null!;
 	private byte[] _mediumData = null!;
 	private byte[] _largeData = null!;
