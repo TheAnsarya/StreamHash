@@ -1,0 +1,1056 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 12 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1/" /p:OutDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:OutputPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:PublishDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\publish/" in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1
+// command took 1.27 sec and exited with 0
+// start dotnet  build -c Release --no-restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1/" /p:OutDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:OutputPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:PublishDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\publish/" --output "C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1
+// command took 11.68 sec and exited with 0
+// ***** Done, took 00:00:13 (13.05 sec)   *****
+// Found 12 benchmarks:
+//   VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+//   VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+//   VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+//   VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+//   VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+//   VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+//   VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+//   VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+//   VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+//   VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+//   VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+//   VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1252 1152 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_StreamHash(DataSize: 10485760)" --job ShortRun --benchmarkId 0 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 208000.00 ns, 208.0000 us/op
+WorkloadJitting  1: 1 op, 6825900.00 ns, 6.8259 ms/op
+
+OverheadJitting  2: 16 op, 660000.00 ns, 41.2500 us/op
+WorkloadJitting  2: 16 op, 26052200.00 ns, 1.6283 ms/op
+
+WorkloadPilot    1: 16 op, 26804500.00 ns, 1.6753 ms/op
+WorkloadPilot    2: 32 op, 48948000.00 ns, 1.5296 ms/op
+WorkloadPilot    3: 64 op, 93902100.00 ns, 1.4672 ms/op
+WorkloadPilot    4: 128 op, 177060700.00 ns, 1.3833 ms/op
+WorkloadPilot    5: 256 op, 383359000.00 ns, 1.4975 ms/op
+WorkloadPilot    6: 512 op, 697349600.00 ns, 1.3620 ms/op
+
+OverheadWarmup   1: 512 op, 3500.00 ns, 6.8359 ns/op
+OverheadWarmup   2: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadWarmup   3: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   4: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   5: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadWarmup   6: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadWarmup   7: 512 op, 2200.00 ns, 4.2969 ns/op
+
+OverheadActual   1: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual   2: 512 op, 2400.00 ns, 4.6875 ns/op
+OverheadActual   3: 512 op, 2800.00 ns, 5.4688 ns/op
+OverheadActual   4: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   5: 512 op, 2500.00 ns, 4.8828 ns/op
+OverheadActual   6: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   7: 512 op, 3300.00 ns, 6.4453 ns/op
+OverheadActual   8: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   9: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  10: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  11: 512 op, 2500.00 ns, 4.8828 ns/op
+OverheadActual  12: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  13: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  14: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  15: 512 op, 2700.00 ns, 5.2734 ns/op
+OverheadActual  16: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  17: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  18: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual  19: 512 op, 25400.00 ns, 49.6094 ns/op
+OverheadActual  20: 512 op, 2300.00 ns, 4.4922 ns/op
+
+WorkloadWarmup   1: 512 op, 913716300.00 ns, 1.7846 ms/op
+WorkloadWarmup   2: 512 op, 896438500.00 ns, 1.7509 ms/op
+WorkloadWarmup   3: 512 op, 705872300.00 ns, 1.3787 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 512 op, 728979000.00 ns, 1.4238 ms/op
+WorkloadActual   2: 512 op, 771431400.00 ns, 1.5067 ms/op
+WorkloadActual   3: 512 op, 750778300.00 ns, 1.4664 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 512 op, 728976750.00 ns, 1.4238 ms/op
+WorkloadResult   2: 512 op, 771429150.00 ns, 1.5067 ms/op
+WorkloadResult   3: 512 op, 750776050.00 ns, 1.4664 ms/op
+// GC:  0 0 0 16384 512
+// Threading:  0 0 512
+
+// AfterAll
+// Benchmark Process 21460 has exited with code 0.
+
+Mean = 1.466 ms, StdErr = 0.024 ms (1.63%), N = 3, StdDev = 0.041 ms
+Min = 1.424 ms, Q1 = 1.445 ms, Median = 1.466 ms, Q3 = 1.487 ms, Max = 1.507 ms
+IQR = 0.041 ms, LowerFence = 1.383 ms, UpperFence = 1.549 ms
+ConfidenceInterval = [0.709 ms; 2.222 ms] (CI 99.9%), Margin = 0.756 ms (51.61% of Mean)
+Skewness = -0.02, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 11 (91.7%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 1m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2528 2500 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_SystemIO(DataSize: 10485760)" --job ShortRun --benchmarkId 1 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 212300.00 ns, 212.3000 us/op
+WorkloadJitting  1: 1 op, 5159800.00 ns, 5.1598 ms/op
+
+OverheadJitting  2: 16 op, 585800.00 ns, 36.6125 us/op
+WorkloadJitting  2: 16 op, 38292500.00 ns, 2.3933 ms/op
+
+WorkloadPilot    1: 16 op, 38733200.00 ns, 2.4208 ms/op
+WorkloadPilot    2: 32 op, 89558200.00 ns, 2.7987 ms/op
+WorkloadPilot    3: 64 op, 179100000.00 ns, 2.7984 ms/op
+WorkloadPilot    4: 128 op, 279670800.00 ns, 2.1849 ms/op
+WorkloadPilot    5: 256 op, 353516000.00 ns, 1.3809 ms/op
+WorkloadPilot    6: 512 op, 711280300.00 ns, 1.3892 ms/op
+
+OverheadWarmup   1: 512 op, 3100.00 ns, 6.0547 ns/op
+OverheadWarmup   2: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   3: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadWarmup   4: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   5: 512 op, 24400.00 ns, 47.6563 ns/op
+OverheadWarmup   6: 512 op, 4300.00 ns, 8.3984 ns/op
+
+OverheadActual   1: 512 op, 2600.00 ns, 5.0781 ns/op
+OverheadActual   2: 512 op, 2400.00 ns, 4.6875 ns/op
+OverheadActual   3: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual   4: 512 op, 2600.00 ns, 5.0781 ns/op
+OverheadActual   5: 512 op, 2800.00 ns, 5.4688 ns/op
+OverheadActual   6: 512 op, 18000.00 ns, 35.1563 ns/op
+OverheadActual   7: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   8: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   9: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  10: 512 op, 18200.00 ns, 35.5469 ns/op
+OverheadActual  11: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  12: 512 op, 3200.00 ns, 6.2500 ns/op
+OverheadActual  13: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  14: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  15: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  16: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  17: 512 op, 3400.00 ns, 6.6406 ns/op
+OverheadActual  18: 512 op, 2400.00 ns, 4.6875 ns/op
+OverheadActual  19: 512 op, 21800.00 ns, 42.5781 ns/op
+OverheadActual  20: 512 op, 15800.00 ns, 30.8594 ns/op
+
+WorkloadWarmup   1: 512 op, 698028100.00 ns, 1.3633 ms/op
+WorkloadWarmup   2: 512 op, 1067214100.00 ns, 2.0844 ms/op
+WorkloadWarmup   3: 512 op, 757218000.00 ns, 1.4789 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 512 op, 778464000.00 ns, 1.5204 ms/op
+WorkloadActual   2: 512 op, 700431800.00 ns, 1.3680 ms/op
+WorkloadActual   3: 512 op, 703109000.00 ns, 1.3733 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 512 op, 778461600.00 ns, 1.5204 ms/op
+WorkloadResult   2: 512 op, 700429400.00 ns, 1.3680 ms/op
+WorkloadResult   3: 512 op, 703106600.00 ns, 1.3733 ms/op
+// GC:  0 0 0 16384 512
+// Threading:  0 0 512
+
+// AfterAll
+// Benchmark Process 39352 has exited with code 0.
+
+Mean = 1.421 ms, StdErr = 0.050 ms (3.52%), N = 3, StdDev = 0.087 ms
+Min = 1.368 ms, Q1 = 1.371 ms, Median = 1.373 ms, Q3 = 1.447 ms, Max = 1.520 ms
+IQR = 0.076 ms, LowerFence = 1.256 ms, UpperFence = 1.561 ms
+ConfidenceInterval = [-0.158 ms; 2.999 ms] (CI 99.9%), Margin = 1.578 ms (111.12% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 10 (83.3%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 1m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2480 2576 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_StreamHash(DataSize: 104857600)" --job ShortRun --benchmarkId 2 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 213400.00 ns, 213.4000 us/op
+WorkloadJitting  1: 1 op, 18046300.00 ns, 18.0463 ms/op
+
+OverheadJitting  2: 16 op, 1169000.00 ns, 73.0625 us/op
+WorkloadJitting  2: 16 op, 224734500.00 ns, 14.0459 ms/op
+
+WorkloadPilot    1: 16 op, 248214100.00 ns, 15.5134 ms/op
+WorkloadPilot    2: 32 op, 685304700.00 ns, 21.4158 ms/op
+
+OverheadWarmup   1: 32 op, 1600.00 ns, 50.0000 ns/op
+OverheadWarmup   2: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadWarmup   3: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadWarmup   4: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadWarmup   5: 32 op, 16500.00 ns, 515.6250 ns/op
+OverheadWarmup   6: 32 op, 400.00 ns, 12.5000 ns/op
+
+OverheadActual   1: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual   2: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual   3: 32 op, 800.00 ns, 25.0000 ns/op
+OverheadActual   4: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual   5: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual   6: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual   7: 32 op, 800.00 ns, 25.0000 ns/op
+OverheadActual   8: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual   9: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  10: 32 op, 600.00 ns, 18.7500 ns/op
+OverheadActual  11: 32 op, 800.00 ns, 25.0000 ns/op
+OverheadActual  12: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual  13: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual  14: 32 op, 600.00 ns, 18.7500 ns/op
+OverheadActual  15: 32 op, 1000.00 ns, 31.2500 ns/op
+OverheadActual  16: 32 op, 1000.00 ns, 31.2500 ns/op
+OverheadActual  17: 32 op, 1100.00 ns, 34.3750 ns/op
+OverheadActual  18: 32 op, 800.00 ns, 25.0000 ns/op
+OverheadActual  19: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  20: 32 op, 600.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 32 op, 473834400.00 ns, 14.8073 ms/op
+WorkloadWarmup   2: 32 op, 448701400.00 ns, 14.0219 ms/op
+WorkloadWarmup   3: 32 op, 631506300.00 ns, 19.7346 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 32 op, 469756000.00 ns, 14.6799 ms/op
+WorkloadActual   2: 32 op, 459775900.00 ns, 14.3680 ms/op
+WorkloadActual   3: 32 op, 451135700.00 ns, 14.0980 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 32 op, 469755300.00 ns, 14.6799 ms/op
+WorkloadResult   2: 32 op, 459775200.00 ns, 14.3680 ms/op
+WorkloadResult   3: 32 op, 451135000.00 ns, 14.0980 ms/op
+// GC:  0 0 0 1024 32
+// Threading:  0 0 32
+
+// AfterAll
+// Benchmark Process 8604 has exited with code 0.
+
+Mean = 14.382 ms, StdErr = 0.168 ms (1.17%), N = 3, StdDev = 0.291 ms
+Min = 14.098 ms, Q1 = 14.233 ms, Median = 14.368 ms, Q3 = 14.524 ms, Max = 14.680 ms
+IQR = 0.291 ms, LowerFence = 13.797 ms, UpperFence = 14.960 ms
+ConfidenceInterval = [9.069 ms; 19.694 ms] (CI 99.9%), Margin = 5.312 ms (36.94% of Mean)
+Skewness = 0.05, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 9 (75.0%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2484 664 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_SystemIO(DataSize: 104857600)" --job ShortRun --benchmarkId 3 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 244500.00 ns, 244.5000 us/op
+WorkloadJitting  1: 1 op, 20100900.00 ns, 20.1009 ms/op
+
+OverheadJitting  2: 16 op, 585500.00 ns, 36.5938 us/op
+WorkloadJitting  2: 16 op, 221305100.00 ns, 13.8316 ms/op
+
+WorkloadPilot    1: 16 op, 231730200.00 ns, 14.4831 ms/op
+WorkloadPilot    2: 32 op, 508543700.00 ns, 15.8920 ms/op
+
+OverheadWarmup   1: 32 op, 2200.00 ns, 68.7500 ns/op
+OverheadWarmup   2: 32 op, 2400.00 ns, 75.0000 ns/op
+OverheadWarmup   3: 32 op, 2600.00 ns, 81.2500 ns/op
+OverheadWarmup   4: 32 op, 2200.00 ns, 68.7500 ns/op
+OverheadWarmup   5: 32 op, 2200.00 ns, 68.7500 ns/op
+OverheadWarmup   6: 32 op, 2200.00 ns, 68.7500 ns/op
+
+OverheadActual   1: 32 op, 900.00 ns, 28.1250 ns/op
+OverheadActual   2: 32 op, 700.00 ns, 21.8750 ns/op
+OverheadActual   3: 32 op, 900.00 ns, 28.1250 ns/op
+OverheadActual   4: 32 op, 600.00 ns, 18.7500 ns/op
+OverheadActual   5: 32 op, 600.00 ns, 18.7500 ns/op
+OverheadActual   6: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual   7: 32 op, 400.00 ns, 12.5000 ns/op
+OverheadActual   8: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual   9: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  10: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  11: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  12: 32 op, 400.00 ns, 12.5000 ns/op
+OverheadActual  13: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  14: 32 op, 400.00 ns, 12.5000 ns/op
+OverheadActual  15: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  16: 32 op, 400.00 ns, 12.5000 ns/op
+OverheadActual  17: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  18: 32 op, 500.00 ns, 15.6250 ns/op
+OverheadActual  19: 32 op, 400.00 ns, 12.5000 ns/op
+OverheadActual  20: 32 op, 500.00 ns, 15.6250 ns/op
+
+WorkloadWarmup   1: 32 op, 465344200.00 ns, 14.5420 ms/op
+WorkloadWarmup   2: 32 op, 463022400.00 ns, 14.4695 ms/op
+WorkloadWarmup   3: 32 op, 447992100.00 ns, 13.9998 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 32 op, 452146900.00 ns, 14.1296 ms/op
+WorkloadActual   2: 32 op, 475779800.00 ns, 14.8681 ms/op
+WorkloadActual   3: 32 op, 757456400.00 ns, 23.6705 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 32 op, 452146400.00 ns, 14.1296 ms/op
+WorkloadResult   2: 32 op, 475779300.00 ns, 14.8681 ms/op
+WorkloadResult   3: 32 op, 757455900.00 ns, 23.6705 ms/op
+// GC:  0 0 0 1024 32
+// Threading:  0 0 32
+
+// AfterAll
+// Benchmark Process 40272 has exited with code 0.
+
+Mean = 17.556 ms, StdErr = 3.065 ms (17.46%), N = 3, StdDev = 5.308 ms
+Min = 14.130 ms, Q1 = 14.499 ms, Median = 14.868 ms, Q3 = 19.269 ms, Max = 23.670 ms
+IQR = 4.770 ms, LowerFence = 7.343 ms, UpperFence = 26.425 ms
+ConfidenceInterval = [-79.284 ms; 114.396 ms] (CI 99.9%), Margin = 96.840 ms (551.60% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 8 (66.7%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2428 2424 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_StreamHash(DataSize: 1073741824)" --job ShortRun --benchmarkId 4 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 209300.00 ns, 209.3000 us/op
+WorkloadJitting  1: 1 op, 148371800.00 ns, 148.3718 ms/op
+
+WorkloadPilot    1: 2 op, 279335600.00 ns, 139.6678 ms/op
+WorkloadPilot    2: 3 op, 595541900.00 ns, 198.5140 ms/op
+
+WorkloadWarmup   1: 3 op, 497353300.00 ns, 165.7844 ms/op
+WorkloadWarmup   2: 3 op, 423068800.00 ns, 141.0229 ms/op
+WorkloadWarmup   3: 3 op, 429985100.00 ns, 143.3284 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 3 op, 564966200.00 ns, 188.3221 ms/op
+WorkloadActual   2: 3 op, 570541900.00 ns, 190.1806 ms/op
+WorkloadActual   3: 3 op, 585909700.00 ns, 195.3032 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 3 op, 564966200.00 ns, 188.3221 ms/op
+WorkloadResult   2: 3 op, 570541900.00 ns, 190.1806 ms/op
+WorkloadResult   3: 3 op, 585909700.00 ns, 195.3032 ms/op
+// GC:  0 0 0 96 3
+// Threading:  0 0 3
+
+// AfterAll
+// Benchmark Process 38672 has exited with code 0.
+
+Mean = 191.269 ms, StdErr = 2.087 ms (1.09%), N = 3, StdDev = 3.616 ms
+Min = 188.322 ms, Q1 = 189.251 ms, Median = 190.181 ms, Q3 = 192.742 ms, Max = 195.303 ms
+IQR = 3.491 ms, LowerFence = 184.015 ms, UpperFence = 197.978 ms
+ConfidenceInterval = [125.308 ms; 257.229 ms] (CI 99.9%), Margin = 65.961 ms (34.49% of Mean)
+Skewness = 0.27, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 7 (58.3%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1264 888 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash32_SystemIO(DataSize: 1073741824)" --job ShortRun --benchmarkId 5 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 485700.00 ns, 485.7000 us/op
+WorkloadJitting  1: 1 op, 267486300.00 ns, 267.4863 ms/op
+
+WorkloadPilot    1: 2 op, 371318300.00 ns, 185.6592 ms/op
+WorkloadPilot    2: 3 op, 459214500.00 ns, 153.0715 ms/op
+WorkloadPilot    3: 4 op, 602400400.00 ns, 150.6001 ms/op
+
+WorkloadWarmup   1: 4 op, 675439300.00 ns, 168.8598 ms/op
+WorkloadWarmup   2: 4 op, 1080777600.00 ns, 270.1944 ms/op
+WorkloadWarmup   3: 4 op, 728913900.00 ns, 182.2285 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 4 op, 614964000.00 ns, 153.7410 ms/op
+WorkloadActual   2: 4 op, 615547500.00 ns, 153.8869 ms/op
+WorkloadActual   3: 4 op, 700840700.00 ns, 175.2102 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 4 op, 614964000.00 ns, 153.7410 ms/op
+WorkloadResult   2: 4 op, 615547500.00 ns, 153.8869 ms/op
+WorkloadResult   3: 4 op, 700840700.00 ns, 175.2102 ms/op
+// GC:  0 0 0 176 4
+// Threading:  0 0 4
+
+// AfterAll
+// Benchmark Process 48140 has exited with code 0.
+
+Mean = 160.946 ms, StdErr = 7.132 ms (4.43%), N = 3, StdDev = 12.353 ms
+Min = 153.741 ms, Q1 = 153.814 ms, Median = 153.887 ms, Q3 = 164.549 ms, Max = 175.210 ms
+IQR = 10.735 ms, LowerFence = 137.712 ms, UpperFence = 180.650 ms
+ConfidenceInterval = [-64.425 ms; 386.317 ms] (CI 99.9%), Margin = 225.371 ms (140.03% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 6 (50.0%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1448 888 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_StreamHash(DataSize: 10485760)" --job ShortRun --benchmarkId 6 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 241400.00 ns, 241.4000 us/op
+WorkloadJitting  1: 1 op, 7631900.00 ns, 7.6319 ms/op
+
+OverheadJitting  2: 16 op, 662800.00 ns, 41.4250 us/op
+WorkloadJitting  2: 16 op, 20897600.00 ns, 1.3061 ms/op
+
+WorkloadPilot    1: 16 op, 21135600.00 ns, 1.3210 ms/op
+WorkloadPilot    2: 32 op, 37665500.00 ns, 1.1770 ms/op
+WorkloadPilot    3: 64 op, 67739600.00 ns, 1.0584 ms/op
+WorkloadPilot    4: 128 op, 140731000.00 ns, 1.0995 ms/op
+WorkloadPilot    5: 256 op, 292302200.00 ns, 1.1418 ms/op
+WorkloadPilot    6: 512 op, 564223500.00 ns, 1.1020 ms/op
+
+OverheadWarmup   1: 512 op, 2800.00 ns, 5.4688 ns/op
+OverheadWarmup   2: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadWarmup   3: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   4: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   5: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   6: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadWarmup   7: 512 op, 2200.00 ns, 4.2969 ns/op
+
+OverheadActual   1: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual   2: 512 op, 2600.00 ns, 5.0781 ns/op
+OverheadActual   3: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual   4: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   5: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   6: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   7: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   8: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   9: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  10: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  11: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  12: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadActual  13: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  14: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  15: 512 op, 2200.00 ns, 4.2969 ns/op
+
+WorkloadWarmup   1: 512 op, 544800500.00 ns, 1.0641 ms/op
+WorkloadWarmup   2: 512 op, 604139500.00 ns, 1.1800 ms/op
+WorkloadWarmup   3: 512 op, 661069800.00 ns, 1.2912 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 512 op, 707500400.00 ns, 1.3818 ms/op
+WorkloadActual   2: 512 op, 664297700.00 ns, 1.2975 ms/op
+WorkloadActual   3: 512 op, 699712600.00 ns, 1.3666 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 512 op, 707498300.00 ns, 1.3818 ms/op
+WorkloadResult   2: 512 op, 664295600.00 ns, 1.2975 ms/op
+WorkloadResult   3: 512 op, 699710500.00 ns, 1.3666 ms/op
+// GC:  0 0 0 16384 512
+// Threading:  0 0 512
+
+// AfterAll
+// Benchmark Process 43072 has exited with code 0.
+
+Mean = 1.349 ms, StdErr = 0.026 ms (1.93%), N = 3, StdDev = 0.045 ms
+Min = 1.297 ms, Q1 = 1.332 ms, Median = 1.367 ms, Q3 = 1.374 ms, Max = 1.382 ms
+IQR = 0.042 ms, LowerFence = 1.269 ms, UpperFence = 1.438 ms
+ConfidenceInterval = [0.528 ms; 2.169 ms] (CI 99.9%), Margin = 0.820 ms (60.84% of Mean)
+Skewness = -0.34, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 5 (41.7%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2552 2536 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_SystemIO(DataSize: 10485760)" --job ShortRun --benchmarkId 7 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 323400.00 ns, 323.4000 us/op
+WorkloadJitting  1: 1 op, 4441300.00 ns, 4.4413 ms/op
+
+OverheadJitting  2: 16 op, 549900.00 ns, 34.3688 us/op
+WorkloadJitting  2: 16 op, 26469500.00 ns, 1.6543 ms/op
+
+WorkloadPilot    1: 16 op, 25556800.00 ns, 1.5973 ms/op
+WorkloadPilot    2: 32 op, 42733100.00 ns, 1.3354 ms/op
+WorkloadPilot    3: 64 op, 80705300.00 ns, 1.2610 ms/op
+WorkloadPilot    4: 128 op, 224998300.00 ns, 1.7578 ms/op
+WorkloadPilot    5: 256 op, 346969100.00 ns, 1.3553 ms/op
+WorkloadPilot    6: 512 op, 713206700.00 ns, 1.3930 ms/op
+
+OverheadWarmup   1: 512 op, 3500.00 ns, 6.8359 ns/op
+OverheadWarmup   2: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   3: 512 op, 2300.00 ns, 4.4922 ns/op
+OverheadWarmup   4: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadWarmup   5: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   6: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadWarmup   7: 512 op, 2700.00 ns, 5.2734 ns/op
+
+OverheadActual   1: 512 op, 2500.00 ns, 4.8828 ns/op
+OverheadActual   2: 512 op, 2500.00 ns, 4.8828 ns/op
+OverheadActual   3: 512 op, 2700.00 ns, 5.2734 ns/op
+OverheadActual   4: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   5: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   6: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   7: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual   8: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual   9: 512 op, 2000.00 ns, 3.9063 ns/op
+OverheadActual  10: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  11: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  12: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  13: 512 op, 2100.00 ns, 4.1016 ns/op
+OverheadActual  14: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  15: 512 op, 2700.00 ns, 5.2734 ns/op
+OverheadActual  16: 512 op, 2700.00 ns, 5.2734 ns/op
+OverheadActual  17: 512 op, 2400.00 ns, 4.6875 ns/op
+OverheadActual  18: 512 op, 2400.00 ns, 4.6875 ns/op
+OverheadActual  19: 512 op, 2200.00 ns, 4.2969 ns/op
+OverheadActual  20: 512 op, 3000.00 ns, 5.8594 ns/op
+
+WorkloadWarmup   1: 512 op, 692839700.00 ns, 1.3532 ms/op
+WorkloadWarmup   2: 512 op, 847416100.00 ns, 1.6551 ms/op
+WorkloadWarmup   3: 512 op, 791587600.00 ns, 1.5461 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 512 op, 734200200.00 ns, 1.4340 ms/op
+WorkloadActual   2: 512 op, 738887300.00 ns, 1.4431 ms/op
+WorkloadActual   3: 512 op, 714319800.00 ns, 1.3952 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 512 op, 734198000.00 ns, 1.4340 ms/op
+WorkloadResult   2: 512 op, 738885100.00 ns, 1.4431 ms/op
+WorkloadResult   3: 512 op, 714317600.00 ns, 1.3952 ms/op
+// GC:  0 0 0 16384 512
+// Threading:  0 0 512
+
+// AfterAll
+// Benchmark Process 40912 has exited with code 0.
+
+Mean = 1.424 ms, StdErr = 0.015 ms (1.03%), N = 3, StdDev = 0.025 ms
+Min = 1.395 ms, Q1 = 1.415 ms, Median = 1.434 ms, Q3 = 1.439 ms, Max = 1.443 ms
+IQR = 0.024 ms, LowerFence = 1.379 ms, UpperFence = 1.475 ms
+ConfidenceInterval = [0.959 ms; 1.889 ms] (CI 99.9%), Margin = 0.465 ms (32.64% of Mean)
+Skewness = -0.33, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 4 (33.3%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1420 1428 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_StreamHash(DataSize: 104857600)" --job ShortRun --benchmarkId 8 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 302500.00 ns, 302.5000 us/op
+WorkloadJitting  1: 1 op, 18704300.00 ns, 18.7043 ms/op
+
+OverheadJitting  2: 16 op, 1246000.00 ns, 77.8750 us/op
+WorkloadJitting  2: 16 op, 225091300.00 ns, 14.0682 ms/op
+
+WorkloadPilot    1: 16 op, 226716500.00 ns, 14.1698 ms/op
+WorkloadPilot    2: 32 op, 416411300.00 ns, 13.0129 ms/op
+WorkloadPilot    3: 64 op, 827482500.00 ns, 12.9294 ms/op
+
+OverheadWarmup   1: 64 op, 3300.00 ns, 51.5625 ns/op
+OverheadWarmup   2: 64 op, 1500.00 ns, 23.4375 ns/op
+OverheadWarmup   3: 64 op, 3000.00 ns, 46.8750 ns/op
+OverheadWarmup   4: 64 op, 2700.00 ns, 42.1875 ns/op
+OverheadWarmup   5: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadWarmup   6: 64 op, 2600.00 ns, 40.6250 ns/op
+OverheadWarmup   7: 64 op, 2600.00 ns, 40.6250 ns/op
+
+OverheadActual   1: 64 op, 700.00 ns, 10.9375 ns/op
+OverheadActual   2: 64 op, 2500.00 ns, 39.0625 ns/op
+OverheadActual   3: 64 op, 1400.00 ns, 21.8750 ns/op
+OverheadActual   4: 64 op, 1100.00 ns, 17.1875 ns/op
+OverheadActual   5: 64 op, 1200.00 ns, 18.7500 ns/op
+OverheadActual   6: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadActual   7: 64 op, 700.00 ns, 10.9375 ns/op
+OverheadActual   8: 64 op, 900.00 ns, 14.0625 ns/op
+OverheadActual   9: 64 op, 900.00 ns, 14.0625 ns/op
+OverheadActual  10: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  11: 64 op, 2800.00 ns, 43.7500 ns/op
+OverheadActual  12: 64 op, 2600.00 ns, 40.6250 ns/op
+OverheadActual  13: 64 op, 700.00 ns, 10.9375 ns/op
+OverheadActual  14: 64 op, 2600.00 ns, 40.6250 ns/op
+OverheadActual  15: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadActual  16: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadActual  17: 64 op, 2200.00 ns, 34.3750 ns/op
+OverheadActual  18: 64 op, 2500.00 ns, 39.0625 ns/op
+OverheadActual  19: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  20: 64 op, 600.00 ns, 9.3750 ns/op
+
+WorkloadWarmup   1: 64 op, 916796800.00 ns, 14.3250 ms/op
+WorkloadWarmup   2: 64 op, 836375700.00 ns, 13.0684 ms/op
+WorkloadWarmup   3: 64 op, 833831200.00 ns, 13.0286 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 64 op, 698973700.00 ns, 10.9215 ms/op
+WorkloadActual   2: 64 op, 757377300.00 ns, 11.8340 ms/op
+WorkloadActual   3: 64 op, 715257000.00 ns, 11.1759 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 64 op, 698972800.00 ns, 10.9215 ms/op
+WorkloadResult   2: 64 op, 757376400.00 ns, 11.8340 ms/op
+WorkloadResult   3: 64 op, 715256100.00 ns, 11.1759 ms/op
+// GC:  0 0 0 2048 64
+// Threading:  0 0 64
+
+// AfterAll
+// Benchmark Process 48948 has exited with code 0.
+
+Mean = 11.310 ms, StdErr = 0.272 ms (2.40%), N = 3, StdDev = 0.471 ms
+Min = 10.921 ms, Q1 = 11.049 ms, Median = 11.176 ms, Q3 = 11.505 ms, Max = 11.834 ms
+IQR = 0.456 ms, LowerFence = 10.364 ms, UpperFence = 12.189 ms
+ConfidenceInterval = [2.719 ms; 19.902 ms] (CI 99.9%), Margin = 8.591 ms (75.96% of Mean)
+Skewness = 0.26, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 3 (25.0%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2420 1220 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_SystemIO(DataSize: 104857600)" --job ShortRun --benchmarkId 9 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 196700.00 ns, 196.7000 us/op
+WorkloadJitting  1: 1 op, 15186500.00 ns, 15.1865 ms/op
+
+OverheadJitting  2: 16 op, 717600.00 ns, 44.8500 us/op
+WorkloadJitting  2: 16 op, 172823300.00 ns, 10.8015 ms/op
+
+WorkloadPilot    1: 16 op, 171685100.00 ns, 10.7303 ms/op
+WorkloadPilot    2: 32 op, 344162000.00 ns, 10.7551 ms/op
+WorkloadPilot    3: 64 op, 756685200.00 ns, 11.8232 ms/op
+
+OverheadWarmup   1: 64 op, 3700.00 ns, 57.8125 ns/op
+OverheadWarmup   2: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadWarmup   3: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadWarmup   4: 64 op, 500.00 ns, 7.8125 ns/op
+OverheadWarmup   5: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadWarmup   6: 64 op, 500.00 ns, 7.8125 ns/op
+
+OverheadActual   1: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual   2: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadActual   3: 64 op, 1200.00 ns, 18.7500 ns/op
+OverheadActual   4: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual   5: 64 op, 900.00 ns, 14.0625 ns/op
+OverheadActual   6: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual   7: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual   8: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual   9: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  10: 64 op, 800.00 ns, 12.5000 ns/op
+OverheadActual  11: 64 op, 500.00 ns, 7.8125 ns/op
+OverheadActual  12: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  13: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  14: 64 op, 700.00 ns, 10.9375 ns/op
+OverheadActual  15: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  16: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  17: 64 op, 600.00 ns, 9.3750 ns/op
+OverheadActual  18: 64 op, 2800.00 ns, 43.7500 ns/op
+OverheadActual  19: 64 op, 700.00 ns, 10.9375 ns/op
+OverheadActual  20: 64 op, 2600.00 ns, 40.6250 ns/op
+
+WorkloadWarmup   1: 64 op, 699352100.00 ns, 10.9274 ms/op
+WorkloadWarmup   2: 64 op, 708858900.00 ns, 11.0759 ms/op
+WorkloadWarmup   3: 64 op, 674064900.00 ns, 10.5323 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 64 op, 697999100.00 ns, 10.9062 ms/op
+WorkloadActual   2: 64 op, 769328200.00 ns, 12.0208 ms/op
+WorkloadActual   3: 64 op, 842806500.00 ns, 13.1689 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 64 op, 697998500.00 ns, 10.9062 ms/op
+WorkloadResult   2: 64 op, 769327600.00 ns, 12.0207 ms/op
+WorkloadResult   3: 64 op, 842805900.00 ns, 13.1688 ms/op
+// GC:  0 0 0 2048 64
+// Threading:  0 0 64
+
+// AfterAll
+// Benchmark Process 44384 has exited with code 0.
+
+Mean = 12.032 ms, StdErr = 0.653 ms (5.43%), N = 3, StdDev = 1.131 ms
+Min = 10.906 ms, Q1 = 11.463 ms, Median = 12.021 ms, Q3 = 12.595 ms, Max = 13.169 ms
+IQR = 1.131 ms, LowerFence = 9.767 ms, UpperFence = 14.292 ms
+ConfidenceInterval = [-8.608 ms; 32.672 ms] (CI 99.9%), Margin = 20.640 ms (171.54% of Mean)
+Skewness = 0.01, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 2 (16.7%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1356 1172 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_StreamHash(DataSize: 1073741824)" --job ShortRun --benchmarkId 10 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 192900.00 ns, 192.9000 us/op
+WorkloadJitting  1: 1 op, 134467100.00 ns, 134.4671 ms/op
+
+WorkloadPilot    1: 2 op, 220102200.00 ns, 110.0511 ms/op
+WorkloadPilot    2: 3 op, 311581900.00 ns, 103.8606 ms/op
+WorkloadPilot    3: 4 op, 448682000.00 ns, 112.1705 ms/op
+WorkloadPilot    4: 5 op, 517417300.00 ns, 103.4835 ms/op
+
+WorkloadWarmup   1: 5 op, 652802300.00 ns, 130.5605 ms/op
+WorkloadWarmup   2: 5 op, 568242300.00 ns, 113.6485 ms/op
+WorkloadWarmup   3: 5 op, 511120600.00 ns, 102.2241 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 5 op, 553136200.00 ns, 110.6272 ms/op
+WorkloadActual   2: 5 op, 496429500.00 ns, 99.2859 ms/op
+WorkloadActual   3: 5 op, 501766600.00 ns, 100.3533 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 5 op, 553136200.00 ns, 110.6272 ms/op
+WorkloadResult   2: 5 op, 496429500.00 ns, 99.2859 ms/op
+WorkloadResult   3: 5 op, 501766600.00 ns, 100.3533 ms/op
+// GC:  0 0 0 160 5
+// Threading:  0 0 5
+
+// AfterAll
+// Benchmark Process 14308 has exited with code 0.
+
+Mean = 103.422 ms, StdErr = 3.616 ms (3.50%), N = 3, StdDev = 6.263 ms
+Min = 99.286 ms, Q1 = 99.820 ms, Median = 100.353 ms, Q3 = 105.490 ms, Max = 110.627 ms
+IQR = 5.671 ms, LowerFence = 91.314 ms, UpperFence = 113.996 ms
+ConfidenceInterval = [-10.830 ms; 217.675 ms] (CI 99.9%), Margin = 114.253 ms (110.47% of Mean)
+Skewness = 0.37, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 1 (8.3%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 1532 1208 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.XxHash64_SystemIO(DataSize: 1073741824)" --job ShortRun --benchmarkId 11 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 185700.00 ns, 185.7000 us/op
+WorkloadJitting  1: 1 op, 102556700.00 ns, 102.5567 ms/op
+
+WorkloadPilot    1: 2 op, 292289300.00 ns, 146.1447 ms/op
+WorkloadPilot    2: 3 op, 566919100.00 ns, 188.9730 ms/op
+
+WorkloadWarmup   1: 3 op, 602516200.00 ns, 200.8387 ms/op
+WorkloadWarmup   2: 3 op, 319344000.00 ns, 106.4480 ms/op
+WorkloadWarmup   3: 3 op, 319208000.00 ns, 106.4027 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 3 op, 305556500.00 ns, 101.8522 ms/op
+WorkloadActual   2: 3 op, 304335300.00 ns, 101.4451 ms/op
+WorkloadActual   3: 3 op, 304038700.00 ns, 101.3462 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 3 op, 305556500.00 ns, 101.8522 ms/op
+WorkloadResult   2: 3 op, 304335300.00 ns, 101.4451 ms/op
+WorkloadResult   3: 3 op, 304038700.00 ns, 101.3462 ms/op
+// GC:  0 0 0 96 3
+// Threading:  0 0 3
+
+// AfterAll
+// Benchmark Process 9660 has exited with code 0.
+
+Mean = 101.548 ms, StdErr = 0.155 ms (0.15%), N = 3, StdDev = 0.268 ms
+Min = 101.346 ms, Q1 = 101.396 ms, Median = 101.445 ms, Q3 = 101.649 ms, Max = 101.852 ms
+IQR = 0.253 ms, LowerFence = 101.016 ms, UpperFence = 102.028 ms
+ConfidenceInterval = [96.656 ms; 106.440 ms] (CI 99.9%), Margin = 4.892 ms (4.82% of Mean)
+Skewness = 0.33, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2026-03-16 13:16 (0h 0m from now) **
+Successfully reverted power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report.csv
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report-github.md
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report.html
+
+// * Detailed results *
+VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 1.421 ms, StdErr = 0.050 ms (3.52%), N = 3, StdDev = 0.087 ms
+Min = 1.368 ms, Q1 = 1.371 ms, Median = 1.373 ms, Q3 = 1.447 ms, Max = 1.520 ms
+IQR = 0.076 ms, LowerFence = 1.256 ms, UpperFence = 1.561 ms
+ConfidenceInterval = [-0.158 ms; 2.999 ms] (CI 99.9%), Margin = 1.578 ms (111.12% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[1.365 ms ; 1.523 ms) | @@@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 1.466 ms, StdErr = 0.024 ms (1.63%), N = 3, StdDev = 0.041 ms
+Min = 1.424 ms, Q1 = 1.445 ms, Median = 1.466 ms, Q3 = 1.487 ms, Max = 1.507 ms
+IQR = 0.041 ms, LowerFence = 1.383 ms, UpperFence = 1.549 ms
+ConfidenceInterval = [0.709 ms; 2.222 ms] (CI 99.9%), Margin = 0.756 ms (51.61% of Mean)
+Skewness = -0.02, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[1.386 ms ; 1.449 ms) | @
+[1.449 ms ; 1.524 ms) | @@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 14.382 ms, StdErr = 0.168 ms (1.17%), N = 3, StdDev = 0.291 ms
+Min = 14.098 ms, Q1 = 14.233 ms, Median = 14.368 ms, Q3 = 14.524 ms, Max = 14.680 ms
+IQR = 0.291 ms, LowerFence = 13.797 ms, UpperFence = 14.960 ms
+ConfidenceInterval = [9.069 ms; 19.694 ms] (CI 99.9%), Margin = 5.312 ms (36.94% of Mean)
+Skewness = 0.05, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[13.968 ms ; 14.498 ms) | @@
+[14.498 ms ; 14.945 ms) | @
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 17.556 ms, StdErr = 3.065 ms (17.46%), N = 3, StdDev = 5.308 ms
+Min = 14.130 ms, Q1 = 14.499 ms, Median = 14.868 ms, Q3 = 19.269 ms, Max = 23.670 ms
+IQR = 4.770 ms, LowerFence = 7.343 ms, UpperFence = 26.425 ms
+ConfidenceInterval = [-79.284 ms; 114.396 ms] (CI 99.9%), Margin = 96.840 ms (551.60% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[14.069 ms ; 23.731 ms) | @@@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash32_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 160.946 ms, StdErr = 7.132 ms (4.43%), N = 3, StdDev = 12.353 ms
+Min = 153.741 ms, Q1 = 153.814 ms, Median = 153.887 ms, Q3 = 164.549 ms, Max = 175.210 ms
+IQR = 10.735 ms, LowerFence = 137.712 ms, UpperFence = 180.650 ms
+ConfidenceInterval = [-64.425 ms; 386.317 ms] (CI 99.9%), Margin = 225.371 ms (140.03% of Mean)
+Skewness = 0.38, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[153.234 ms ; 175.718 ms) | @@@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash32_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 191.269 ms, StdErr = 2.087 ms (1.09%), N = 3, StdDev = 3.616 ms
+Min = 188.322 ms, Q1 = 189.251 ms, Median = 190.181 ms, Q3 = 192.742 ms, Max = 195.303 ms
+IQR = 3.491 ms, LowerFence = 184.015 ms, UpperFence = 197.978 ms
+ConfidenceInterval = [125.308 ms; 257.229 ms] (CI 99.9%), Margin = 65.961 ms (34.49% of Mean)
+Skewness = 0.27, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[185.961 ms ; 192.542 ms) | @@
+[192.542 ms ; 198.593 ms) | @
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 1.349 ms, StdErr = 0.026 ms (1.93%), N = 3, StdDev = 0.045 ms
+Min = 1.297 ms, Q1 = 1.332 ms, Median = 1.367 ms, Q3 = 1.374 ms, Max = 1.382 ms
+IQR = 0.042 ms, LowerFence = 1.269 ms, UpperFence = 1.438 ms
+ConfidenceInterval = [0.528 ms; 2.169 ms] (CI 99.9%), Margin = 0.820 ms (60.84% of Mean)
+Skewness = -0.34, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[1.257 ms ; 1.333 ms) | @
+[1.333 ms ; 1.423 ms) | @@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 1.424 ms, StdErr = 0.015 ms (1.03%), N = 3, StdDev = 0.025 ms
+Min = 1.395 ms, Q1 = 1.415 ms, Median = 1.434 ms, Q3 = 1.439 ms, Max = 1.443 ms
+IQR = 0.024 ms, LowerFence = 1.379 ms, UpperFence = 1.475 ms
+ConfidenceInterval = [0.959 ms; 1.889 ms] (CI 99.9%), Margin = 0.465 ms (32.64% of Mean)
+Skewness = -0.33, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[1.372 ms ; 1.415 ms) | @
+[1.415 ms ; 1.466 ms) | @@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 11.310 ms, StdErr = 0.272 ms (2.40%), N = 3, StdDev = 0.471 ms
+Min = 10.921 ms, Q1 = 11.049 ms, Median = 11.176 ms, Q3 = 11.505 ms, Max = 11.834 ms
+IQR = 0.456 ms, LowerFence = 10.364 ms, UpperFence = 12.189 ms
+ConfidenceInterval = [2.719 ms; 19.902 ms] (CI 99.9%), Margin = 8.591 ms (75.96% of Mean)
+Skewness = 0.26, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[10.620 ms ; 11.477 ms) | @@
+[11.477 ms ; 12.263 ms) | @
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 12.032 ms, StdErr = 0.653 ms (5.43%), N = 3, StdDev = 1.131 ms
+Min = 10.906 ms, Q1 = 11.463 ms, Median = 12.021 ms, Q3 = 12.595 ms, Max = 13.169 ms
+IQR = 1.131 ms, LowerFence = 9.767 ms, UpperFence = 14.292 ms
+ConfidenceInterval = [-8.608 ms; 32.672 ms] (CI 99.9%), Margin = 20.640 ms (171.54% of Mean)
+Skewness = 0.01, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[10.434 ms ; 12.493 ms) | @@
+[12.493 ms ; 14.198 ms) | @
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_SystemIO: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 101.548 ms, StdErr = 0.155 ms (0.15%), N = 3, StdDev = 0.268 ms
+Min = 101.346 ms, Q1 = 101.396 ms, Median = 101.445 ms, Q3 = 101.649 ms, Max = 101.852 ms
+IQR = 0.253 ms, LowerFence = 101.016 ms, UpperFence = 102.028 ms
+ConfidenceInterval = [96.656 ms; 106.440 ms] (CI 99.9%), Margin = 4.892 ms (4.82% of Mean)
+Skewness = 0.33, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[101.102 ms ; 102.096 ms) | @@@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.XxHash64_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 103.422 ms, StdErr = 3.616 ms (3.50%), N = 3, StdDev = 6.263 ms
+Min = 99.286 ms, Q1 = 99.820 ms, Median = 100.353 ms, Q3 = 105.490 ms, Max = 110.627 ms
+IQR = 5.671 ms, LowerFence = 91.314 ms, UpperFence = 113.996 ms
+ConfidenceInterval = [-10.830 ms; 217.675 ms] (CI 99.9%), Margin = 114.253 ms (110.47% of Mean)
+Skewness = 0.37, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[99.257 ms ; 110.656 ms) | @@@
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.15.8, Windows 10 (10.0.19045.6466/22H2/2022Update)
+Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET SDK 10.0.200
+  [Host]   : .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+  ShortRun : .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+
+Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  
+
+| Method              | Categories | DataSize   | Mean       | Error       | StdDev     | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+|-------------------- |----------- |----------- |-----------:|------------:|-----------:|------:|--------:|-----:|----------:|------------:|
+| XxHash32_SystemIO   | xxHash32   | 10485760   |   1.421 ms |   1.5785 ms |  0.0865 ms |  1.00 |    0.07 |    1 |      32 B |        1.00 |
+| XxHash32_StreamHash | xxHash32   | 10485760   |   1.466 ms |   0.7564 ms |  0.0415 ms |  1.03 |    0.06 |    1 |      32 B |        1.00 |
+|                     |            |            |            |             |            |       |         |      |           |             |
+| XxHash32_StreamHash | xxHash32   | 104857600  |  14.382 ms |   5.3124 ms |  0.2912 ms |  0.86 |    0.19 |    1 |      32 B |        1.00 |
+| XxHash32_SystemIO   | xxHash32   | 104857600  |  17.556 ms |  96.8398 ms |  5.3081 ms |  1.05 |    0.37 |    1 |      32 B |        1.00 |
+|                     |            |            |            |             |            |       |         |      |           |             |
+| XxHash32_SystemIO   | xxHash32   | 1073741824 | 160.946 ms | 225.3709 ms | 12.3533 ms |  1.00 |    0.09 |    1 |      44 B |        1.00 |
+| XxHash32_StreamHash | xxHash32   | 1073741824 | 191.269 ms |  65.9606 ms |  3.6155 ms |  1.19 |    0.08 |    2 |      32 B |        0.73 |
+|                     |            |            |            |             |            |       |         |      |           |             |
+| XxHash64_StreamHash | xxHash64   | 10485760   |   1.349 ms |   0.8205 ms |  0.0450 ms |  0.95 |    0.03 |    1 |      32 B |        1.00 |
+| XxHash64_SystemIO   | xxHash64   | 10485760   |   1.424 ms |   0.4648 ms |  0.0255 ms |  1.00 |    0.02 |    1 |      32 B |        1.00 |
+|                     |            |            |            |             |            |       |         |      |           |             |
+| XxHash64_StreamHash | xxHash64   | 104857600  |  11.310 ms |   8.5914 ms |  0.4709 ms |  0.95 |    0.08 |    1 |      32 B |        1.00 |
+| XxHash64_SystemIO   | xxHash64   | 104857600  |  12.032 ms |  20.6400 ms |  1.1313 ms |  1.01 |    0.12 |    1 |      32 B |        1.00 |
+|                     |            |            |            |             |            |       |         |      |           |             |
+| XxHash64_SystemIO   | xxHash64   | 1073741824 | 101.548 ms |   4.8922 ms |  0.2682 ms |  1.00 |    0.00 |    1 |      32 B |        1.00 |
+| XxHash64_StreamHash | xxHash64   | 1073741824 | 103.422 ms | 114.2526 ms |  6.2626 ms |  1.02 |    0.05 |    1 |      32 B |        1.00 |
+
+// * Legends *
+  Categories  : All categories of the corresponded method, class, and assembly
+  DataSize    : Value of the 'DataSize' parameter
+  Mean        : Arithmetic mean of all measurements
+  Error       : Half of 99.9% confidence interval
+  StdDev      : Standard deviation of all measurements
+  Ratio       : Mean of the ratio distribution ([Current]/[Baseline])
+  RatioSD     : Standard deviation of the ratio distribution ([Current]/[Baseline])
+  Rank        : Relative position of current benchmark mean among all benchmarks (Arabic style)
+  Allocated   : Allocated memory per single operation (managed only, inclusive, 1KB = 1024B)
+  Alloc Ratio : Allocated memory ratio distribution ([Current]/[Baseline])
+  1 ms        : 1 Millisecond (0.001 sec)
+
+// * Diagnostic Output - MemoryDiagnoser *
+
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:01:18 (78.58 sec), executed benchmarks: 12
+
+Global total time: 00:01:32 (92.25 sec), executed benchmarks: 12
+// * Artifacts cleanup *
+Artifacts cleanup is finished
