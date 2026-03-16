@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-03-16
+
 ### Performance
 
 - **Keccak/SHA-3 Full Round Unrolling** — 6 algorithms improved (#66)

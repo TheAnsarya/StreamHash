@@ -15,7 +15,7 @@
 ## ✨ Features
 
 - **🚀 Memory Efficient**: Hash multi-gigabyte files with minimal memory footprint
-- **⚡ High Performance**: Optimized implementations with SIMD where available (Grøstl AES-NI, JH SSSE3, HighwayHash AVX2)
+- **⚡ High Performance**: Optimized implementations with SIMD where available (Grøstl AES-NI, JH SSSE3, HighwayHash AVX2, BLAKE2b AVX2, CRC-32C SSE4.2)
 - **🔄 Streaming API**: Process data incrementally with `Update()` and `Finalize()`
 - **📦 Zero Allocations**: Hot paths are allocation-free using `Span<T>`
 - **🎯 Unified API**: `HashFacade` provides access to all 70 algorithms through a single interface
@@ -29,7 +29,7 @@
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.10.0
+dotnet add package StreamHash --version 1.11.0
 ```
 
 ### One-Shot Hashing (Simplest)
@@ -160,8 +160,8 @@ Full benchmark data with detailed comparisons at all data sizes: **[Performance 
 - [📚 Algorithm Reference](docs/algorithms/README.md) — all 70 algorithms documented
 - [📈 Performance Benchmarks](docs/benchmarks.md) — detailed comparisons vs BouncyCastle, System.IO.Hashing, Blake2Fast
 - [📋 Reference Hash Values](docs/reference-hashes.md) — test vectors and expected outputs
-- [� NuGet Publishing](docs/NUGET_PUBLISHING.md) — package build and release process
-- [�📝 Changelog](CHANGELOG.md) — version history and release notes
+- [📦 NuGet Publishing](docs/NUGET_PUBLISHING.md) — package build and release process
+- [📝 Changelog](CHANGELOG.md) — version history and release notes
 
 ### Algorithm Documentation
 
@@ -209,7 +209,7 @@ This project is released into the public domain under [The Unlicense](LICENSE). 
 
 ## 🙏 Acknowledgments & References
 
-As of v1.10.0, all 70 algorithms are implemented natively in StreamHash with no external hash library dependencies. The following projects were invaluable as reference implementations and inspiration:
+As of v1.11.0, all 70 algorithms are implemented natively in StreamHash with no external hash library dependencies. The following projects were invaluable as reference implementations and inspiration:
 
 ### Reference Implementations
 
