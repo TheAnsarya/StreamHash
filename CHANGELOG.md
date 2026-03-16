@@ -5,6 +5,50 @@ All notable changes to StreamHash will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Performance
+
+- **Keccak/SHA-3 Full Round Unrolling** — 6 algorithms improved (#66)
+	- SHA3-224: 1.63x → 0.95x (now faster than BouncyCastle)
+	- SHA3-256: 1.50x → 1.03x (at parity)
+	- SHA3-384: 1.53x → 1.06x (at parity)
+	- SHA3-512: 1.49x → 1.02x (at parity)
+	- Keccak-256: 1.52x → 1.02x (at parity)
+	- Keccak-512: 1.49x → 1.03x (at parity)
+	- 24 rounds fully inlined with constants, eliminating loop overhead
+- **BLAKE2b/2s Optimization** — Vector-based message loading (#72, #73)
+	- BLAKE2b: 1.59x → 1.14x vs BouncyCastle (AVX2 vector loading)
+	- BLAKE2s: 1.61x → 1.05x vs BouncyCastle (near parity)
+- **RIPEMD-128 Full Unrolling** — 1.8x FASTER than BouncyCastle (#77)
+	- Ratio: 1.05x → 0.56x — fully unrolled 64 rounds with inline constants
+- **xxHash One-Shot API** — Eliminated streaming overhead (#75)
+	- xxHash32: 1.95x → 0.99x (at parity with System.IO.Hashing)
+	- xxHash3: 1.04x → 0.99x (at parity)
+	- xxHash128: 1.05x → 0.98x (faster)
+	- Detects full-data one-shot calls, routes to `HashToUInt64()`/`Hash()` static APIs
+- **SHA-512/256 ReadOnlySpan K Constants** — (#76)
+	- Ratio: 0.99x → 0.91x — `ReadOnlySpan<byte>` K constants avoid array loads
+- **HighwayHash64 Safe Refactor** — Eliminated true unsafe code (#70)
+	- Replaced `unsafe` pointer operations with `Unsafe.As<>()` and `Unsafe.ReadUnaligned<>()`
+	- All tests pass, no performance regression
+- **CRC-32C Hardware Acceleration** — SSE4.2 CRC32C instruction
+	- Processes 8 bytes per instruction via `Sse42.X64.Crc32()`
+	- 256-entry lookup table fallback for non-SSE4.2 CPUs
+
+### Added
+
+- **VeryLargeFileBenchmarks** — New benchmark class for 10MB, 100MB, and 1GB data (#79)
+	- 44 comparison benchmarks across all major algorithm families
+	- Intended for separate runs, not part of regular benchmark suite
+
+### Summary
+
+- 20 algorithms faster than reference libraries (up from 18)
+- 10 algorithms at parity (up from 8)
+- Only 2 algorithms slower: BLAKE2b (1.14x), xxHash64 (1.25x — byte order overhead)
+- BLAKE3 at parity with Rust native (was 15.70x slower)
+
 ## [1.10.0] - 2026-02-10
 
 ### Added

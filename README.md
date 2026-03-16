@@ -188,6 +188,7 @@ Console.WriteLine($"Hash: {hasher.FinalizeHex()}");
 - [🔧 API Documentation](docs/api/README.md)
 - [📈 Performance Benchmarks](docs/benchmarks.md) — Detailed comparisons vs BouncyCastle, System.IO.Hashing, Blake2Fast, and more
 - [📋 Reference Hash Values](docs/reference-hashes.md)
+- [📝 Changelog](CHANGELOG.md) — Version history and release notes
 
 ### Algorithm Documentation
 
