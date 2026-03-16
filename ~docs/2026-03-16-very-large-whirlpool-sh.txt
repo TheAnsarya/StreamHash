@@ -1,0 +1,232 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 3 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1/" /p:OutDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:OutputPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:PublishDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\publish/" in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1
+// command took 1.57 sec and exited with 0
+// start dotnet  build -c Release --no-restore --nodeReuse:false /p:UseSharedCompilation=false /p:Deterministic=true /p:Optimize=true /p:ArtifactsPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1/" /p:OutDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:OutputPath="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" /p:PublishDir="C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\publish/" --output "C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0/" in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1
+// command took 13.81 sec and exited with 0
+// ***** Done, took 00:00:15 (15.47 sec)   *****
+// Found 3 benchmarks:
+//   VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+//   VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+//   VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2524 2420 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.Whirlpool_StreamHash(DataSize: 10485760)" --job ShortRun --benchmarkId 0 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 311100.00 ns, 311.1000 us/op
+WorkloadJitting  1: 1 op, 182551500.00 ns, 182.5515 ms/op
+
+WorkloadPilot    1: 2 op, 262618700.00 ns, 131.3094 ms/op
+WorkloadPilot    2: 3 op, 388857000.00 ns, 129.6190 ms/op
+WorkloadPilot    3: 4 op, 535004300.00 ns, 133.7511 ms/op
+
+WorkloadWarmup   1: 4 op, 503527000.00 ns, 125.8818 ms/op
+WorkloadWarmup   2: 4 op, 471789200.00 ns, 117.9473 ms/op
+WorkloadWarmup   3: 4 op, 473058900.00 ns, 118.2647 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 4 op, 501373500.00 ns, 125.3434 ms/op
+WorkloadActual   2: 4 op, 453975800.00 ns, 113.4940 ms/op
+WorkloadActual   3: 4 op, 506193100.00 ns, 126.5483 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 4 op, 501373500.00 ns, 125.3434 ms/op
+WorkloadResult   2: 4 op, 453975800.00 ns, 113.4940 ms/op
+WorkloadResult   3: 4 op, 506193100.00 ns, 126.5483 ms/op
+// GC:  0 0 0 2784 4
+// Threading:  0 0 4
+
+// AfterAll
+// Benchmark Process 12136 has exited with code 0.
+
+Mean = 121.795 ms, StdErr = 4.165 ms (3.42%), N = 3, StdDev = 7.214 ms
+Min = 113.494 ms, Q1 = 119.419 ms, Median = 125.343 ms, Q3 = 125.946 ms, Max = 126.548 ms
+IQR = 6.527 ms, LowerFence = 109.628 ms, UpperFence = 135.737 ms
+ConfidenceInterval = [-9.820 ms; 253.411 ms] (CI 99.9%), Margin = 131.616 ms (108.06% of Mean)
+Skewness = -0.37, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 2 (66.7%) benchmark(s) to run. Estimated finish 2026-03-16 14:56 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2376 2372 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.Whirlpool_StreamHash(DataSize: 104857600)" --job ShortRun --benchmarkId 1 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 287000.00 ns, 287.0000 us/op
+WorkloadJitting  1: 1 op, 1244640500.00 ns, 1.2446 s/op
+
+OverheadJitting  2: 1 op, 500.00 ns, 500.0000 ns/op
+WorkloadJitting  2: 1 op, 1195600600.00 ns, 1.1956 s/op
+
+WorkloadWarmup   1: 1 op, 1279793200.00 ns, 1.2798 s/op
+WorkloadWarmup   2: 1 op, 1349099500.00 ns, 1.3491 s/op
+WorkloadWarmup   3: 1 op, 1308731400.00 ns, 1.3087 s/op
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 1394345400.00 ns, 1.3943 s/op
+WorkloadActual   2: 1 op, 1179266600.00 ns, 1.1793 s/op
+WorkloadActual   3: 1 op, 1222777800.00 ns, 1.2228 s/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 1394345400.00 ns, 1.3943 s/op
+WorkloadResult   2: 1 op, 1179266600.00 ns, 1.1793 s/op
+WorkloadResult   3: 1 op, 1222777800.00 ns, 1.2228 s/op
+// GC:  0 0 0 696 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 14804 has exited with code 0.
+
+Mean = 1.265 s, StdErr = 0.066 s (5.19%), N = 3, StdDev = 0.114 s
+Min = 1.179 s, Q1 = 1.201 s, Median = 1.223 s, Q3 = 1.309 s, Max = 1.394 s
+IQR = 0.108 s, LowerFence = 1.040 s, UpperFence = 1.470 s
+ConfidenceInterval = [-0.809 s; 3.340 s] (CI 99.9%), Margin = 2.075 s (163.94% of Mean)
+Skewness = 0.32, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 1 (33.3%) benchmark(s) to run. Estimated finish 2026-03-16 14:56 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet StreamHash.Benchmarks-ShortRun-1.dll --anonymousPipes 2312 668 --benchmarkName "StreamHash.Benchmarks.VeryLargeFileBenchmarks.Whirlpool_StreamHash(DataSize: 1073741824)" --job ShortRun --benchmarkId 2 in C:\Users\me\source\repos\StreamHash\benchmarks\StreamHash.Benchmarks\bin\Release\net10.0\StreamHash.Benchmarks-ShortRun-1\bin\Release\net10.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.15.8
+// Runtime=.NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2+BMI1+BMI2+F16C+FMA+LZCNT+MOVBE,AVX,SSE3+SSSE3+SSE4.1+SSE4.2+POPCNT,X86Base+SSE+SSE2,AES+PCLMUL VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 221300.00 ns, 221.3000 us/op
+WorkloadJitting  1: 1 op, 14028807000.00 ns, 14.0288 s/op
+
+WorkloadWarmup   1: 1 op, 14842985600.00 ns, 14.8430 s/op
+WorkloadWarmup   2: 1 op, 12545775300.00 ns, 12.5458 s/op
+WorkloadWarmup   3: 1 op, 12932090000.00 ns, 12.9321 s/op
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 13008916500.00 ns, 13.0089 s/op
+WorkloadActual   2: 1 op, 12835848800.00 ns, 12.8358 s/op
+WorkloadActual   3: 1 op, 13230463600.00 ns, 13.2305 s/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 13008916500.00 ns, 13.0089 s/op
+WorkloadResult   2: 1 op, 12835848800.00 ns, 12.8358 s/op
+WorkloadResult   3: 1 op, 13230463600.00 ns, 13.2305 s/op
+// GC:  0 0 0 696 1
+// Threading:  0 0 1
+
+// AfterAll
+// Benchmark Process 25932 has exited with code 0.
+
+Mean = 13.025 s, StdErr = 0.114 s (0.88%), N = 3, StdDev = 0.198 s
+Min = 12.836 s, Q1 = 12.922 s, Median = 13.009 s, Q3 = 13.120 s, Max = 13.230 s
+IQR = 0.197 s, LowerFence = 12.626 s, UpperFence = 13.416 s
+ConfidenceInterval = [9.416 s; 16.634 s] (CI 99.9%), Margin = 3.609 s (27.71% of Mean)
+Skewness = 0.08, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2026-03-16 14:58 (0h 0m from now) **
+Successfully reverted power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report.csv
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report-github.md
+  BenchmarkDotNet.Artifacts\results\StreamHash.Benchmarks.VeryLargeFileBenchmarks-report.html
+
+// * Detailed results *
+VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=10485760]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 121.795 ms, StdErr = 4.165 ms (3.42%), N = 3, StdDev = 7.214 ms
+Min = 113.494 ms, Q1 = 119.419 ms, Median = 125.343 ms, Q3 = 125.946 ms, Max = 126.548 ms
+IQR = 6.527 ms, LowerFence = 109.628 ms, UpperFence = 135.737 ms
+ConfidenceInterval = [-9.820 ms; 253.411 ms] (CI 99.9%), Margin = 131.616 ms (108.06% of Mean)
+Skewness = -0.37, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[113.456 ms ; 126.586 ms) | @@@
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=104857600]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 1.265 s, StdErr = 0.066 s (5.19%), N = 3, StdDev = 0.114 s
+Min = 1.179 s, Q1 = 1.201 s, Median = 1.223 s, Q3 = 1.309 s, Max = 1.394 s
+IQR = 0.108 s, LowerFence = 1.040 s, UpperFence = 1.470 s
+ConfidenceInterval = [-0.809 s; 3.340 s] (CI 99.9%), Margin = 2.075 s (163.94% of Mean)
+Skewness = 0.32, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[1.098 s ; 1.305 s) | @@
+[1.305 s ; 1.498 s) | @
+---------------------------------------------------
+
+VeryLargeFileBenchmarks.Whirlpool_StreamHash: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3) [DataSize=1073741824]
+Runtime = .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3; GC = Concurrent Workstation
+Mean = 13.025 s, StdErr = 0.114 s (0.88%), N = 3, StdDev = 0.198 s
+Min = 12.836 s, Q1 = 12.922 s, Median = 13.009 s, Q3 = 13.120 s, Max = 13.230 s
+IQR = 0.197 s, LowerFence = 12.626 s, UpperFence = 13.416 s
+ConfidenceInterval = [9.416 s; 16.634 s] (CI 99.9%), Margin = 3.609 s (27.71% of Mean)
+Skewness = 0.08, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[12.742 s ; 13.102 s) | @@
+[13.102 s ; 13.410 s) | @
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.15.8, Windows 10 (10.0.19045.6466/22H2/2022Update)
+Intel Core i7-8700K CPU 3.70GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET SDK 10.0.200
+  [Host]   : .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+  ShortRun : .NET 10.0.4 (10.0.4, 10.0.426.12010), X64 RyuJIT x86-64-v3
+
+Job=ShortRun  IterationCount=3  LaunchCount=1  
+WarmupCount=3  Categories=Whirlpool  
+
+| Method               | DataSize   | Mean        | Error      | StdDev    | Rank | Allocated |
+|--------------------- |----------- |------------:|-----------:|----------:|-----:|----------:|
+| Whirlpool_StreamHash | 10485760   |    121.8 ms |   131.6 ms |   7.21 ms |    1 |     696 B |
+| Whirlpool_StreamHash | 104857600  |  1,265.5 ms | 2,074.6 ms | 113.72 ms |    2 |     696 B |
+| Whirlpool_StreamHash | 1073741824 | 13,025.1 ms | 3,608.7 ms | 197.80 ms |    3 |     696 B |
+
+// * Legends *
+  DataSize  : Value of the 'DataSize' parameter
+  Mean      : Arithmetic mean of all measurements
+  Error     : Half of 99.9% confidence interval
+  StdDev    : Standard deviation of all measurements
+  Rank      : Relative position of current benchmark mean among all benchmarks (Arabic style)
+  Allocated : Allocated memory per single operation (managed only, inclusive, 1KB = 1024B)
+  1 ms      : 1 Millisecond (0.001 sec)
+
+// * Diagnostic Output - MemoryDiagnoser *
+
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:02:05 (125.5 sec), executed benchmarks: 3
+
+Global total time: 00:02:22 (142.81 sec), executed benchmarks: 3
+// * Artifacts cleanup *
+Artifacts cleanup is finished

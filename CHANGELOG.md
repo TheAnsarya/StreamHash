@@ -40,7 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **VeryLargeFileBenchmarks** — New benchmark class for 10MB, 100MB, and 1GB data (#79)
 	- 44 comparison benchmarks across all major algorithm families
-	- Intended for separate runs, not part of regular benchmark suite
+	- All 132 benchmarks completed across 21 algorithms
+	- Key findings: Whirlpool 4-5x faster at all sizes, SHA-1 advantage grows to 2.9x at 1GB, xxHash128 reverses to 1.4x faster at 1GB
+	- Full results in [benchmarks.md](../docs/benchmarks.md#very-large-file-benchmarks-10-mb-100-mb-1-gb)
 
 ### Summary
 

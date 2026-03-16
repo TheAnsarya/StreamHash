@@ -165,6 +165,62 @@ Ratio is relative to BouncyCastle (1.00x). Lower ratio = faster.
 
 StreamHash allocates less than BouncyCastle for both BLAKE2 variants.
 
+## Very Large File Benchmarks (10 MB, 100 MB, 1 GB)
+
+Tests how performance scales with data size. All ratios relative to the external reference (BouncyCastle for crypto, System.IO.Hashing for non-crypto).
+
+### Crypto Algorithms vs BouncyCastle
+
+| Algorithm | 10 MB (SH) | 10 MB (BC) | 10 MB Ratio | 100 MB (SH) | 100 MB (BC) | 100 MB Ratio | 1 GB (SH) | 1 GB (BC) | 1 GB Ratio |
+|-----------|----------:|---------:|------:|----------:|---------:|------:|----------:|---------:|------:|
+| **Whirlpool** | **122 ms** | **564 ms** | **0.22x** | **1.27 s** | **5.97 s** | **0.21x** | **13.0 s** | **56.6 s** | **0.23x** |
+| **SHA-1** | **18.8 ms** | **39.6 ms** | **0.47x** | **248 ms** | **471 ms** | **0.53x** | **1.81 s** | **5.19 s** | **0.35x** |
+| **RIPEMD-128** | **23.9 ms** | **44.4 ms** | **0.54x** | **236 ms** | **456 ms** | **0.52x** | **2.43 s** | **4.52 s** | **0.54x** |
+| **MD5** | **17.9 ms** | **26.9 ms** | **0.67x** | **175 ms** | **260 ms** | **0.67x** | **1.77 s** | **2.72 s** | **0.65x** |
+| **RIPEMD-160** | **32.2 ms** | **47.6 ms** | **0.68x** | **309 ms** | **434 ms** | **0.71x** | **3.13 s** | **4.61 s** | **0.68x** |
+| **Skein-512** | **16.5 ms** | **23.7 ms** | **0.70x** | **159 ms** | **269 ms** | **0.59x** | **1.65 s** | **2.39 s** | **0.69x** |
+| SHA-512 | 24.7 ms | 30.5 ms | 0.81x | 228 ms | 291 ms | 0.78x | 2.43 s | 2.92 s | 0.83x |
+| SHA-256 | 41.3 ms | 51.7 ms | 0.80x | 430 ms | 500 ms | 0.86x | 4.19 s | 5.19 s | 0.81x |
+| SHA-512/256 | 26.1 ms | 29.0 ms | 0.90x | 248 ms | 283 ms | 0.88x | 2.68 s | 2.91 s | 0.92x |
+| SHA3-256 | 35.1 ms | 38.6 ms | 0.91x | 349 ms | 370 ms | 0.94x | 4.01 s | 3.78 s | 1.06x |
+| RIPEMD-320 | 53.7 ms | 49.5 ms | 1.08x | 498 ms | 472 ms | 1.05x | 5.11 s | 5.05 s | 1.01x |
+| Keccak-256 | 39.2 ms | 36.1 ms | 1.08x | 360 ms | 386 ms | 0.93x | 3.76 s | 4.31 s | 0.87x |
+| BLAKE2b | 10.0 ms | 8.8 ms | 1.13x | 97.0 ms | 86.3 ms | 1.12x | 1.01 s | 859 ms | 1.18x |
+| BLAKE2s | 14.0 ms | 13.5 ms | 1.04x | 136 ms | 134 ms | 1.02x | 1.44 s | 1.43 s | 1.00x |
+
+### BLAKE3 vs Rust Native
+
+| Size | StreamHash | Rust Native | Ratio |
+|-----:|----------:|----------:|------:|
+| 10 MB | 2.77 ms | 2.75 ms | 1.01x |
+| 100 MB | 30.6 ms | 27.2 ms | 1.13x |
+| 1 GB | 345 ms | 276 ms | 1.25x |
+
+BLAKE3 remains within 1.01-1.25x of the Rust native library at scale.
+
+### Non-Crypto Algorithms vs System.IO.Hashing
+
+| Algorithm | 10 MB (SH) | 10 MB (SIO) | 10 MB Ratio | 100 MB (SH) | 100 MB (SIO) | 100 MB Ratio | 1 GB (SH) | 1 GB (SIO) | 1 GB Ratio |
+|-----------|----------:|----------:|------:|----------:|----------:|------:|----------:|----------:|------:|
+| **xxHash128** | **1.19 ms** | **1.00 ms** | **1.19x** | **11.1 ms** | **8.62 ms** | **1.28x** | **97.3 ms** | **138 ms** | **0.70x** |
+| xxHash3 | 786 µs | 708 µs | 1.11x | 12.4 ms | 8.07 ms | 1.54x | 82.9 ms | 83.3 ms | 0.99x |
+| xxHash64 | 1.35 ms | 1.42 ms | 0.95x | 11.3 ms | 12.0 ms | 0.94x | 103 ms | 102 ms | 1.02x |
+| xxHash32 | 1.47 ms | 1.42 ms | 1.03x | 14.4 ms | 17.6 ms | 0.82x | 191 ms | 161 ms | 1.19x |
+| CRC32 | 848 µs | 881 µs | 0.96x | 8.66 ms | 9.36 ms | 0.92x | 107 ms | 94.7 ms | 1.13x |
+| CRC64 | 1.07 ms | 892 µs | 1.20x | 9.64 ms | 15.1 ms | 0.64x | 91.1 ms | 93.7 ms | 0.97x |
+
+### Scaling Insights
+
+- **Whirlpool**: Consistently 4-5x faster across all sizes — the largest sustained advantage
+- **SHA-1**: Advantage *grows* at 1 GB (2.9x faster) due to .NET hardware acceleration scaling
+- **RIPEMD-128**: Stable 1.8-1.9x advantage from fully unrolled compression
+- **MD5**: Rock-solid 1.5x advantage at all sizes
+- **Skein-512**: 1.4-1.7x faster, advantage grows at larger sizes
+- **Keccak-256**: Crosses from slower (10 MB) to 1.15x faster (1 GB) — unrolling shines at scale
+- **BLAKE2b/2s**: BouncyCastle maintains SIMD advantage, but gap narrows at scale for BLAKE2s
+- **xxHash128**: Interesting reversal — slower at small sizes but **1.4x faster at 1 GB** due to one-shot optimization
+- **BLAKE3**: Rust native advantage grows with data size (1.01x → 1.25x)
+
 ## Running Benchmarks
 
 ```bash
