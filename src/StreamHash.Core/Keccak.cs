@@ -226,8 +226,9 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 
 		while (offset + rate <= data.Length) {
 			ReadOnlySpan<ulong> inputLanes = MemoryMarshal.Cast<byte, ulong>(data.Slice(offset, rate));
+			ref ulong stateRef = ref MemoryMarshal.GetArrayDataReference(_state);
 			for (int i = 0; i < lanes; i++) {
-				_state[i] ^= inputLanes[i];
+				Unsafe.Add(ref stateRef, i) ^= inputLanes[i];
 			}
 			KeccakF1600();
 			offset += rate;
@@ -244,8 +245,9 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 		// Use MemoryMarshal.Cast for zero-copy ulong access on little-endian
 		int lanes = _rate >> 3;
 		ReadOnlySpan<ulong> inputLanes = MemoryMarshal.Cast<byte, ulong>(block);
+		ref ulong stateRef = ref MemoryMarshal.GetArrayDataReference(_state);
 		for (int i = 0; i < lanes; i++) {
-			_state[i] ^= inputLanes[i];
+			Unsafe.Add(ref stateRef, i) ^= inputLanes[i];
 		}
 
 		KeccakF1600();
@@ -264,14 +266,14 @@ public sealed class NativeKeccak : IStreamingHashBytes {
 /// <summary>
 /// Keccak-f[1600] round constants (24 rounds).
 /// </summary>
-private static ReadOnlySpan<ulong> RoundConstants =>
+private static readonly ulong[] RoundConstants =
 [
-0x0000000000000001UL, 0x0000000000008082UL, 0x800000000000808aUL, 0x8000000080008000UL,
-0x000000000000808bUL, 0x0000000080000001UL, 0x8000000080008081UL, 0x8000000000008009UL,
-0x000000000000008aUL, 0x0000000000000088UL, 0x0000000080008009UL, 0x000000008000000aUL,
-0x000000008000808bUL, 0x800000000000008bUL, 0x8000000000008089UL, 0x8000000000008003UL,
-0x8000000000008002UL, 0x8000000000000080UL, 0x000000000000800aUL, 0x800000008000000aUL,
-0x8000000080008081UL, 0x8000000000008080UL, 0x0000000080000001UL, 0x8000000080008008UL,
+	0x0000000000000001UL, 0x0000000000008082UL, 0x800000000000808aUL, 0x8000000080008000UL,
+	0x000000000000808bUL, 0x0000000080000001UL, 0x8000000080008081UL, 0x8000000000008009UL,
+	0x000000000000008aUL, 0x0000000000000088UL, 0x0000000080008009UL, 0x000000008000000aUL,
+	0x000000008000808bUL, 0x800000000000008bUL, 0x8000000000008089UL, 0x8000000000008003UL,
+	0x8000000000008002UL, 0x8000000000000080UL, 0x000000000000800aUL, 0x800000008000000aUL,
+	0x8000000080008081UL, 0x8000000000008080UL, 0x0000000080000001UL, 0x8000000080008008UL,
 ];
 
 /// <summary>
@@ -280,15 +282,16 @@ private static ReadOnlySpan<ulong> RoundConstants =>
 /// </summary>
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
 private void KeccakF1600() {
-// Load state into 25 local variables (eliminates array bounds checking)
-ulong a00 = _state[0], a01 = _state[1], a02 = _state[2], a03 = _state[3], a04 = _state[4];
-ulong a05 = _state[5], a06 = _state[6], a07 = _state[7], a08 = _state[8], a09 = _state[9];
-ulong a10 = _state[10], a11 = _state[11], a12 = _state[12], a13 = _state[13], a14 = _state[14];
-ulong a15 = _state[15], a16 = _state[16], a17 = _state[17], a18 = _state[18], a19 = _state[19];
-ulong a20 = _state[20], a21 = _state[21], a22 = _state[22], a23 = _state[23], a24 = _state[24];
+// Load state into 25 local variables using ref to eliminate bounds checking
+ref ulong sr = ref MemoryMarshal.GetArrayDataReference(_state);
+ulong a00 = sr, a01 = Unsafe.Add(ref sr, 1), a02 = Unsafe.Add(ref sr, 2), a03 = Unsafe.Add(ref sr, 3), a04 = Unsafe.Add(ref sr, 4);
+ulong a05 = Unsafe.Add(ref sr, 5), a06 = Unsafe.Add(ref sr, 6), a07 = Unsafe.Add(ref sr, 7), a08 = Unsafe.Add(ref sr, 8), a09 = Unsafe.Add(ref sr, 9);
+ulong a10 = Unsafe.Add(ref sr, 10), a11 = Unsafe.Add(ref sr, 11), a12 = Unsafe.Add(ref sr, 12), a13 = Unsafe.Add(ref sr, 13), a14 = Unsafe.Add(ref sr, 14);
+ulong a15 = Unsafe.Add(ref sr, 15), a16 = Unsafe.Add(ref sr, 16), a17 = Unsafe.Add(ref sr, 17), a18 = Unsafe.Add(ref sr, 18), a19 = Unsafe.Add(ref sr, 19);
+ulong a20 = Unsafe.Add(ref sr, 20), a21 = Unsafe.Add(ref sr, 21), a22 = Unsafe.Add(ref sr, 22), a23 = Unsafe.Add(ref sr, 23), a24 = Unsafe.Add(ref sr, 24);
 
 ulong c0, c1, c2, c3, c4, d0, d1, d2, d3, d4;
-ReadOnlySpan<ulong> rc = RoundConstants;
+ulong[] rc = RoundConstants;
 
 for (int round = 0; round < 24; round++) {
 // θ (Theta) - Column parity + diffusion
@@ -351,12 +354,13 @@ a22 ^= ~a23 & a24; a23 ^= ~a24 & a20; a24 ^= ~a20 & a21; a20 = c0; a21 = c1;
 a00 ^= rc[round];
 }
 
-// Write state back
-_state[0] = a00; _state[1] = a01; _state[2] = a02; _state[3] = a03; _state[4] = a04;
-_state[5] = a05; _state[6] = a06; _state[7] = a07; _state[8] = a08; _state[9] = a09;
-_state[10] = a10; _state[11] = a11; _state[12] = a12; _state[13] = a13; _state[14] = a14;
-_state[15] = a15; _state[16] = a16; _state[17] = a17; _state[18] = a18; _state[19] = a19;
-_state[20] = a20; _state[21] = a21; _state[22] = a22; _state[23] = a23; _state[24] = a24;
+	// Write state back using ref to eliminate bounds checks
+	ref ulong s = ref MemoryMarshal.GetArrayDataReference(_state);
+	s = a00; Unsafe.Add(ref s, 1) = a01; Unsafe.Add(ref s, 2) = a02; Unsafe.Add(ref s, 3) = a03; Unsafe.Add(ref s, 4) = a04;
+	Unsafe.Add(ref s, 5) = a05; Unsafe.Add(ref s, 6) = a06; Unsafe.Add(ref s, 7) = a07; Unsafe.Add(ref s, 8) = a08; Unsafe.Add(ref s, 9) = a09;
+	Unsafe.Add(ref s, 10) = a10; Unsafe.Add(ref s, 11) = a11; Unsafe.Add(ref s, 12) = a12; Unsafe.Add(ref s, 13) = a13; Unsafe.Add(ref s, 14) = a14;
+	Unsafe.Add(ref s, 15) = a15; Unsafe.Add(ref s, 16) = a16; Unsafe.Add(ref s, 17) = a17; Unsafe.Add(ref s, 18) = a18; Unsafe.Add(ref s, 19) = a19;
+	Unsafe.Add(ref s, 20) = a20; Unsafe.Add(ref s, 21) = a21; Unsafe.Add(ref s, 22) = a22; Unsafe.Add(ref s, 23) = a23; Unsafe.Add(ref s, 24) = a24;
 }
 
 
