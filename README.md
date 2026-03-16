@@ -160,7 +160,8 @@ Full benchmark data with detailed comparisons at all data sizes: **[Performance 
 - [📚 Algorithm Reference](docs/algorithms/README.md) — all 70 algorithms documented
 - [📈 Performance Benchmarks](docs/benchmarks.md) — detailed comparisons vs BouncyCastle, System.IO.Hashing, Blake2Fast
 - [📋 Reference Hash Values](docs/reference-hashes.md) — test vectors and expected outputs
-- [📝 Changelog](CHANGELOG.md) — version history and release notes
+- [� NuGet Publishing](docs/NUGET_PUBLISHING.md) — package build and release process
+- [�📝 Changelog](CHANGELOG.md) — version history and release notes
 
 ### Algorithm Documentation
 
@@ -201,10 +202,6 @@ cd StreamHash
 dotnet build StreamHash.slnx
 dotnet test    # 1853+ tests
 ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
