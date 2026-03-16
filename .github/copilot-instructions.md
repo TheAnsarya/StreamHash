@@ -416,7 +416,8 @@ Use conventional commits:
 ### `~docs/` (Development)
 - Session logs: `~docs/session-logs/YYYY-MM-DD-session-NN.md`
 - Chat logs: `~docs/chat-logs/YYYY-MM-DD-chat-NN.md`
-- **NEVER edit** `~docs/streamhash-manual-prompts-log.txt`
+- **NEVER edit** `~docs/streamhash-manual-prompts-log.txt` — this is the user's manual prompt history
+- **ALWAYS commit** `~docs/streamhash-manual-prompts-log.txt` to source control when it has changes
 
 ## Licensing
 
