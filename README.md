@@ -251,7 +251,7 @@ dotnet test
 dotnet run -c Release --project benchmarks/StreamHash.Benchmarks
 ```
 
-## 📊 Benchmarks (Updated 2026-03-15)
+## 📊 Benchmarks (Updated 2026-03-16)
 
 Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.4, Windows 10:
 
@@ -259,47 +259,66 @@ Performance on Intel i7-8700K (Coffee Lake), .NET 10.0.4, Windows 10:
 
 | Algorithm | Time | Throughput | vs Reference |
 |-----------|-----:|------------|:------------:|
-| CRC32 | 37.6 µs | 27.8 GB/s | 1.01x |
-| xxHash3 | 35.9 µs | 29.2 GB/s | 1.04x |
-| xxHash128 | 36.4 µs | 28.7 GB/s | 1.05x |
-| xxHash64 | 92.0 µs | 11.4 GB/s | 1.05x |
-| xxHash32 | 146.1 µs | 7.2 GB/s | 1.09x |
-| MurmurHash3-32 | 280.5 µs | 3.7 GB/s | 0.96x |
-| SipHash-2-4 | 409.7 µs | 2.6 GB/s | 0.98x |
-| CRC64 | 46.9 µs | 22.3 GB/s | 1.00x |
+| xxHash128 | 34.7 µs | 30.2 GB/s | **0.98x** |
+| xxHash3 | 35.6 µs | 29.4 GB/s | **0.99x** |
+| CRC32 | 40.5 µs | 25.8 GB/s | 0.98x |
+| CRC64 | 49.0 µs | 21.4 GB/s | 1.02x |
+| xxHash64 | 115.2 µs | 9.1 GB/s | 1.25x |
+| xxHash32 | 132.1 µs | 7.9 GB/s | **0.99x** |
+| MurmurHash3-32 | 281.2 µs | 3.7 GB/s | 0.91x |
+| SipHash-2-4 | 407.0 µs | 2.6 GB/s | 0.94x |
 | HighwayHash64 | 759 µs | 1.4 GB/s | AVX2 SIMD |
 
 ### Cryptographic Hashes (1MB data)
 
 | Algorithm | Time | vs BouncyCastle | Notes |
 |-----------|-----:|:---------------:|-------|
-| SHA-1 | 1.52 ms | **0.40x** | 2.5x faster (.NET HW) |
-| MD5 | 1.66 ms | **0.64x** | 1.5x faster (.NET HW) |
-| Tiger-192 | 1.98 ms | **0.89x** | At parity |
-| SHA-512 | 2.26 ms | **0.81x** | 1.2x faster (.NET HW) |
-| SHA-384 | 2.25 ms | **0.79x** | 1.3x faster (.NET HW) |
-| Skein-512 | 1.52 ms | **0.66x** | 1.5x faster |
-| Skein-256 | 2.26 ms | **0.80x** | 1.3x faster |
-| Skein-1024 | 2.21 ms | **0.78x** | 1.3x faster |
-| SHA3-224 | 3.13 ms | **1.01x** | At parity |
-| SHA3-256 | 3.51 ms | **1.06x** | Near parity |
-| SHA3-384 | 4.35 ms | **1.00x** | At parity |
-| SHA3-512 | 6.32 ms | **1.02x** | At parity |
-| Keccak-256 | 3.45 ms | **1.02x** | At parity |
-| SHA-256 | 3.77 ms | **0.86x** | 1.2x faster (.NET HW) |
-| SHA-224 | 4.40 ms | **0.96x** | At parity |
-| SM3 | 4.88 ms | **0.87x** | 1.2x faster |
-| RIPEMD-160 | 3.02 ms | **0.70x** | 1.4x faster |
-| RIPEMD-128 | 3.49 ms | **0.82x** | 1.2x faster |
-| Streebog-256 | 14.74 ms | **0.63x** | 1.6x faster |
-| Streebog-512 | 14.52 ms | **0.62x** | 1.6x faster |
-| GOST-94 | 107.6 ms | **0.70x** | 1.4x faster, 35000x less alloc |
-| Whirlpool | 10.77 ms | **0.20x** | **5x faster** |
-| BLAKE2b | 1.06 ms | **1.26x** | BC has AVX2 SIMD |
-| BLAKE2s | 1.59 ms | **1.19x** | BC has SSSE3 SIMD |
-| BLAKE3 | 2.16 ms | **8.08x** | vs Rust native SIMD |
+| SHA-1 | 1.50 ms | **0.40x** | 2.5x faster (.NET HW) |
+| Skein-512 | 1.61 ms | **0.73x** | 1.4x faster |
+| MD5 | 1.66 ms | **0.65x** | 1.5x faster (.NET HW) |
+| Tiger-192 | 1.89 ms | **0.86x** | At parity |
+| SHA-512 | 2.18 ms | **0.79x** | 1.3x faster (.NET HW) |
+| SHA-384 | 2.22 ms | **0.82x** | 1.2x faster (.NET HW) |
+| Skein-256 | 2.28 ms | **0.83x** | 1.2x faster |
+| Skein-1024 | 2.29 ms | **0.81x** | 1.2x faster |
+| **RIPEMD-128** | **2.30 ms** | **0.56x** | **1.8x faster** (fully unrolled) |
+| SHA-512/256 | 2.46 ms | **0.91x** | 1.1x faster |
+| SHA-512/224 | 2.42 ms | **0.88x** | 1.1x faster |
+| RIPEMD-160 | 2.96 ms | **0.70x** | 1.4x faster |
+| SHA3-224 | 3.29 ms | **1.02x** | At parity |
+| Keccak-256 | 3.39 ms | **1.02x** | At parity |
+| RIPEMD-256 | 3.35 ms | **0.97x** | At parity |
+| SHA3-256 | 3.43 ms | **1.03x** | At parity |
+| SHA-256 | 3.90 ms | **0.87x** | 1.2x faster (.NET HW) |
+| SHA-224 | 4.57 ms | **0.98x** | At parity |
+| SHA3-384 | 4.33 ms | **1.00x** | At parity |
+| RIPEMD-320 | 4.88 ms | **1.03x** | At parity |
+| SM3 | 4.93 ms | **0.88x** | 1.1x faster |
+| SHA3-512 | 6.30 ms | **0.97x** | Faster |
+| Keccak-512 | 6.32 ms | **1.03x** | At parity |
+| Whirlpool | 10.18 ms | **0.21x** | **4.9x faster** |
+| Streebog-256 | 13.27 ms | **0.57x** | 1.8x faster |
+| Streebog-512 | 13.39 ms | **0.60x** | 1.7x faster |
+| MD2 | 94.83 ms | **0.96x** | At parity |
+| GOST-94 | 113.6 ms | **0.75x** | 1.3x faster, 35000x less alloc |
+| BLAKE2b | 0.97 ms | **1.14x** | BC has AVX2 SIMD |
+| BLAKE2s | 1.38 ms | **1.05x** | At parity |
+| BLAKE3 | 0.25 ms | **1.00x** | At parity with Rust native! |
 
 *All cryptographic algorithms are native C# since v1.10.0. Zero true unsafe code in the entire codebase.*
+
+### Algorithms Slower Than Reference Libraries
+
+Only a few algorithms remain slower than their reference implementations:
+
+| Algorithm | Ratio | Reference Library | Reason |
+|-----------|:-----:|-------------------|--------|
+| xxHash64 | 1.25x | System.IO.Hashing | Byte order conversion overhead |
+| BLAKE2b | 1.14x | BouncyCastle | BC uses AVX2 SIMD (donated Blake2Fast code) |
+| BLAKE2s | 1.05x | BouncyCastle | BC uses SSSE3 SIMD |
+| RIPEMD-320 | 1.03x | BouncyCastle | Near parity |
+| Keccak-512 | 1.03x | BouncyCastle | Near parity |
+| SHA3-256 | 1.03x | BouncyCastle | Near parity |
 
 ### Performance vs External Libraries (1MB, Summary)
 
@@ -307,23 +326,22 @@ StreamHash's native C# implementations compared to external libraries:
 
 | Category | Faster | At Parity | Slower | Notes |
 |----------|:------:|:---------:|:------:|-------|
-| **Crypto vs BouncyCastle** | **18** | **8** | **3** | BLAKE2b/2s/3 are the only slower ones |
-| **Non-Crypto vs System.IO** | **0** | **5** | **2** | xxHash/CRC within 5-9% streaming overhead |
+| **Crypto vs BouncyCastle** | **20** | **10** | **2** | Only BLAKE2b/2s meaningfully slower |
+| **Non-Crypto vs System.IO** | **3** | **2** | **1** | xxHash32/3/128 at parity, xxHash64 slower |
 | **Non-Crypto vs HashDepot** | **4** | **1** | **0** | MurmurHash, SipHash, xxHash faster |
 
 **Highlights:**
 
-- **5x faster**: Whirlpool (0.20x ratio — custom precomputed T-tables)
+- **4.9x faster**: Whirlpool (0.21x ratio — custom precomputed T-tables)
 - **2.5x faster**: SHA-1 (0.40x — .NET hardware acceleration)
-- **1.6x faster**: Streebog-256/512, GOST-94, MD5
-- **1.5x faster**: Skein-512, SHA-512
-- **At parity**: SHA3 family, Keccak, CRC, xxHash (within noise at 1MB)
-- **Slower**: BLAKE2b (1.26x), BLAKE2s (1.19x) — BouncyCastle uses AVX2/SSSE3 SIMD
-- **Much slower**: BLAKE3 (8.08x) — comparing pure C# vs Rust native with full AVX2/SSE4
+- **1.8x faster**: RIPEMD-128 (0.56x — fully unrolled), Streebog-256
+- **1.5x faster**: MD5, Skein-512, SHA-512
+- **At parity**: SHA3 family, Keccak, CRC, xxHash32/3/128, BLAKE3
+- **Slightly slower**: BLAKE2b (1.14x), xxHash64 (1.25x)
 
 Full results with all data sizes in [docs/benchmarks.md](docs/benchmarks.md).
 
-*BLAKE2 improved from 6.3x/7.0x slower to just 1.2-1.3x via Keccak loop optimization, BLAKE2 unsafe elimination, and CRC-32C SSE4.2 acceleration. Zero true unsafe code remains.*
+*March 2026 optimizations: xxHash one-shot APIs (1.95x → 0.99x), RIPEMD-128 unrolling (1.05x → 0.56x), SHA-512/256 ReadOnlySpan K constants. Zero true unsafe code.*
 
 ## 🤝 Contributing
 

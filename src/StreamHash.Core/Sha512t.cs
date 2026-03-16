@@ -318,8 +318,9 @@ internal sealed class NativeSha512tDigest : IStreamingHashBytes {
 /// Factory methods for creating SHA-512/t streaming hash instances.
 /// </summary>
 internal static class Sha512tFactory {
-	// SHA-512 round constants
-	private static readonly ulong[] K = [
+	/// <summary>SHA-512 round constants as a constant data blob for zero-overhead access.</summary>
+	private static ReadOnlySpan<ulong> K =>
+	[
 		0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
 		0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
 		0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
@@ -445,9 +446,11 @@ internal static class Sha512tFactory {
 		ref ulong h4, ref ulong h5, ref ulong h6, ref ulong h7,
 		Span<ulong> w) {
 
-		// Load message words
+		// Load message words — direct pointer arithmetic avoids per-word Slice bounds checks
+		ref byte blockRef = ref MemoryMarshal.GetReference(block);
 		for (int i = 0; i < 16; i++) {
-			w[i] = BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8));
+			w[i] = BinaryPrimitives.ReverseEndianness(
+				Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref blockRef, i * 8)));
 		}
 
 		// Expand message schedule — cache repeated reads

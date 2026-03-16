@@ -296,32 +296,28 @@ public static class HashFacade {
 
 	#region Non-Crypto Fast Hash Implementations
 
-	/// <summary>Computes xxHash32.</summary>
+	/// <summary>Computes xxHash32 using the static one-shot API for maximum performance.</summary>
 	public static byte[] ComputeXxHash32(ReadOnlySpan<byte> data) {
-		var hash = new XxHash32();
-		hash.Append(data);
-		return hash.GetCurrentHash();
+		byte[] result = new byte[4];
+		BinaryPrimitives.WriteUInt32BigEndian(result, XxHash32.HashToUInt32(data));
+		return result;
 	}
 
-	/// <summary>Computes xxHash64.</summary>
+	/// <summary>Computes xxHash64 using the static one-shot API for maximum performance.</summary>
 	public static byte[] ComputeXxHash64(ReadOnlySpan<byte> data) {
-		var hash = new XxHash64();
-		hash.Append(data);
-		return hash.GetCurrentHash();
+		byte[] result = new byte[8];
+		BinaryPrimitives.WriteUInt64BigEndian(result, XxHash64.HashToUInt64(data));
+		return result;
 	}
 
-	/// <summary>Computes xxHash3 (64-bit).</summary>
+	/// <summary>Computes xxHash3 (64-bit) using the static one-shot API for maximum performance.</summary>
 	public static byte[] ComputeXxHash3(ReadOnlySpan<byte> data) {
-		var hash = new XxHash3();
-		hash.Append(data);
-		return hash.GetCurrentHash();
+		return XxHash3.Hash(data);
 	}
 
-	/// <summary>Computes xxHash128.</summary>
+	/// <summary>Computes xxHash128 using the static one-shot API for maximum performance.</summary>
 	public static byte[] ComputeXxHash128(ReadOnlySpan<byte> data) {
-		var hash = new XxHash128();
-		hash.Append(data);
-		return hash.GetCurrentHash();
+		return XxHash128.Hash(data);
 	}
 
 	/// <summary>Computes MurmurHash3 32-bit.</summary>
