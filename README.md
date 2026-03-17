@@ -1,8 +1,10 @@
 ﻿# StreamHash
 
+[![CI](https://github.com/TheAnsarya/StreamHash/actions/workflows/ci.yml/badge.svg)](https://github.com/TheAnsarya/StreamHash/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/StreamHash)](https://www.nuget.org/packages/StreamHash)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/StreamHash)](https://www.nuget.org/packages/StreamHash)
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/)
 [![.NET](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
-[![NuGet](https://img.shields.io/nuget/v/StreamHash)](https://www.nuget.org/packages/StreamHash)
 
 **StreamHash** is a high-performance, memory-efficient streaming hash library for .NET 10+. All **70 hash algorithms** are implemented natively in pure C# with zero heavy dependencies — just one lightweight package (`System.IO.Hashing`) for CRC/xxHash acceleration.
 
