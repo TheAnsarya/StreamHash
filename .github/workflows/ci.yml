@@ -46,7 +46,11 @@ jobs:
       run: dotnet build StreamHash.slnx -c Release --no-restore
 
     - name: Test
-      run: dotnet test StreamHash.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      run: >-
+        dotnet test StreamHash.slnx -c Release --no-build --verbosity normal
+        --logger "trx;LogFileName=test-results.trx"
+        --collect:"XPlat Code Coverage"
+        --results-directory ./coverage-results
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -54,6 +58,41 @@ jobs:
       with:
         name: test-results-${{ matrix.os }}
         path: '**/TestResults/*.trx'
+
+    - name: Upload coverage results
+      uses: actions/upload-artifact@v4
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        name: coverage-results
+        path: ./coverage-results/**/coverage.cobertura.xml
+
+  coverage:
+    name: Coverage Report
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Download coverage results
+      uses: actions/download-artifact@v4
+      with:
+        name: coverage-results
+        path: ./coverage
+
+    - name: Code Coverage Summary
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: ./coverage/**/coverage.cobertura.xml
+        badge: true
+        format: markdown
+        output: both
+        thresholds: '60 80'
+
+    - name: Add coverage PR comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        recreate: true
+        path: code-coverage-results.md
 
   pack:
     name: Pack NuGet

@@ -16,6 +16,7 @@
 	<RepositoryType>git</RepositoryType>
 	<PackageLicenseExpression>Unlicense</PackageLicenseExpression>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>icon.png</PackageIcon>
 	<Copyright>Public Domain - The Unlicense</Copyright>
 	<PackageReleaseNotes>v1.11.0: Major performance optimization release. Keccak/SHA-3 fully unrolled (now at parity with BouncyCastle). BLAKE2b/2s AVX2/SSSE3 vector loading. RIPEMD-128/320 fully unrolled. xxHash one-shot API (at parity with System.IO.Hashing). SHA-512/256 ReadOnlySpan K constants. CRC-32C SSE4.2 hardware acceleration. HighwayHash safe refactor (no unsafe code). 20 algorithms faster than reference, only 2 slower. VeryLargeFile benchmarks (10MB-1GB). 1853+ tests passing.</PackageReleaseNotes>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -30,6 +31,7 @@
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+		<None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
