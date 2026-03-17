@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-03-17
+
+### Added
+
+- NuGet package icon (128x128 PNG — blue-to-teal gradient with hash symbol)
+- CI build status badge on README
+- NuGet version and downloads badges on README
+- Code coverage collection with Coverlet/Cobertura in CI workflow
+- Coverage summary posted as PR comments via CodeCoverageSummary
+- Explicit `permissions: contents: write` on release workflow
+- `NUGET_API_KEY` GitHub secret for automated NuGet publishing
+
 ## [1.11.0] - 2026-03-16
 
 ### Performance

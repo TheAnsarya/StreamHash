@@ -6,7 +6,7 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-	<Version>1.11.0</Version>
+	<Version>1.11.1</Version>
 	<Authors>TheAnsarya</Authors>
 	<Company>TheAnsarya</Company>
 	<Description>High-performance streaming hash library for .NET 10. All 70 algorithms implemented natively in pure C# with zero heavy dependencies. Features MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Unified HashFacade API with batch streaming for parallel multi-algorithm processing. SIMD-optimized: Grøstl (AES-NI), JH (SSSE3), HighwayHash (AVX2), CRC-32C (SSE4.2), BLAKE2b (AVX2). 1853+ tests, 20 algorithms faster than BouncyCastle.</Description>
@@ -18,7 +18,7 @@
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageIcon>icon.png</PackageIcon>
 	<Copyright>Public Domain - The Unlicense</Copyright>
-	<PackageReleaseNotes>v1.11.0: Major performance optimization release. Keccak/SHA-3 fully unrolled (now at parity with BouncyCastle). BLAKE2b/2s AVX2/SSSE3 vector loading. RIPEMD-128/320 fully unrolled. xxHash one-shot API (at parity with System.IO.Hashing). SHA-512/256 ReadOnlySpan K constants. CRC-32C SSE4.2 hardware acceleration. HighwayHash safe refactor (no unsafe code). 20 algorithms faster than reference, only 2 slower. VeryLargeFile benchmarks (10MB-1GB). 1853+ tests passing.</PackageReleaseNotes>
+	<PackageReleaseNotes>v1.11.1: Added NuGet package icon, CI/CD with code coverage reporting, CI and NuGet badges on README. Includes all v1.11.0 performance optimizations.</PackageReleaseNotes>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<!-- Source Link for debugging -->
