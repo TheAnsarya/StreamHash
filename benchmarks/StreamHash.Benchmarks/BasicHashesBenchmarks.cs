@@ -95,11 +95,40 @@ public class BasicHashesBenchmarks {
 
 	#region Chunked Streaming (Real-World File I/O Pattern)
 
+	// Real-world file I/O reads in chunks (typically 1MB from ArrayPool).
+	// Using 1MB chunks here to simulate actual disk I/O patterns.
+	// Previous benchmarks used 16MB chunks which exceeded the 10MB data size,
+	// making them identical to SingleUpdate — not a realistic streaming test.
+
+	[Benchmark]
+	[BenchmarkCategory("Streaming")]
+	public Dictionary<string, string> BasicHashes_Chunked_1MB() {
+		using var hasher = HashFacade.CreateBasicHashesStreaming();
+		const int chunkSize = 1024 * 1024; // 1MB chunks (real I/O buffer size)
+		for (int i = 0; i < _smallData.Length; i += chunkSize) {
+			int size = Math.Min(chunkSize, _smallData.Length - i);
+			hasher.Update(_smallData.AsSpan(i, size));
+		}
+		return hasher.FinalizeAll();
+	}
+
+	[Benchmark]
+	[BenchmarkCategory("Streaming")]
+	public Dictionary<string, string> AllHashes_Chunked_1MB() {
+		using var hasher = HashFacade.CreateAllStreaming();
+		const int chunkSize = 1024 * 1024; // 1MB chunks
+		for (int i = 0; i < _smallData.Length; i += chunkSize) {
+			int size = Math.Min(chunkSize, _smallData.Length - i);
+			hasher.Update(_smallData.AsSpan(i, size));
+		}
+		return hasher.FinalizeAll();
+	}
+
 	[Benchmark]
 	[BenchmarkCategory("Streaming")]
 	public Dictionary<string, string> BasicHashes_Chunked_10MB() {
 		using var hasher = HashFacade.CreateBasicHashesStreaming();
-		const int chunkSize = 16 * 1024 * 1024; // 16MB chunks (typical buffer size)
+		const int chunkSize = 1024 * 1024; // 1MB chunks (real I/O buffer size)
 		for (int i = 0; i < _mediumData.Length; i += chunkSize) {
 			int size = Math.Min(chunkSize, _mediumData.Length - i);
 			hasher.Update(_mediumData.AsSpan(i, size));
@@ -111,10 +140,34 @@ public class BasicHashesBenchmarks {
 	[BenchmarkCategory("Streaming")]
 	public Dictionary<string, string> AllHashes_Chunked_10MB() {
 		using var hasher = HashFacade.CreateAllStreaming();
-		const int chunkSize = 16 * 1024 * 1024; // 16MB chunks
+		const int chunkSize = 1024 * 1024; // 1MB chunks (real I/O buffer size)
 		for (int i = 0; i < _mediumData.Length; i += chunkSize) {
 			int size = Math.Min(chunkSize, _mediumData.Length - i);
 			hasher.Update(_mediumData.AsSpan(i, size));
+		}
+		return hasher.FinalizeAll();
+	}
+
+	[Benchmark]
+	[BenchmarkCategory("Streaming")]
+	public Dictionary<string, string> BasicHashes_Chunked_100MB() {
+		using var hasher = HashFacade.CreateBasicHashesStreaming();
+		const int chunkSize = 1024 * 1024; // 1MB chunks (real I/O buffer size)
+		for (int i = 0; i < _largeData.Length; i += chunkSize) {
+			int size = Math.Min(chunkSize, _largeData.Length - i);
+			hasher.Update(_largeData.AsSpan(i, size));
+		}
+		return hasher.FinalizeAll();
+	}
+
+	[Benchmark]
+	[BenchmarkCategory("Streaming")]
+	public Dictionary<string, string> AllHashes_Chunked_100MB() {
+		using var hasher = HashFacade.CreateAllStreaming();
+		const int chunkSize = 1024 * 1024; // 1MB chunks (real I/O buffer size)
+		for (int i = 0; i < _largeData.Length; i += chunkSize) {
+			int size = Math.Min(chunkSize, _largeData.Length - i);
+			hasher.Update(_largeData.AsSpan(i, size));
 		}
 		return hasher.FinalizeAll();
 	}
