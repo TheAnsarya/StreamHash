@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-03-18
+
+### Changed
+
+- Fixed benchmark chunk sizes to use realistic I/O buffer sizes (#84)
+	- BasicHashesBenchmarks: Replaced 16MB chunks (larger than 10MB test data) with 1MB chunks
+	- Added chunked streaming variants for all file sizes (1MB, 10MB, 100MB)
+- StreamingChunkBenchmarks: Expanded from 1 file size to 3 (16KB, 1MB, 10MB) and added 256KB/1MB chunk sizes
+	- Added Basic4 and All70 multi-hash streaming benchmarks
+
+### Added
+
+- ChunkSizeMatrixBenchmarks: Full file-size x chunk-size benchmark matrix
+	- Tests 6 file sizes (16KB-100MB) x 7 chunk sizes (4KB-4MB) for both Basic4 and All70
+	- ChunkSizeQuickBenchmarks: Focused quick benchmark for key combinations
+
 ## [1.11.1] - 2026-03-17
 
 ### Added

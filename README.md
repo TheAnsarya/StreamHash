@@ -31,7 +31,7 @@
 ### Installation
 
 ```bash
-dotnet add package StreamHash --version 1.11.1
+dotnet add package StreamHash --version 1.11.2
 ```
 
 ### One-Shot Hashing (Simplest)
