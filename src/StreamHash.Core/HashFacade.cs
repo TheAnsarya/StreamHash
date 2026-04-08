@@ -737,14 +737,14 @@ public static class HashFacade {
 	}
 
 	/// <summary>
-	/// Creates a specialized batch streaming context for the four most common hash algorithms.
+	/// Creates a specialized batch streaming context for the five most common hash algorithms.
 	/// This is optimized for the common use case of verifying file integrity with standard hashes.
 	/// </summary>
-	/// <returns>A streaming context for CRC32, MD5, SHA-1, and SHA-256.</returns>
+	/// <returns>A streaming context for CRC32, MD5, SHA-1, SHA-256, and SHA-512.</returns>
 	/// <remarks>
 	/// <para>
-	/// This method provides a convenient way to compute the four most commonly used hash algorithms
-	/// for file verification and integrity checking: CRC32, MD5, SHA-1, and SHA-256.
+	/// This method provides a convenient way to compute the five most commonly used hash algorithms
+	/// for file verification and integrity checking: CRC32, MD5, SHA-1, SHA-256, and SHA-512.
 	/// It's significantly faster than computing all 70 algorithms when you only need these basic hashes.
 	/// </para>
 	/// <para>
@@ -760,8 +760,8 @@ public static class HashFacade {
 	/// </remarks>
 	/// <example>
 	/// <code>
-	/// // Hash a file with the 4 basic algorithms
-	/// using var basicHasher = HashFacade.CreateBasicHashesStreaming();
+	/// // Hash a file with the 5 basic common algorithms
+	/// using var basicHasher = HashFacade.CreateBasicCommonHashesStreaming();
 	/// using var stream = File.OpenRead("download.zip");
 	/// var buffer = new byte[16 * 1024 * 1024];  // 16MB buffer
 	/// int bytesRead;
@@ -773,10 +773,19 @@ public static class HashFacade {
 	/// Console.WriteLine($"MD5:    {results["MD5"]}");
 	/// Console.WriteLine($"SHA-1:  {results["SHA-1"]}");
 	/// Console.WriteLine($"SHA-256: {results["SHA-256"]}");
+	/// Console.WriteLine($"SHA-512: {results["SHA-512"]}");
 	/// </code>
 	/// </example>
-	public static IMultiStreamingHashBytes CreateBasicHashesStreaming() {
+	public static IMultiStreamingHashBytes CreateBasicCommonHashesStreaming() {
 		return new Implementation.MultiStreamingHashBytes(HashAlgorithmNames.BasicHashes);
+	}
+
+	/// <summary>
+	/// Creates a specialized batch streaming context for the common basic hash set.
+	/// </summary>
+	/// <returns>A streaming context for CRC32, MD5, SHA-1, SHA-256, and SHA-512.</returns>
+	public static IMultiStreamingHashBytes CreateBasicHashesStreaming() {
+		return CreateBasicCommonHashesStreaming();
 	}
 
 	#endregion

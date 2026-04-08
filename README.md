@@ -92,14 +92,14 @@ Dictionary<string, string> results = multi.FinalizeAll();
 // ... all 70 algorithms
 ```
 
-### Basic Hashes — The 4 Most Common
+### Basic Common Hashes — The 5 Most Common
 
-For the common case of verifying files with CRC32, MD5, SHA-1, and SHA-256:
+For the common case of verifying files with CRC32, MD5, SHA-1, SHA-256, and SHA-512:
 
 ```csharp
 using StreamHash.Core;
 
-using var basicHasher = HashFacade.CreateBasicHashesStreaming();
+using var basicHasher = HashFacade.CreateBasicCommonHashesStreaming();
 using var stream = File.OpenRead("download.zip");
 
 var buffer = new byte[16 * 1024 * 1024];
@@ -113,6 +113,7 @@ Console.WriteLine($"CRC32:   {results[HashAlgorithmNames.Crc32]}");
 Console.WriteLine($"MD5:     {results[HashAlgorithmNames.Md5]}");
 Console.WriteLine($"SHA-1:   {results[HashAlgorithmNames.Sha1]}");
 Console.WriteLine($"SHA-256: {results[HashAlgorithmNames.Sha256]}");
+Console.WriteLine($"SHA-512: {results[HashAlgorithmNames.Sha512]}");
 ```
 
 **Tip**: Use `HashAlgorithmNames` constants instead of string literals to avoid typos!

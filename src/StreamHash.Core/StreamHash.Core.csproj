@@ -6,7 +6,7 @@
 
 		<!-- Package metadata -->
 		<PackageId>StreamHash</PackageId>
-	<Version>1.11.2</Version>
+	<Version>1.11.3</Version>
 	<Authors>TheAnsarya</Authors>
 	<Company>TheAnsarya</Company>
 	<Description>High-performance streaming hash library for .NET 10. All 70 algorithms implemented natively in pure C# with zero heavy dependencies. Features MurmurHash3, CityHash, SpookyHash, SipHash, FarmHash, HighwayHash, MetroHash, KangarooTwelve, wyhash, xxHash, plus complete cryptographic suite (SHA-3, BLAKE, Keccak, RIPEMD, Whirlpool, Tiger, GOST, Streebog, Skein, SM3, Grøstl, JH). Unified HashFacade API with batch streaming for parallel multi-algorithm processing. SIMD-optimized: Grøstl (AES-NI), JH (SSSE3), HighwayHash (AVX2), CRC-32C (SSE4.2), BLAKE2b (AVX2). 1853+ tests, 20 algorithms faster than BouncyCastle.</Description>
@@ -18,7 +18,7 @@
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<PackageIcon>icon.png</PackageIcon>
 	<Copyright>Public Domain - The Unlicense</Copyright>
-	<PackageReleaseNotes>v1.11.2: Fixed benchmark chunk sizes to use realistic I/O sizes. Added chunk-size matrix benchmarks for optimal performance analysis. All 70 algorithms benchmarked with realistic 1MB chunks instead of unrealistic 16MB chunks.</PackageReleaseNotes>
+	<PackageReleaseNotes>v1.11.3: Basic common hash API now computes CRC32, MD5, SHA-1, SHA-256, and SHA-512. Added CreateBasicCommonHashesStreaming() API, updated BasicHashes set to include SHA-512, and integrated downstream HashNow basic-mode compatibility improvements.</PackageReleaseNotes>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<!-- Source Link for debugging -->

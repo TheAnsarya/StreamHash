@@ -315,11 +315,11 @@ public static class HashAlgorithmNames {
 	];
 
 	/// <summary>
-	/// The four most common hash algorithms for file verification.
-	/// Used by <see cref="HashFacade.CreateBasicHashesStreaming()"/>.
+	/// The five most common hash algorithms for file verification.
+	/// Used by <see cref="HashFacade.CreateBasicCommonHashesStreaming()"/>.
 	/// </summary>
 	public static readonly string[] BasicHashes = [
-		Crc32, Md5, Sha1, Sha256
+		Crc32, Md5, Sha1, Sha256, Sha512
 	];
 
 	/// <summary>

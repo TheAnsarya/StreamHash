@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.3] - 2026-04-08
+
+### Added
+
+- `HashFacade.CreateBasicCommonHashesStreaming()` for the common verification set.
+	- Includes: CRC32, MD5, SHA-1, SHA-256, SHA-512.
+
+### Changed
+
+- `HashAlgorithmNames.BasicHashes` now includes `SHA-512` (5 algorithms total).
+- `HashFacade.CreateBasicHashesStreaming()` remains available as a backward-compatible alias and now returns the 5-algorithm basic common set.
+- Batch streaming tests updated for the 5-algorithm basic common set.
+
 ## [1.11.2] - 2026-03-18
 
 ### Changed
