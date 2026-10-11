@@ -165,6 +165,7 @@ Full benchmark data with detailed comparisons at all data sizes: **[Performance 
 - [📋 Reference Hash Values](docs/reference-hashes.md) — test vectors and expected outputs
 - [📦 NuGet Publishing](docs/NUGET_PUBLISHING.md) — package build and release process
 - [📝 Changelog](CHANGELOG.md) — version history and release notes
+- [Session Log - 2026-10-10](~docs/session-logs/2026-10-10-session-01.md) — dependency refresh and v1.11.4 release
 
 ### Algorithm Documentation
 
