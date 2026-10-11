@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.4] - 2026-10-10
+
+### Changed
+
+- Updated Blake3 to 3.0.2 and System.IO.Hashing to 10.0.12.
+- Updated test and benchmark dependencies to current stable versions.
+
 ## [1.11.3] - 2026-04-08
 
 ### Added
